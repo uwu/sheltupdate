@@ -1,9 +1,9 @@
-import axios from 'axios';
+import axios from "axios";
 
-global.app.get('/guapi/goosemod/dev', async (req, res) => {
-  const prox = await axios.get(`https://github.com/GooseMod/GooseMod/releases/download/dev/index.js`, {});
+global.app.get("/guapi/goosemod/dev", async (req, res) => {
+	const prox = await axios.get(`https://github.com/GooseMod/GooseMod/releases/download/dev/index.js`, {});
 
-  res.header('Access-Control-Allow-Origin', '*')
+	res.header("Access-Control-Allow-Origin", "*");
 
-  res.send(prox.data);
+	res.send(prox.data);
 });

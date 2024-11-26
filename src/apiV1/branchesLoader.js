@@ -1,27 +1,27 @@
-import { readFileSync } from 'fs';
-import { join } from 'path';
-import { createHash } from 'crypto';
+import { readFileSync } from "fs";
+import { join } from "path";
+import { createHash } from "crypto";
 
-import glob from 'glob';
+import glob from "glob";
 
 export let branches = {};
 global.branches = branches;
 
-const sha256 = (data) => createHash('sha256').update(data).digest('hex');
+const sha256 = (data) => createHash("sha256").update(data).digest("hex");
 
-export const init =  () => {
-  const dirs = glob.sync(join(global.srcDir, '..', 'branches', '*', '*'));
+export const init = () => {
+	const dirs = glob.sync(join(global.srcDir, "..", "branches", "*", "*"));
 
-  console.log('Loading branches...', dirs);
+	console.log("Loading branches...", dirs);
 
-  for (let d of dirs) {
-    const splits = d.split('/');
+	for (let d of dirs) {
+		const splits = d.split("/");
 
-    const name = splits.pop();
-    const type = splits.pop();
-  
-    //const filePaths = glob.sync(`${d}/**/*`).filter((x) => x.match(/.*\..*$/));
-    /*
+		const name = splits.pop();
+		const type = splits.pop();
+
+		//const filePaths = glob.sync(`${d}/**/*`).filter((x) => x.match(/.*\..*$/));
+		/*
     console.log(name, filePaths);
 
     let files = [];
@@ -33,72 +33,72 @@ export const init =  () => {
       });
     }*/
 
-    let files = glob.sync(`${d}/*`);
+		let files = glob.sync(`${d}/*`);
 
-    let patch = '';
-    for (const f of files) {
-      const filename = f.split('/').pop();
+		let patch = "";
+		for (const f of files) {
+			const filename = f.split("/").pop();
 
-      if (filename === 'patch.js') {
-        patch = readFileSync(f, 'utf8');
-        files.splice(files.indexOf(f), 1);
-      }
-    }
+			if (filename === "patch.js") {
+				patch = readFileSync(f, "utf8");
+				files.splice(files.indexOf(f), 1);
+			}
+		}
 
-    let fileHashes = [];
+		let fileHashes = [];
 
-    for (const f of glob.sync(`${d}/**/*.*`)) {
-      const content = readFileSync(f);
+		for (const f of glob.sync(`${d}/**/*.*`)) {
+			const content = readFileSync(f);
 
-      const baseHash = sha256(content);
+			const baseHash = sha256(content);
 
-      fileHashes.push(baseHash);
-    }
+			fileHashes.push(baseHash);
+		}
 
-    const version = parseInt(sha256(fileHashes.join(' ')).substring(0, 2), 16);
+		const version = parseInt(sha256(fileHashes.join(" ")).substring(0, 2), 16);
 
-    branches[name] = {
-      files,
-      patch,
-      version,
-      type
-    };
+		branches[name] = {
+			files,
+			patch,
+			version,
+			type,
+		};
 
-    console.log(d, branches[name]);
-  }
+		console.log(d, branches[name]);
+	}
 
-  console.log('\nCreating mixed branches...');
+	console.log("\nCreating mixed branches...");
 
-  const branchNames = Object.keys(branches);
+	const branchNames = Object.keys(branches);
 
-  let combinations = [[]];
+	let combinations = [[]];
 	for (const value of branchNames) {
 		const copy = [...combinations];
 		for (const prefix of copy) {
 			combinations.push(prefix.concat(value));
 		}
-  }
-  
-  combinations = combinations.filter((x) => x.length > 1);
+	}
 
-  for (const original of combinations) {
-    const reverse = original.slice().reverse();
+	combinations = combinations.filter((x) => x.length > 1);
 
-    for (const c of [reverse, original]) {
-      const key = c.join('+');
+	for (const original of combinations) {
+		const reverse = original.slice().reverse();
 
-      const b = c.map((x) => branches[x]);
+		for (const c of [reverse, original]) {
+			const key = c.join("+");
 
-      const res = {
-        files: b.map((x) => x.files).reduce((x, a) => a.concat(x), []),
-        patch: b.map((x) => x.patch).reduce((x, a) => `${x}\n${a}`, ''),
-        version: parseInt(b.map((x) => x.version).reduce((x, a) => `${x}0${a}`)),
-        type: 'mixed'
-      };
+			const b = c.map((x) => branches[x]);
 
-      branches[key] = res;
-    }
-  }
+			const res = {
+				files: b.map((x) => x.files).reduce((x, a) => a.concat(x), []),
+				patch: b.map((x) => x.patch).reduce((x, a) => `${x}\n${a}`, ""),
+				version: parseInt(b.map((x) => x.version).reduce((x, a) => `${x}0${a}`)),
+				type: "mixed",
+			};
 
-  // console.log(branches);
+			branches[key] = res;
+		}
+	}
+
+	// console.log(branches);
 };

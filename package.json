@@ -1,21 +1,21 @@
 {
-  "name": "sheltupdate",
-  "private": true,
-  "description": "A modern fork of GooseUpdate to inject shelter with.",
-  "main": "src/index.js",
-  "scripts": {},
-  "author": "GooseMod, Yellowsink",
-  "license": "MIT",
-  "dependencies": {
-    "archiver": "^5.0.2",
-    "axios": "^0.21.0",
-    "fastify": "^3.13.0",
-    "glob": "^7.1.6",
-    "http-proxy-middleware": "^1.0.6",
-    "pino-pretty": "^4.7.0",
-    "spdy": "^4.0.2",
-    "tar": "^6.0.5",
-    "unzipper": "^0.10.11"
-  },
-  "type": "module"
+	"name": "sheltupdate",
+	"private": true,
+	"description": "A modern fork of GooseUpdate to inject shelter with.",
+	"main": "src/index.js",
+	"scripts": {},
+	"author": "GooseMod, Yellowsink",
+	"license": "MIT",
+	"dependencies": {
+		"archiver": "^5.0.2",
+		"axios": "^0.21.0",
+		"fastify": "^3.13.0",
+		"glob": "^7.1.6",
+		"http-proxy-middleware": "^1.0.6",
+		"pino-pretty": "^4.7.0",
+		"spdy": "^4.0.2",
+		"tar": "^6.0.5",
+		"unzipper": "^0.10.11"
+	},
+	"type": "module"
 }

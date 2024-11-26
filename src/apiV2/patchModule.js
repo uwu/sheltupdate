@@ -1,196 +1,206 @@
-import { Readable } from 'stream';
-import { createHash } from 'crypto';
+import { Readable } from "stream";
+import { createHash } from "crypto";
 
-import { mkdirSync, writeFileSync, readFileSync, readdirSync, lstatSync, copyFileSync } from 'fs';
-import { join, resolve } from 'path';
+import { mkdirSync, writeFileSync, readFileSync, readdirSync, lstatSync, copyFileSync } from "fs";
+import { join, resolve } from "path";
 
-import tar from 'tar';
-import axios from 'axios';
+import tar from "tar";
+import axios from "axios";
 
-import { brotliDecompressSync, brotliCompressSync } from 'zlib';
+import { brotliDecompressSync, brotliCompressSync } from "zlib";
 
-const cacheBase = '../cache';
+const cacheBase = "../cache";
 
 const desktopCoreBase = `module.exports = require('./core.asar');`;
 
 let cache = {
-  patched: {},
-  created: {}
+	patched: {},
+	created: {},
 };
 
-const sha256 = (data) => createHash('sha256').update(data).digest('hex');
+const sha256 = (data) => createHash("sha256").update(data).digest("hex");
 
 const getCacheName = (moduleName, moduleVersion, branchName) => `${branchName}-${moduleName}-${moduleVersion}`;
 
-const download = async (url) => (await axios.get(url, {
-  responseType: 'arraybuffer'
-})).data;
+const download = async (url) =>
+	(
+		await axios.get(url, {
+			responseType: "arraybuffer",
+		})
+	).data;
 
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const getBufferFromStream = async (stream) => {
-  const chunks = [];
-  
-  stream.read();
-  
-  return await new Promise((resolve, reject) => {
-    stream.on('data', chunk => chunks.push(chunk))
-    stream.on('error', reject)
-    stream.on('end', () => resolve(Buffer.concat(chunks)))
-  });
+	const chunks = [];
+
+	stream.read();
+
+	return await new Promise((resolve, reject) => {
+		stream.on("data", (chunk) => chunks.push(chunk));
+		stream.on("error", reject);
+		stream.on("end", () => resolve(Buffer.concat(chunks)));
+	});
 };
 
 export const createModule = async (branchName, branch) => {
-  const moduleName = `goose_${branchName}`;
-  const cacheName = getCacheName(moduleName, branch.version, 'custom');
+	const moduleName = `goose_${branchName}`;
+	const cacheName = getCacheName(moduleName, branch.version, "custom");
 
-  const cached = cache.created[cacheName];
-  if (cached) return cached.hash;
+	const cached = cache.created[cacheName];
+	if (cached) return cached.hash;
 
-  const eDir = `${cacheBase}/${cacheName}/extract`;
-  mkdirSync(eDir, { recursive: true });
-  mkdirSync(`${eDir}/files`);
+	const eDir = `${cacheBase}/${cacheName}/extract`;
+	mkdirSync(eDir, { recursive: true });
+	mkdirSync(`${eDir}/files`);
 
-  let deltaManifest = {
-    manifest_version: 1,
-    files: {}
-  };
+	let deltaManifest = {
+		manifest_version: 1,
+		files: {},
+	};
 
-  let files = [];
+	let files = [];
 
-  function copyFolderSync(from, to) {
-    mkdirSync(to);
-    readdirSync(from).forEach(element => {
-      const outPath = resolve(join(to, element));
-      if (lstatSync(join(from, element)).isFile()) {
-        files.push(outPath);
-        copyFileSync(join(from, element), outPath);
-      } else {
-        copyFolderSync(join(from, element), outPath);
-      }
-    });
-  }
-  
-  for (let f of branch.files) {
-    if (lstatSync(f).isDirectory()) {
-      copyFolderSync(f, `${eDir}/files/${f.split('/').pop()}`)
-    } else {
-      const outPath = `${eDir}/files/${f.split('/').pop()}`;
-      
-      files.push(outPath);
-      copyFileSync(f, outPath);
-    }
-  }
+	function copyFolderSync(from, to) {
+		mkdirSync(to);
+		readdirSync(from).forEach((element) => {
+			const outPath = resolve(join(to, element));
+			if (lstatSync(join(from, element)).isFile()) {
+				files.push(outPath);
+				copyFileSync(join(from, element), outPath);
+			} else {
+				copyFolderSync(join(from, element), outPath);
+			}
+		});
+	}
 
-  writeFileSync(`${eDir}/files/index.js`, branch.patch);
+	for (let f of branch.files) {
+		if (lstatSync(f).isDirectory()) {
+			copyFolderSync(f, `${eDir}/files/${f.split("/").pop()}`);
+		} else {
+			const outPath = `${eDir}/files/${f.split("/").pop()}`;
 
-  files.push(resolve(`${eDir}/files/index.js`));
+			files.push(outPath);
+			copyFileSync(f, outPath);
+		}
+	}
 
-  for (let f of files) {
-    const key = f.replace(/\\/g, '/').replace(new RegExp(`${eDir.replace('+', '\\+').replace('..', '.*')}/files/`), '');
+	writeFileSync(`${eDir}/files/index.js`, branch.patch);
 
-    deltaManifest.files[key] = {
-      New: {
-        Sha256: sha256(readFileSync(f))
-      }
-    };
+	files.push(resolve(`${eDir}/files/index.js`));
 
-    console.log(key, deltaManifest.files[key].New.Sha256);
-  }
+	for (let f of files) {
+		const key = f
+			.replace(/\\/g, "/")
+			.replace(new RegExp(`${eDir.replace("+", "\\+").replace("..", ".*")}/files/`), "");
 
-  writeFileSync(`${eDir}/delta_manifest.json`, JSON.stringify(deltaManifest));
+		deltaManifest.files[key] = {
+			New: {
+				Sha256: sha256(readFileSync(f)),
+			},
+		};
 
-  const tarStream = tar.c(
-    {
-      cwd: eDir
-    },
-    [
-      'delta_manifest.json',
-      ...(files.map((x) => x.replace(/\\/g, '/').replace(new RegExp(`${eDir.replace('+', '\\+').replace('..', '.*')}/`), '')))
-    ]
-  );
+		console.log(key, deltaManifest.files[key].New.Sha256);
+	}
 
-  const tarBuffer = await getBufferFromStream(tarStream);
+	writeFileSync(`${eDir}/delta_manifest.json`, JSON.stringify(deltaManifest));
 
-  const final = brotliCompressSync(tarBuffer);
+	const tarStream = tar.c(
+		{
+			cwd: eDir,
+		},
+		[
+			"delta_manifest.json",
+			...files.map((x) =>
+				x.replace(/\\/g, "/").replace(new RegExp(`${eDir.replace("+", "\\+").replace("..", ".*")}/`), ""),
+			),
+		],
+	);
 
-  console.log(final);
+	const tarBuffer = await getBufferFromStream(tarStream);
 
-  const finalHash = sha256(final);
+	const final = brotliCompressSync(tarBuffer);
 
-  cache.created[cacheName] = {
-    hash: finalHash,
-    final
-  };
+	console.log(final);
 
-  return finalHash;
+	const finalHash = sha256(final);
+
+	cache.created[cacheName] = {
+		hash: finalHash,
+		final,
+	};
+
+	return finalHash;
 };
 
 export const patch = async (m, branchName) => {
-  const cacheName = getCacheName('discord_desktop_core', m.module_version, branchName);
-  
-  console.log('patch', cache, cacheName);
+	const cacheName = getCacheName("discord_desktop_core", m.module_version, branchName);
 
-  const cached = cache.patched[cacheName];
-  if (cached) return cached.hash;
-  
-  const branch = branches[branchName];
-  
-  console.log(m.url);
-  
-  const data = await download(m.url);
-  const brotli = brotliDecompressSync(data);
-  
-  const stream = Readable.from(brotli);
+	console.log("patch", cache, cacheName);
 
-  const eDir = `${cacheBase}/${cacheName}/extract`;
-  mkdirSync(eDir, { recursive: true });
+	const cached = cache.patched[cacheName];
+	if (cached) return cached.hash;
 
-  const xTar = stream.pipe(
-    tar.x({
-      cwd: eDir
-    })
-  );
+	const branch = branches[branchName];
 
-  console.log('extracting');
+	console.log(m.url);
 
-  await new Promise((res) => {
-    xTar.on('finish', () => res());
-  });
+	const data = await download(m.url);
+	const brotli = brotliDecompressSync(data);
 
-  // await sleep(3000);
+	const stream = Readable.from(brotli);
 
-  console.log('extracted');
+	const eDir = `${cacheBase}/${cacheName}/extract`;
+	mkdirSync(eDir, { recursive: true });
 
-  console.log('patching extracted files');
+	const xTar = stream.pipe(
+		tar.x({
+			cwd: eDir,
+		}),
+	);
 
-  let deltaManifest = JSON.parse(readFileSync(`${eDir}/delta_manifest.json`));
+	console.log("extracting");
 
-  const moddedIndex = `${branchName.split('+').map((x) => `require('../../goose_${x}-${branches[x].version}/goose_${x}/index.js');`).join('\n')}
+	await new Promise((res) => {
+		xTar.on("finish", () => res());
+	});
+
+	// await sleep(3000);
+
+	console.log("extracted");
+
+	console.log("patching extracted files");
+
+	let deltaManifest = JSON.parse(readFileSync(`${eDir}/delta_manifest.json`));
+
+	const moddedIndex = `${branchName
+		.split("+")
+		.map((x) => `require('../../goose_${x}-${branches[x].version}/goose_${x}/index.js');`)
+		.join("\n")}
 
 ${desktopCoreBase}`;
-//`${branch.patch}\n\n${desktopCoreBase};
+	//`${branch.patch}\n\n${desktopCoreBase};
 
-  deltaManifest.files['index.js'].New.Sha256 = sha256(moddedIndex);
+	deltaManifest.files["index.js"].New.Sha256 = sha256(moddedIndex);
 
-  console.log('adding extra branch files');
+	console.log("adding extra branch files");
 
-  let files = [];
+	let files = [];
 
-  function copyFolderSync(from, to) {
-    mkdirSync(to);
-    readdirSync(from).forEach(element => {
-      const outPath = resolve(join(to, element));
-      if (lstatSync(join(from, element)).isFile()) {
-        files.push(outPath);
-        copyFileSync(join(from, element), outPath);
-      } else {
-        copyFolderSync(join(from, element), outPath);
-      }
-    });
-  }
-  
-  /* for (let f of branch.files) {
+	function copyFolderSync(from, to) {
+		mkdirSync(to);
+		readdirSync(from).forEach((element) => {
+			const outPath = resolve(join(to, element));
+			if (lstatSync(join(from, element)).isFile()) {
+				files.push(outPath);
+				copyFileSync(join(from, element), outPath);
+			} else {
+				copyFolderSync(join(from, element), outPath);
+			}
+		});
+	}
+
+	/* for (let f of branch.files) {
     if (lstatSync(f).isDirectory()) {
       copyFolderSync(f, `${eDir}/files/${f.split('/').pop()}`)
     } else {
@@ -211,34 +221,34 @@ ${desktopCoreBase}`;
     console.log(key, deltaManifest.files[key].New.Sha256);
   } */
 
-  console.log(deltaManifest);
+	console.log(deltaManifest);
 
-  console.log('writing patched files');
+	console.log("writing patched files");
 
-  writeFileSync(`${eDir}/delta_manifest.json`, JSON.stringify(deltaManifest));
+	writeFileSync(`${eDir}/delta_manifest.json`, JSON.stringify(deltaManifest));
 
-  writeFileSync(`${eDir}/files/index.js`, moddedIndex);
+	writeFileSync(`${eDir}/files/index.js`, moddedIndex);
 
-  console.log('creating new tar');
+	console.log("creating new tar");
 
-  const tarStream = tar.c(
-    {
-      cwd: eDir
-    },
-    [
-      'delta_manifest.json',
-      'files/core.asar',
-      'files/index.js',
-      'files/package.json',
-      //...(files.map((x) => x.replace(/\\/g, '/').replace(new RegExp(`${eDir.replace('+', '\\+').replace('..', '.*')}/`), '')))
-    ]
-  );
+	const tarStream = tar.c(
+		{
+			cwd: eDir,
+		},
+		[
+			"delta_manifest.json",
+			"files/core.asar",
+			"files/index.js",
+			"files/package.json",
+			//...(files.map((x) => x.replace(/\\/g, '/').replace(new RegExp(`${eDir.replace('+', '\\+').replace('..', '.*')}/`), '')))
+		],
+	);
 
-  const tarBuffer = await getBufferFromStream(tarStream);
+	const tarBuffer = await getBufferFromStream(tarStream);
 
-  const final = brotliCompressSync(tarBuffer);
+	const final = brotliCompressSync(tarBuffer);
 
-  /*let deltaManifest = await new Promise((resolve, reject) => {
+	/*let deltaManifest = await new Promise((resolve, reject) => {
     stream.pipe(
       tar.t({
         onentry: async (entry) => {
@@ -278,38 +288,42 @@ ${desktopCoreBase}`;
 
   const final = brotliCompressSync(readFileSync(`${cacheBase}/${cacheName}/tar.tar`));*/
 
-  console.log(final);
+	console.log(final);
 
-  const finalHash = sha256(final);
+	const finalHash = sha256(final);
 
-  cache.patched[cacheName] = {
-    hash: finalHash,
-    final
-  };
+	cache.patched[cacheName] = {
+		hash: finalHash,
+		final,
+	};
 
-  return finalHash;
+	return finalHash;
 };
 
 export const getCustomFinal = (req) => {
-  const cached = cache.created[getCacheName(req.params.moduleName, branches[req.params.moduleName.substring(6)].version, 'custom')];
+	const cached =
+		cache.created[
+			getCacheName(req.params.moduleName, branches[req.params.moduleName.substring(6)].version, "custom")
+		];
 
-  if (!cached) {
-    return;
-  }
+	if (!cached) {
+		return;
+	}
 
-  return cached.final;
+	return cached.final;
 };
 
 export const getFinal = (req) => {
-  const cached = cache.patched[getCacheName(req.params.moduleName, req.params.moduleVersion, req.params.branch)];
-  
-  console.log('getFinal', cache, getCacheName(req.params.moduleName, req.params.moduleVersion, req.params.branch));
+	const cached = cache.patched[getCacheName(req.params.moduleName, req.params.moduleVersion, req.params.branch)];
 
-  if (!cached) { // uhhh it should always be
-    return;
-  }
+	console.log("getFinal", cache, getCacheName(req.params.moduleName, req.params.moduleVersion, req.params.branch));
 
-  return cached.final;
+	if (!cached) {
+		// uhhh it should always be
+		return;
+	}
+
+	return cached.final;
 };
 
 // export const getChecksum = async (m, branch) => sha256(await patch(m, branch));

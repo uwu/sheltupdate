@@ -1,6 +1,6 @@
-const { session } = require('electron');
-const { join } = require('path');
+const { session } = require("electron");
+const { join } = require("path");
 
 setImmediate(() => {
-  session.defaultSession.loadExtension(join(__dirname, 'ext'));
+	session.defaultSession.loadExtension(join(__dirname, "ext"));
 });

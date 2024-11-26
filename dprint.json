@@ -1,0 +1,15 @@
+{
+	"lineWidth": 120,
+	"useTabs": true,
+	"indentWidth": 3,
+
+	"biome": {},
+	"yaml": {},
+	"markup": {},
+	"excludes": ["pnpm-lock.yaml", "**/node_modules"],
+	"plugins": [
+		"https://plugins.dprint.dev/g-plane/markup_fmt-v0.13.0.wasm",
+		"https://plugins.dprint.dev/g-plane/pretty_yaml-v0.5.0.wasm",
+		"https://plugins.dprint.dev/biome-0.6.0.wasm"
+	]
+}

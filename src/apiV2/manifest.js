@@ -1,72 +1,75 @@
-import basicProxy from '../generic/proxy/index.js';
-import { patch, createModule } from './patchModule.js';
+import basicProxy from "../generic/proxy/index.js";
+import { patch, createModule } from "./patchModule.js";
 
-const base = global.config.apiBases?.v2 || 'https://discord.com/api/updates';
+const base = global.config.apiBases?.v2 || "https://discord.com/api/updates";
 const host = process.argv[2] ? `http://localhost:${process.argv[2]}` : `https://updates.goosemod.com`;
 
 // https://discord.com/api/updates/distributions/app/manifests/latest?channel=canary&platform=win&arch=x86
 
-global.app.get('/:branch/distributions/app/manifests/latest', async (req, res) => {
-  if (!branches[req.params.branch]) {
-    res.status(404);
+global.app.get("/:branch/distributions/app/manifests/latest", async (req, res) => {
+	if (!branches[req.params.branch]) {
+		res.status(404);
 
-    res.send('Invalid GooseUpdate branch');
-    return;
-  }
+		res.send("Invalid GooseUpdate branch");
+		return;
+	}
 
-  requestCounts.v2_manifest++;
+	requestCounts.v2_manifest++;
 
-  const ip = req.headers['cf-connecting-ip'] ?? req.ip; // Cloudflare IP
+	const ip = req.headers["cf-connecting-ip"] ?? req.ip; // Cloudflare IP
 
-  uniqueUsers[ip] = {
-    platform: req.query.platform,
-    host_version: 'unknown',
-    channel: req.query.channel,
-    branch: req.params.branch,
-    apiVersion: 'v2',
-    time: Date.now()
-  };
+	uniqueUsers[ip] = {
+		platform: req.query.platform,
+		host_version: "unknown",
+		channel: req.query.channel,
+		branch: req.params.branch,
+		apiVersion: "v2",
+		time: Date.now(),
+	};
 
-  let json = JSON.parse(JSON.stringify((await basicProxy(req, res, {}, undefined, base)).data));
+	let json = JSON.parse(JSON.stringify((await basicProxy(req, res, {}, undefined, base)).data));
 
-  const branchModules = req.params.branch.split('+').map((x) => `goose_${x}`);
+	const branchModules = req.params.branch.split("+").map((x) => `goose_${x}`);
 
-  json.required_modules = json.required_modules.concat(branchModules);
+	json.required_modules = json.required_modules.concat(branchModules);
 
-  const currentHostVersion = json.modules['discord_desktop_core'].full.host_version;
+	const currentHostVersion = json.modules["discord_desktop_core"].full.host_version;
 
-  for (let m of branchModules) {
-    json.modules[m] = {
-      full: {
-        host_version: currentHostVersion,
-        module_version: branches[m.substring(6)].version,
-        package_sha256: await createModule(m.substring(6), branches[m.substring(6)]),
-        url: `${host}/custom_module/${m}/full.distro`
-      },
-      deltas: []
-    };
-  }
+	for (let m of branchModules) {
+		json.modules[m] = {
+			full: {
+				host_version: currentHostVersion,
+				module_version: branches[m.substring(6)].version,
+				package_sha256: await createModule(m.substring(6), branches[m.substring(6)]),
+				url: `${host}/custom_module/${m}/full.distro`,
+			},
+			deltas: [],
+		};
+	}
 
-  console.log(json);
+	console.log(json);
 
-  json.modules.discord_desktop_core.deltas = []; // Remove deltas
+	json.modules.discord_desktop_core.deltas = []; // Remove deltas
 
-  const oldVersion = json.modules.discord_desktop_core.full.module_version;
-  const newVersion = parseInt(`${branches[req.params.branch].version}${oldVersion.toString()}`);
+	const oldVersion = json.modules.discord_desktop_core.full.module_version;
+	const newVersion = parseInt(`${branches[req.params.branch].version}${oldVersion.toString()}`);
 
-  // Modify version to prefix branch's version
-  json.modules.discord_desktop_core.full.module_version = newVersion;
+	// Modify version to prefix branch's version
+	json.modules.discord_desktop_core.full.module_version = newVersion;
 
-  json.modules.discord_desktop_core.full.package_sha256 = await patch(json.modules.discord_desktop_core.full, req.params.branch);
+	json.modules.discord_desktop_core.full.package_sha256 = await patch(
+		json.modules.discord_desktop_core.full,
+		req.params.branch,
+	);
 
-  // Modify URL to use this host
-  json.modules.discord_desktop_core.full.url = `${host}/${req.params.branch}/${json.modules.discord_desktop_core.full.url.split('/').slice(3).join('/').replace(`${oldVersion}/full.distro`, `${newVersion}/full.distro`)}`;
+	// Modify URL to use this host
+	json.modules.discord_desktop_core.full.url = `${host}/${req.params.branch}/${json.modules.discord_desktop_core.full.url.split("/").slice(3).join("/").replace(`${oldVersion}/full.distro`, `${newVersion}/full.distro`)}`;
 
-  console.log(json.modules.discord_desktop_core);
+	console.log(json.modules.discord_desktop_core);
 
-  res.header('Content-Type', 'application/json');
+	res.header("Content-Type", "application/json");
 
-  res.send(JSON.stringify(json));
+	res.send(JSON.stringify(json));
 });
 
 /*

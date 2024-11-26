@@ -1,10 +1,10 @@
-import { getProxyURL } from './lib.js';
+import { getProxyURL } from "./lib.js";
 
 export default async (req, res, base = global.discordBase) => {
-  proxyVsRedirect.push('redirect');
+	proxyVsRedirect.push("redirect");
 
-  const proxyUrl = `${base}${getProxyURL(req.url)}`;
+	const proxyUrl = `${base}${getProxyURL(req.url)}`;
 
-  console.log(proxyUrl);
-  res.redirect(proxyUrl);
+	console.log(proxyUrl);
+	res.redirect(proxyUrl);
 };

@@ -1,1 +1,1 @@
-require('./betterdiscord.asar');
+require("./betterdiscord.asar");

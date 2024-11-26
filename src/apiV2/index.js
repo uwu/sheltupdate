@@ -1,2 +1,2 @@
-import { } from './manifest.js';
-import { } from './module.js';
+import {} from "./manifest.js";
+import {} from "./module.js";
