@@ -1,6 +1,8 @@
-const { session } = require("electron");
+{
+const {app, session} = require("electron");
 const { join } = require("path");
 
-setImmediate(() => {
-	session.defaultSession.loadExtension(join(__dirname, "ext"));
+app.whenReady().then(async () => {
+	await session.defaultSession.loadExtension(join(__dirname, "ext"));
 });
+}
