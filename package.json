@@ -1,10 +1,10 @@
 {
-  "name": "GooseUpdate",
-  "version": "0.1.0",
-  "description": "A HTTP server which replicates Discord's update API, proxying requests to the official endpoint and allows custom versions of modules.",
+  "name": "sheltupdate",
+  "private": true,
+  "description": "A modern fork of GooseUpdate to inject shelter with.",
   "main": "src/index.js",
   "scripts": {},
-  "author": "GooseMod",
+  "author": "GooseMod, Yellowsink",
   "license": "MIT",
   "dependencies": {
     "archiver": "^5.0.2",
