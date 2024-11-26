@@ -9,14 +9,14 @@ const host = process.argv[2] ? `http://localhost:${process.argv[2]}` : `https://
 global.app.get('/:branch/distributions/app/manifests/latest', async (req, res) => {
   if (!branches[req.params.branch]) {
     res.status(404);
-    
+
     res.send('Invalid GooseUpdate branch');
     return;
   }
 
   requestCounts.v2_manifest++;
 
-  const ip = req.headers['cf-connecting-ip']; // Cloudflare IP
+  const ip = req.headers['cf-connecting-ip'] ?? req.ip; // Cloudflare IP
 
   uniqueUsers[ip] = {
     platform: req.query.platform,
@@ -72,7 +72,7 @@ global.app.get('/:branch/distributions/app/manifests/latest', async (req, res) =
 /*
   - Similar to branches except this is way more general use
   - Formatted as JSON
-  
+
   - Method:
     - Proxy original request
     - Target: discord_desktop_core:
