@@ -6,6 +6,7 @@ cache
 
 /branches/mod/betterdiscord/betterdiscord.asar
 /branches/mod/kernel/kernel.asar
+/branches/mod/vencord/vencord-desktop
 
 *.crt
 *.key

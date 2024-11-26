@@ -11,8 +11,9 @@ Check the [shelter documentation](https://github.com/uwu/shelter/blob/main/READM
 
 The uwu.network instance of sheltupdate hosts the branches exactly as found in this repository:
  - `shelter` - injects shelter
+ - `vencord` - injects vencord. currently cannot coexist with shelter (WIP)
+ - `betterdiscord` - injects BD.
  - `reactdevtools` - adds react dev tools to your client
- - `betterdiscord` - injects BD. this wasn't broken from GU, so don't fix it.
 
 # Deploying
 1. Install SheltUpdate's dependencies with `npm install`

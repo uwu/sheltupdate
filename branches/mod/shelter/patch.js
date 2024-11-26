@@ -1,3 +1,4 @@
+{
 const electron = require("electron");
 const path = require("path");
 const Module = require("module");
@@ -164,3 +165,4 @@ electron.app.name = originalPackage.name;
 Module._load(startPath, null, true);
 // #endregion
  */
+}
