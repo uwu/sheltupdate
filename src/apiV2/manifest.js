@@ -1,35 +1,36 @@
 import basicProxy from "../generic/proxy/index.js";
 import { patch, createModule } from "./patchModule.js";
+import {config} from "../config.js";
+import {branches} from "../branchesLoader.js";
+import {requestCounts, uniqueUsers} from "../state.js";
 
-const base = global.config.apiBases?.v2 || "https://discord.com/api/updates";
-const host = process.argv[2] ? `http://localhost:${process.argv[2]}` : `https://updates.goosemod.com`;
+const base = config.apiBases.v2;
+const host = config.host;
 
 // https://discord.com/api/updates/distributions/app/manifests/latest?channel=canary&platform=win&arch=x86
 
-global.app.get("/:branch/distributions/app/manifests/latest", async (req, res) => {
-	if (!branches[req.params.branch]) {
-		res.status(404);
-
-		res.send("Invalid GooseUpdate branch");
-		return;
+export const handleManifest = async (c) => {
+	const branch = c.req.param("branch");
+	if (!branches[branch]) {
+		return c.notFound("Invalid sheltupdate branch");
 	}
 
 	requestCounts.v2_manifest++;
 
-	const ip = req.headers["cf-connecting-ip"] ?? req.ip; // Cloudflare IP
+	const ip = c.req.header("cf-connecting-ip") ?? c.env.incoming.socket.remoteAddress;
 
 	uniqueUsers[ip] = {
-		platform: req.query.platform,
+		platform: c.req.query("platform"),
 		host_version: "unknown",
-		channel: req.query.channel,
-		branch: req.params.branch,
+		channel: c.req.query("channel"),
+		branch: branch,
 		apiVersion: "v2",
 		time: Date.now(),
 	};
 
-	let json = JSON.parse(JSON.stringify((await basicProxy(req, res, {}, undefined, base)).data));
+	let json = await basicProxy(c, {}, undefined, base).then(r => r.json());
 
-	const branchModules = req.params.branch.split("+").map((x) => `goose_${x}`);
+	const branchModules = branch.split("+").map((x) => `goose_${x}`);
 
 	json.required_modules = json.required_modules.concat(branchModules);
 
@@ -52,25 +53,23 @@ global.app.get("/:branch/distributions/app/manifests/latest", async (req, res) =
 	json.modules.discord_desktop_core.deltas = []; // Remove deltas
 
 	const oldVersion = json.modules.discord_desktop_core.full.module_version;
-	const newVersion = parseInt(`${branches[req.params.branch].version}${oldVersion.toString()}`);
+	const newVersion = parseInt(`${branches[branch].version}${oldVersion.toString()}`);
 
 	// Modify version to prefix branch's version
 	json.modules.discord_desktop_core.full.module_version = newVersion;
 
 	json.modules.discord_desktop_core.full.package_sha256 = await patch(
 		json.modules.discord_desktop_core.full,
-		req.params.branch,
+		branch,
 	);
 
 	// Modify URL to use this host
-	json.modules.discord_desktop_core.full.url = `${host}/${req.params.branch}/${json.modules.discord_desktop_core.full.url.split("/").slice(3).join("/").replace(`${oldVersion}/full.distro`, `${newVersion}/full.distro`)}`;
+	json.modules.discord_desktop_core.full.url = `${host}/${branch}/${json.modules.discord_desktop_core.full.url.split("/").slice(3).join("/").replace(`${oldVersion}/full.distro`, `${newVersion}/full.distro`)}`;
 
 	console.log(json.modules.discord_desktop_core);
 
-	res.header("Content-Type", "application/json");
-
-	res.send(JSON.stringify(json));
-});
+	return c.json(json);
+};
 
 /*
   - Similar to branches except this is way more general use

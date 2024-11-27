@@ -11,6 +11,6 @@ cache
 *.crt
 *.key
 
-config.js
+config.json
 
 .idea

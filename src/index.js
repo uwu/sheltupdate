@@ -1,81 +1,41 @@
-import fastify from "fastify";
+import {Hono} from "hono";
+import {logger} from "hono/logger";
+import {createMiddleware} from "hono/factory";
+import {serve} from "@hono/node-server";
 
-import { readFileSync, createReadStream } from "fs";
+import {config, version} from "./config.js";
+import {branches} from "./branchesLoader.js";
 
-import { dirname } from "path";
-import { fileURLToPath } from "url";
+// hono sub-routers
+//import apiV1 from "./apiV1";
+import apiV2 from "./apiV2/index.js";
 
-global.srcDir = dirname(fileURLToPath(import.meta.url));
+// kick off webhook
+import "./webhook.js";
 
-import config from "../config.js";
-global.config = config;
+const app = new Hono()
+	.use(logger())
+	.use(createMiddleware(async (c, next) => {
+		await next();
+		c.header("Server", `sheltupdate/r${version}`);
+	}))
+	.use(createMiddleware(async (c, next) => {
+		await next();
+		if (c.req.url.includes(".zip"))
+			c.header("Content-Type", "application/zip");
+	}))
+	//.route("/", apiV1)
+	.route("/", apiV2)
+	.get("/guapi/branches", async (c) => {
+		let ret = Object.keys(branches);
 
-console.log(config);
+		const type = c.req.query("type");
+		if (type) ret = ret.filter((x) => x.type === type);
 
-const fastifyOptions = {
-	caseSensitive: false,
-};
+		return c.json(ret);
+	});
 
-if (config.webserver?.https)
-	fastifyOptions.https = {
-		key: readFileSync(config.webserver.https.key),
-		cert: readFileSync(config.webserver.https.cert),
-	};
-
-if (config.experimental?.webserver?.http2?.enabled && config.webserver?.https) fastifyOptions.http2 = true;
-if (config.experimental?.webserver?.http2?.allowFallback && config.webserver?.https)
-	fastifyOptions.https.allowHTTP1 = true;
-
-const app = fastify(fastifyOptions);
-
-global.app = app;
-
-global.startTime = Date.now();
-global.version = "8.0.0";
-
-const port = process.argv[2] || 80;
-if (!process.argv[2]) console.log(`No port specified in args, using default: ${port}\n`);
-
-global.app.addHook("preHandler", (req, res, done) => {
-	console.log("[req]", req.url);
-	res.header("Server", `GooseUpdate v${version}`);
-
-	done();
+serve({
+	fetch: app.fetch,
+	port: config.port
 });
-
-global.app.decorateReply("sendFile", function (filename) {
-	const stream = createReadStream(filename);
-
-	let contentType = "";
-
-	switch (filename.split(".").pop()) {
-		case "zip":
-			contentType = "application/zip";
-			break;
-
-		default:
-			contentType = "text/plain";
-			break;
-	}
-
-	this.type(contentType).send(stream);
-});
-
-import("./webhook.js");
-
-(async function () {
-	console.log("Loading API v1...");
-	await import("./apiV1/index.js");
-
-	if (config.experimental?.apiV2Enabled) {
-		console.log("Loading API v2...");
-		await import("./apiV2/index.js");
-	}
-
-	if (config.guApi?.enabled || true) {
-		console.log("Loading GU API...");
-		await import("./guAPI/index.js");
-	}
-
-	app.listen(port, "0.0.0.0");
-})();

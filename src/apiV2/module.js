@@ -1,23 +1,16 @@
-import { getFinal, getCustomFinal } from "./patchModule.js";
+import {getCustomFinal, getFinal} from "./patchModule.js";
+import {requestCounts} from "../state.js";
+import {branches} from "../branchesLoader.js";
 
-global.app.get(
-	"/:branch/distro/app/:channel/:platform/:arch/:hostVersion/:moduleName/:moduleVersion/full.distro",
-	(req, res) => {
-		if (!branches[req.params.branch]) {
-			res.status(404);
-
-			res.send("Invalid GooseUpdate branch");
-			return;
+export const handleModule =
+	(c) => {
+		if (!branches[c.req.param("branch")]) {
+			return c.notFound("Invalid sheltupdate branch");
 		}
 
 		requestCounts.v2_module++;
 
-		const toSend = getFinal(req);
-		res.send(toSend);
-	},
-);
+		return c.body(getFinal(c.req));
+	};
 
-global.app.get("/custom_module/:moduleName/full.distro", (req, res) => {
-	const toSend = getCustomFinal(req);
-	res.send(toSend);
-});
+export const handleCustomModule = (c) => c.body(getCustomFinal(c.req))

@@ -1,0 +1,21 @@
+{
+	"port": 8080,
+	"host": "https://inject.shelter.uwu.network",
+	"proxy": {
+		"cache": {
+			"lastUsedRemoveHours": 1,
+			"maxMinutesToUseCached": 30
+		},
+		"useragent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) discord/0.0.76 Chrome/128.0.6613.186 Electron/32.2.2 Safari/537.36"
+	},
+	"apiBases": {
+		"v1": "https://discord.com/api",
+		"v2": "https://discord.com/api/updates"
+	},
+	"webhook": {
+		"enable": false,
+		"url": "https://discord.com/api/webhooks/X",
+		"username": "GooseUpdate",
+		"avatarUrl": "https://cdn.discordapp.com/avatars/760559484342501406/5125aff2f446ad7c45cf2dfd6abf92ed.png"
+	}
+}

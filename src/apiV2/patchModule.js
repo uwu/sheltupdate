@@ -7,6 +7,7 @@ import { join, resolve } from "path";
 import tar from "tar";
 
 import { brotliDecompressSync, brotliCompressSync } from "zlib";
+import {branches} from "../branchesLoader.js";
 
 const cacheBase = "../cache";
 
@@ -296,9 +297,10 @@ ${desktopCoreBase}`;
 };
 
 export const getCustomFinal = (req) => {
+	const moduleName = req.param("moduleName");
 	const cached =
 		cache.created[
-			getCacheName(req.params.moduleName, branches[req.params.moduleName.substring(6)].version, "custom")
+			getCacheName(moduleName, branches[moduleName.substring(6)].version, "custom")
 		];
 
 	if (!cached) {
@@ -309,9 +311,12 @@ export const getCustomFinal = (req) => {
 };
 
 export const getFinal = (req) => {
-	const cached = cache.patched[getCacheName(req.params.moduleName, req.params.moduleVersion, req.params.branch)];
+	const moduleName = req.param("moduleName");
+	const moduleVersion = req.param("moduleVersion");
+	const branchName = req.param("branch");
+	const cached = cache.patched[getCacheName(moduleName, moduleVersion, branchName)];
 
-	console.log("getFinal", cache, getCacheName(req.params.moduleName, req.params.moduleVersion, req.params.branch));
+	console.log("getFinal", cache, getCacheName(moduleName, moduleVersion, branchName));
 
 	if (!cached) {
 		// uhhh it should always be

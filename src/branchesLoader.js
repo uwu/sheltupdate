@@ -3,14 +3,14 @@ import { join } from "path";
 import { createHash } from "crypto";
 
 import glob from "glob";
+import {srcDir} from "./config.js";
 
 export let branches = {};
-global.branches = branches;
 
 const sha256 = (data) => createHash("sha256").update(data).digest("hex");
 
-export const init = () => {
-	const dirs = glob.sync(join(global.srcDir, "..", "branches", "*", "*"));
+const init = () => {
+	const dirs = glob.sync(join(srcDir, "..", "branches", "*", "*"));
 
 	console.log("Loading branches...", dirs);
 
@@ -102,3 +102,5 @@ export const init = () => {
 
 	// console.log(branches);
 };
+
+init();
