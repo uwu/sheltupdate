@@ -1,4 +1,5 @@
 import {config} from "./config.js";
+import {uniqueUsers} from "./state.js";
 
 if (config.webhook.enable) {
 	const url = config.webhook.url;
@@ -28,7 +29,7 @@ if (config.webhook.enable) {
 				fields: [
 					{
 						name: "Users",
-						value: Object.values(global.uniqueUsers).length,
+						value: Object.values(uniqueUsers).length,
 						inline: true,
 					},
 				],

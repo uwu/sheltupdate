@@ -16,10 +16,10 @@ import "./webhook.js";
 
 const app = new Hono()
 	.use(logger())
-	/*.use(createMiddleware(async (c, next) => {
+	.use(createMiddleware(async (c, next) => {
 		await next();
 		c.header("Server", `sheltupdate/r${version}`);
-	}))*/
+	}))
 	.route("/", apiV1)
 	.route("/", apiV2)
 	.get("/", handleDashboard)

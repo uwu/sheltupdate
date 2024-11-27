@@ -1,15 +1,20 @@
-# SheltUpdate
+# sheltupdate
 
-SheltUpdate is a fork of [GooseUpdate](https://github.com/goose-nest/gooseupdate),
-which replicates Discord's update API, but injecting mods or other tweaks while serving modules.
+sheltupdate is a fork of [GooseUpdate](https://github.com/goose-nest/gooseupdate),
+which replicates Discord's update API, and injects mods and tweaks into the served modules.
 
-This version has minor fixes to bring it up to date, and different branches, in line with its use for injecting shelter.
+Changes from GooseUpdate:
+ - Fixes to bring it up to date for 2024
+ - Different branches, for use with shelter
+ - Hugely refactored and converted to use much more modern technology
+	(axios -> fetch, fastify -> hono, etc.)
+ - (TODO) A more robust patch system that improves multi-mod support
 
 # Branches
 
 Check the [shelter documentation](https://github.com/uwu/shelter/blob/main/README.md) for install instructions.
 
-The uwu.network instance of sheltupdate hosts the branches exactly as found in this repository:
+The [uwu.network instance](https://inject.shelter.uwu.network) of sheltupdate hosts the branches exactly as found in this repository:
  - `shelter` - injects shelter
  - `vencord` - injects vencord. currently cannot coexist with shelter (WIP)
  - `betterdiscord` - injects BD.
@@ -17,7 +22,7 @@ The uwu.network instance of sheltupdate hosts the branches exactly as found in t
 
 # Deploying
 1. Install SheltUpdate's dependencies with `npm install`
-2. Copy `config.example.js` to `config.js` and modify it to your liking, then run `node src/index.js (PORT)`.
+2. Copy `config.example.json` to `config.json` and modify it to your liking, then run `node src/index.js`.
 
 # Usage
 Discord fetches the update API URL from a `settings.json` file stored in various directories depending on your operating system.
@@ -56,4 +61,12 @@ If other files are in the branch directory, they will be added the module direct
 
 GooseUpdate was originally written by [Ducko](https://github.com/CanadaHonk/).
 
-The shelter injector code has been contributed to by most of uwu.network at this point, and is further adapted here.
+The shelter desktop injector has been contributed to by most of uwu.network at this point,
+and is the basis of the `shelter` branch here.
+
+The `vencord` branch is very very loosely based on the [Kernel vencord loader](https://github.com/kernel-addons/vencord-loader/blob/master/main.js).
+
+![](https://github.com/catppuccin/catppuccin/raw/main/assets/footers/gray0_ctp_on_line.svg)
+
+sheltupdate is a passion project made with love by [Yellowsink](https://github.com/yellowsink)
+(and other uwu.network contributors).
