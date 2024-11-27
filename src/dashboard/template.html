@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <title>GooseUpdate Dashboard</title>
-  
+  <title>sheltupdate Dashboard</title>
+
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  
+
   <link href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css" rel="stylesheet">
   <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
 
@@ -17,20 +17,20 @@
 
       background-color: #f5f5f5;
     }
-    
+
     *, *::before, *::after {
       box-sizing: border-box;
 
       font-family: var(--mdc-typography-headline4-font-family, var(--mdc-typography-font-family, Roboto, sans-serif));
     }
-    
+
     #main {
       padding: 4vw;
       padding-top: calc(4vw + 40px);
-      
+
       display: flex;
       gap: 3vh;
-      
+
       flex-direction: column;
       align-items: center;
     }
@@ -62,36 +62,36 @@
       display: flex;
       gap: 5vw;
     }
-    
+
     .column {
       width: 50%;
       height: 100%;
-      
+
       flex: 1 1 50%;
       display: flex;
       flex-direction: column;
-      
+
       gap: 20px;
     }
-    
+
     .demo-card {
       width: 100%;
-      
+
       padding: 18px;
     }
-    
+
     .demo-card__title {
       margin-top: 0;
     }
-    
+
     .dual {
       display: flex;
       flex-wrap: wrap;
-      
+
       gap: 20px;
       width: 100%;
     }
-    
+
     .dual > .demo-card {
       width: calc(50% - 10px);
     }
@@ -103,7 +103,7 @@
     .dual.quad .mdc-typography--headline6 {
       font-size: 90%;
     }
-    
+
     .pie {
       margin: 12px auto;
       border-radius: 100%;
@@ -141,49 +141,49 @@
     .pie__segment:after {
       opacity: var(--over50, 0);
     }
-    
+
     .pie__label {
       bottom: 0;
       left: 0;
-      
+
       position: absolute;
       text-align: center;
-      
+
       width: 50%;
       z-index: 2;
-      
+
       font-size: 14px;
     }
-    
+
     @media screen and (max-width: 800px) {
       .column-container {
         flex-wrap: wrap;
       }
-      
+
       .column {
         width: 100%;
       }
     }
-    
+
     @media screen and (max-width: 1100px) and (min-width: 800px) {
       .dual-collapse .pie {
         width: 150px;
         height: 150px;
       }
     }
-    
+
     @media screen and (max-width: 550px) {
       .dual-collapse .pie {
         width: 150px;
         height: 150px;
       }
     }
-    
+
     @media screen and (max-width: 430px) {
       .dual-collapse .demo-card {
         width: 100%;
       }
-      
+
       .dual-collapse .pie {
         width: 200px;
         height: 200px;
@@ -225,7 +225,7 @@
 
       padding: 24px;
     }
-    
+
     #assist-modal.show {
       display: block;
     }
@@ -283,7 +283,7 @@
     }
 
     .items > button {
-      
+
     }
 
     .items:not(.channels) > :nth-last-child(2) {
@@ -300,7 +300,7 @@
 
       border-radius: 5px;
       padding: 4px;
-      
+
       color: white;
       background-color: black;
     }
@@ -403,7 +403,7 @@
   <header class="mdc-top-app-bar">
     <div class="mdc-top-app-bar__row">
       <section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-start">
-        <span class="mdc-top-app-bar__title">GooseUpdate vTEMPLATE_VERSION</span>
+        <span class="mdc-top-app-bar__title">sheltupdate rTEMPLATE_VERSION</span>
       </section>
       <section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-end" role="toolbar">
         <button id="assist-button" class="mdc-theme--secondary-bg mdc-button mdc-button--raised">
@@ -426,12 +426,12 @@
       </section>
     </div>
   </header>
-  
+
   <div id="main">
     <h2 class="mdc-typography mdc-typography--headline4">Statistics</h2>
-    
+
     <div class="column-container">
-      <div class="column">        
+      <div class="column">
         <div class="dual dual-collapse">
           <div class="mdc-card demo-card">
             <div class="" tabindex="0">
@@ -452,7 +452,7 @@
               <!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The demographic of OS usage</div> -->
             </div>
           </div>
-          
+
           <div class="mdc-card demo-card">
             <div class="" tabindex="0">
               <div class="demo-card__primary">
@@ -472,7 +472,7 @@
               <!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The demographic of OS usage</div> -->
             </div>
           </div>
-          
+
           <div class="mdc-card demo-card">
             <div class="" tabindex="0">
               <div class="demo-card__primary">
@@ -484,7 +484,7 @@
           </div>
         </div>
       </div>
-      
+
       <div class="column">
         <div class="mdc-card demo-card">
           <div class="" tabindex="0">
@@ -495,7 +495,7 @@
             <!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The demographic of OS usage</div> -->
           </div>
         </div>
-        
+
         <div class="dual dual-collapse">
           <div class="mdc-card demo-card">
             <div class="" tabindex="0">
@@ -506,7 +506,7 @@
               <!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The demographic of OS usage</div> -->
             </div>
           </div>
-          
+
           <div class="mdc-card demo-card">
             <div class="" tabindex="0">
               <div class="demo-card__primary">
@@ -528,7 +528,7 @@
               <!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The total amount of users who have requested updates this server session</div> -->
             </div>
           </div>
-          
+
           <div class="mdc-card demo-card">
             <div class="" tabindex="0">
               <div class="demo-card__primary">
@@ -548,7 +548,7 @@
               <!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The total amount of users who have requested updates this server session</div> -->
             </div>
           </div>
-          
+
           <div class="mdc-card demo-card">
             <div class="" tabindex="0">
               <div class="demo-card__primary">
@@ -624,9 +624,9 @@
 
             <div class="mdc-typography mdc-typography--body2 desc">Include <a target=”_blank” href="https://betterdiscord.net">BetterDiscord</a> in updates</div>
 
-            <!-- 
+            <!--
             <div style="margin-bottom: 6px;" class="mdc-typography mdc-typography--body2 desc">Include <a target=”_blank” href="https://betterdiscord.net">BetterDiscord</a> in updates</div>
-            
+
             <div style="margin-bottom: 12px; padding-left: 38px;" class="desc mdc-form-field">
               <div class="mdc-checkbox">
                 <input type="checkbox"
@@ -843,7 +843,7 @@
         step1Button.removeAttribute('disabled');
       }
     };
-    
+
     document.body.onclick = () => {
       checkOneModSelected();
     };
@@ -864,7 +864,7 @@
     const step2Buttons = [...document.querySelectorAll('.channels > button')];
     const step3Button = document.getElementById('step-3-button');
     const step4Button = document.getElementById('step-4-button');
-    
+
     step1Button.onclick = () => {
       step1Card.classList.remove('show');
       step2Card.classList.add('show');
@@ -885,7 +885,7 @@
       fileSelectEl.onchange = undefined;
 
       const file = fileSelectEl.files[0];
-          
+
       if (file === undefined) {
         return undefined;
       }
@@ -896,7 +896,7 @@
     const downloadToFile = (content, filename, contentType) => { // https://robkendal.co.uk/blog/2020-04-17-saving-text-to-client-side-file-using-vanilla-js
       const a = document.createElement('a');
       const file = new Blob([content], {type: contentType});
-  
+
       a.href = URL.createObjectURL(file);
       a.download = filename;
       a.click();
@@ -908,7 +908,7 @@
 
     const locateOSList = document.getElementsByClassName('mdc-list')[0];
 
-    for (let b of step2Buttons) { 
+    for (let b of step2Buttons) {
       b.onclick = async function () {
         switch (this.textContent) {
           case 'Stable': {

@@ -46,11 +46,11 @@ export default async (context, options = {}, rpl = undefined, base = config.apiB
 
 	const prox = new Response(proxRaw.body,
 		{
-			...proxRaw,
 			headers: {
 				...Object.fromEntries(proxRaw.headers.entries()),
 				"content-encoding": ""
 			},
+			status: proxRaw.status,
 		})
 
 	Cache.set(cacheUrl, {
