@@ -1,9 +1,5 @@
 import fastify from "fastify";
 
-// import express from 'express';
-// import http from 'http';
-// import spdy from 'spdy';
-
 import { readFileSync, createReadStream } from "fs";
 
 import { dirname } from "path";
@@ -32,11 +28,10 @@ if (config.experimental?.webserver?.http2?.allowFallback && config.webserver?.ht
 
 const app = fastify(fastifyOptions);
 
-//const app = express();
 global.app = app;
 
 global.startTime = Date.now();
-global.version = "7.0.0";
+global.version = "8.0.0";
 
 const port = process.argv[2] || 80;
 if (!process.argv[2]) console.log(`No port specified in args, using default: ${port}\n`);
@@ -49,7 +44,6 @@ global.app.addHook("preHandler", (req, res, done) => {
 });
 
 global.app.decorateReply("sendFile", function (filename) {
-	// Adding Express feature
 	const stream = createReadStream(filename);
 
 	let contentType = "";
@@ -84,14 +78,4 @@ import("./webhook.js");
 	}
 
 	app.listen(port, "0.0.0.0");
-
-	/*const options = !config.webserver?.https ? {} : {
-    key: readFileSync(config.webserver.https.key),
-    cert: readFileSync(config.webserver.https.cert)
-  };
-
-  (config.experimental?.webserver?.http2 ? spdy : http).createServer(options, app)
-    .listen(port, (err) => {
-      console.log('done', err);
-    });*/
 })();

@@ -5,7 +5,6 @@ import { mkdirSync, writeFileSync, readFileSync, readdirSync, lstatSync, copyFil
 import { join, resolve } from "path";
 
 import tar from "tar";
-import axios from "axios";
 
 import { brotliDecompressSync, brotliCompressSync } from "zlib";
 
@@ -23,11 +22,7 @@ const sha256 = (data) => createHash("sha256").update(data).digest("hex");
 const getCacheName = (moduleName, moduleVersion, branchName) => `${branchName}-${moduleName}-${moduleVersion}`;
 
 const download = async (url) =>
-	(
-		await axios.get(url, {
-			responseType: "arraybuffer",
-		})
-	).data;
+	await fetch(url).then(r => r.arrayBuffer());
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -262,7 +257,7 @@ ${desktopCoreBase}`;
   });
 
   const moddedIndex = `${branch.patch}
-  
+
 ${desktopCoreBase}`;
 
   deltaManifest.files['index.js'].New.Sha256 = sha256(moddedIndex);

@@ -1,8 +1,6 @@
 import { getProxyURL } from "../lib.js";
 import * as Cache from "./cache.js";
 
-import axios from "axios";
-
 export default async (req, res, options = {}, rpl = undefined, base = global.discordBase) => {
 	proxyVsRedirect.push("proxy");
 
@@ -34,18 +32,16 @@ export default async (req, res, options = {}, rpl = undefined, base = global.dis
 
 	console.log("not cached");
 
-	let prox = await axios.get(
+	let prox = await fetch(
 		`${base}${url}`,
-		Object.assign(
-			{
-				headers: {
-					"User-Agent":
-						global.config.proxy?.useragent ||
-						"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) discord/0.0.116 Chrome/83.0.4103.122 Electron/9.3.5 Safari/537.36",
-				},
+		{
+			headers: {
+				"User-Agent":
+					global.config.proxy?.useragent ||
+					"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) discord/0.0.116 Chrome/83.0.4103.122 Electron/9.3.5 Safari/537.36",
 			},
-			options,
-		),
+			...options,
+		},
 	);
 
 	res.status(prox.status);

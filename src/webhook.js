@@ -1,4 +1,3 @@
-import axios from "axios";
 import config from "../config.js";
 
 const url = config.webhook ? config.webhook.url : undefined;
@@ -15,7 +14,7 @@ const send = async (content, embeds = undefined) => {
 	const json = Object.assign(responseBase, { content, embeds });
 
 	try {
-		await axios.post(url, json);
+		await fetch(url, { body: JSON.stringify(json), method: "POST" });
 	} catch (e) {
 		console.log(e.response);
 	}
