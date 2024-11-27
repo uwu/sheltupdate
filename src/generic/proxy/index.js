@@ -8,8 +8,6 @@ export default async (context, options = {}, rpl = undefined, base = config.apiB
 	const rUrl = req.url.replace(/.*:\/\/[^/]*/, "");
 	proxyVsRedirect.push("proxy");
 
-	console.log(`${base}${rUrl}`);
-
 	console.log(options, rpl);
 
 	let url = rpl !== undefined ? rUrl.replace(rpl[0], rpl[1]) : rUrl;
@@ -19,6 +17,8 @@ export default async (context, options = {}, rpl = undefined, base = config.apiB
 	const cacheUrl = url.replace(/&_=[0-9]+$/, "");
 	console.log(cacheUrl);
 	const cached = Cache.get(cacheUrl);
+
+	console.log(`${base}${url}`);
 
 	const now = Date.now();
 
@@ -36,7 +36,7 @@ export default async (context, options = {}, rpl = undefined, base = config.apiB
 
 	console.log("not cached");
 
-	const prox = await fetch(
+	const proxRaw = await fetch(
 		`${base}${url}`,
 		{
 			headers: { "User-Agent": config.proxy.useragent },
@@ -44,7 +44,14 @@ export default async (context, options = {}, rpl = undefined, base = config.apiB
 		},
 	);
 
-	context.status(prox.status);
+	const prox = new Response(proxRaw.body,
+		{
+			...proxRaw,
+			headers: {
+				...Object.fromEntries(proxRaw.headers.entries()),
+				"content-encoding": ""
+			},
+		})
 
 	Cache.set(cacheUrl, {
 		resp: prox.clone(),

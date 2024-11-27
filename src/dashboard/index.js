@@ -1,8 +1,10 @@
 import { readFileSync } from "fs";
 import { join } from "path";
+import {proxyCacheHitArr, proxyVsRedirect, requestCounts, uniqueUsers} from "../state.js";
+import {srcDir, startTime, version} from "../config.js";
 
 // Hell.
-const indexTemplate = readFileSync(join(global.srcDir, "apiV1", "dashboard", "template.html"), "utf8");
+const indexTemplate = readFileSync(join(srcDir, "dashboard", "template.html"), "utf8");
 
 const generatePie = (arr) => {
 	const colors = ["#D9434B", "#D9D659", "#2E9BD9", "#8C1D23", "#24678C"];
@@ -48,9 +50,7 @@ const getDiffTime = (orig) => {
 	return `${hour.toString().padStart(2, "0")}:${minOver.toString().padStart(2, "0")}:${secOver.toString().padStart(2, "0")}`;
 };
 
-global.app.get("/", (req, res) => {
-	res.header("Content-Type", "text/html");
-
+export const handleDashboard = (c) => {
 	const usersValues = Object.values(uniqueUsers);
 
 	let temp = indexTemplate.slice(); // fs.readFileSync('index.html', 'utf8'); //  //
@@ -73,7 +73,5 @@ global.app.get("/", (req, res) => {
 		temp = temp.replace(`TEMPLATE_COUNT_${k.toUpperCase()}`, requestCounts[k]);
 	}
 
-	res.type("text/html").send(temp);
-
-	//res.sendFile(`${__dirname}/index.html`);
-});
+	return c.html(temp);
+};

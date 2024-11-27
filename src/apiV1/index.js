@@ -1,10 +1,11 @@
-import { existsSync, rmSync, mkdirSync } from "fs";
+import {Hono} from "hono";
+import {handleNonSquirrel, handleSquirrel} from "./host.js";
+import {handleModuleDownload} from "./moduleDownload/index.js";
+import {handleModules} from "./modules.js";
 
 
-
-import * as BranchesLoader from "./branchesLoader.js";
-BranchesLoader.init();
-
-import {} from "./requests/index.js";
-
-import {} from "./dashboard/index.js";
+export default new Hono()
+	.get("/:branch/updates/:channel", handleNonSquirrel)
+	.get("/:branch/updates/:channel/releases", handleSquirrel)
+	.get("/:branch/modules/:channel/:module/:version", handleModuleDownload)
+	.get("/:branch/modules/:channel/versions.json", handleModules);

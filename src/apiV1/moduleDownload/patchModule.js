@@ -6,27 +6,27 @@ import path from "path";
 import unzipper from "unzipper";
 import archiver from "archiver";
 
-import basicProxy from "../../../generic/proxy/index.js";
+import basicProxy from "../../generic/proxy/index.js";
+import {branches} from "../../branchesLoader.js";
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-export default async (req, res, cacheDir, cacheFinalFile) => {
-	const branch = branches[req.params.branch];
+export default async (c, cacheDir, cacheFinalFile) => {
+	const {branch: branch_, channel, version} = c.req.param();
+	const {platform, host_version} = c.req.query();
+
+	const branch = branches[branch_];
 
 	console.log("[CustomModule] Could not find cache dir, creating custom version");
 
 	const prox = await basicProxy(
-		req,
-		res,
-		{
-			responseType: "arraybuffer",
-		},
-		[req.params.version, req.params.version.substring(branch.version.toString().length)],
+		c, {},
+		[version, version.substring(branch.version.toString().length)],
 	);
 
 	console.time("fromNetwork");
 
-	let s = stream.Readable.from(prox.data);
+	let s = stream.Readable.from(prox.body);
 
 	const cacheExtractDir = `${cacheDir}/extract`;
 
@@ -95,10 +95,11 @@ export default async (req, res, cacheDir, cacheFinalFile) => {
 	console.timeEnd("fromNetwork");
 	console.timeEnd("fromExtract");
 
-	res.sendFile(cacheFinalFile);
-
 	s.destroy();
 
 	outputStream.close();
 	outputStream.destroy();
+
+	c.header("Content-Type", "application/zip")
+	return c.body(readFileSync(cacheFinalFile));
 };

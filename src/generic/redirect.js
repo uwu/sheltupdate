@@ -1,10 +1,13 @@
 import { getProxyURL } from "./lib.js";
+import {proxyVsRedirect} from "../state.js";
+import {config} from "../config.js";
 
-export default async (req, res, base = global.discordBase) => {
+export default async (context, base = config.apiBases.v1) => {
 	proxyVsRedirect.push("redirect");
 
-	const proxyUrl = `${base}${getProxyURL(req.url)}`;
+	const rUrl = context.req.url.replace(/.*:\/\/[^/]*/, "");
+	const proxyUrl = `${base}${getProxyURL(rUrl)}`;
 
 	console.log(proxyUrl);
-	res.redirect(proxyUrl);
+	return context.redirect(proxyUrl);
 };
