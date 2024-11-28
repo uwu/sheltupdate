@@ -167,8 +167,6 @@ export const patch = async (m, branchName) => {
 		xTar.on("finish", () => res());
 	});
 
-	// await sleep(3000);
-
 	console.log("extracted");
 
 	console.log("patching extracted files");
@@ -188,7 +186,7 @@ export const patch = async (m, branchName) => {
 
 	// TODO: vencord will not work on windows without this
 
-	/* let files = [];
+	let files = [];
 
 	function copyFolderSync(from, to) {
 		mkdirSync(to);
@@ -204,15 +202,16 @@ export const patch = async (m, branchName) => {
 	}
 
 	for (let f of branch.files) {
-    if (lstatSync(f).isDirectory()) {
-      copyFolderSync(f, `${eDir}/files/${f.split('/').pop()}`)
-    } else {
-      // add this to files later once branches use top-level files
-      copyFileSync(f, `${eDir}/files/${f.split('/').pop()}`);
-    }
+		const dest = `${eDir}/files/${f.split('/').pop()}`;
+		if (lstatSync(f).isDirectory()) {
+			copyFolderSync(f, dest)
+		} else {
+			files.push(dest);
+			copyFileSync(f, dest);
+		}
   }
 
-  for (let f of files) {
+   for (let f of files) {
     const key = f.replace(/\\/g, '/').replace(new RegExp(`${eDir.replace('+', '\\+').replace('..', '.*')}/files/`), '');
 
     deltaManifest.files[key] = {
@@ -222,7 +221,7 @@ export const patch = async (m, branchName) => {
     };
 
     console.log(key, deltaManifest.files[key].New.Sha256);
-  } */
+  }
 
 	console.log(deltaManifest);
 
@@ -246,53 +245,13 @@ export const patch = async (m, branchName) => {
 			"files/index.js",
 			...(branch.preload ? ["files/preload.js"] : []),
 			"files/package.json",
-			//...(files.map((x) => x.replace(/\\/g, '/').replace(new RegExp(`${eDir.replace('+', '\\+').replace('..', '.*')}/`), '')))
+			...(files.map((x) => x.replace(/\\/g, '/').replace(new RegExp(`${eDir.replace('+', '\\+').replace('..', '.*')}/`), '')))
 		],
 	);
 
 	const tarBuffer = await getBufferFromStream(tarStream);
 
 	const final = brotliCompressSync(tarBuffer);
-
-	/*let deltaManifest = await new Promise((resolve, reject) => {
-    stream.pipe(
-      tar.t({
-        onentry: async (entry) => {
-          console.log(entry.path);
-          if (entry.path === 'delta_manifest.json') {
-            resolve(JSON.parse(await getContentsFromEntry(entry)));
-          }
-        }
-      })
-    )
-  });
-
-  const moddedIndex = `${branch.patch}
-
-${desktopCoreBase}`;
-
-  deltaManifest.files['index.js'].New.Sha256 = sha256(moddedIndex);
-
-  console.log(deltaManifest);
-
-  const eoDir = `${cacheBase}/${cacheName}/extractOverwrite`;
-  mkdirSync(eoDir, { recursive: true });
-  mkdirSync(`${eoDir}/files`, { recursive: true });
-
-  writeFileSync(`${eoDir}/delta_manifest.json`, JSON.stringify(deltaManifest));
-  writeFileSync(`${eoDir}/files/index.js`, moddedIndex);
-
-  writeFileSync(`${cacheBase}/${cacheName}/tar.tar`, brotli);
-
-  await tar.r({
-      f: `${cacheBase}/${cacheName}/tar.tar`,
-      cwd: eoDir
-    }, [
-      `delta_manifest.json`,
-      `files/index.js`
-    ]);
-
-  const final = brotliCompressSync(readFileSync(`${cacheBase}/${cacheName}/tar.tar`));*/
 
 	console.log(final);
 
