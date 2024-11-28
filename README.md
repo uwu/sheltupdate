@@ -24,6 +24,13 @@ The [uwu.network instance](https://inject.shelter.uwu.network) of sheltupdate ho
 1. Install SheltUpdate's dependencies with `npm install`
 2. Copy `config.example.json` to `config.json` and modify it to your liking, then run `node src/index.js`.
 
+## Deploying with Docker
+
+Run the container as so:
+```sh
+docker run -v /path/to/your/config.json:/config.json -p 8080:8080 yellosink/sheltupdate
+```
+
 # Usage
 Discord fetches the update API URL from a `settings.json` file stored in various directories depending on your operating system.
 
