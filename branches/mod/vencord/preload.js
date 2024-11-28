@@ -10,4 +10,4 @@ const originalPreload = ipcRenderer.sendSync("VENCORD_ORIGINAL_PRELOAD");
 if (originalPreload) require(originalPreload);
 
 // inject vencord renderer
-webFrame.top.executeJavaScript(readFileSync(join(__dirname, "vencord-desktop/vencordDesktopRenderer.js"), "utf8"));
+webFrame.top.executeJavaScript(readFileSync(join(__dirname, "vencord-desktop/renderer.js"), "utf8"));

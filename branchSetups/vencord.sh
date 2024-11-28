@@ -4,7 +4,8 @@
 cd "../branches/mod/vencord/"
 
 extractedPath="vencord-desktop"
-#asarPath="desktop.asar"
+
+releaseUrl="https://github.com/Vendicated/Vencord/releases/download/devbuild"
 
 # Remove current / old asar
 echo "Removing old release..."
@@ -15,10 +16,7 @@ echo "Downloading latest release..."
 
 mkdir -p "$extractedPath"
 
-for file in Main.js Preload.js Renderer.css Renderer.js; do
-	curl -sL https://github.com/Vendicated/Vencord/releases/download/devbuild/vencordDesktop$file \
-		-o "$extractedPath/vencordDesktop"$file
-
-	curl -sL https://github.com/Vendicated/Vencord/releases/download/devbuild/vencordDesktop$file.map \
-		-o "$extractedPath/vencordDesktop"$file.map
+for file in vencordDesktopMain.js vencordDesktopPreload.js renderer.js; do
+	curl -sL $releaseUrl/$file     -o "$extractedPath/"$file
+	curl -sL $releaseUrl/$file.map -o "$extractedPath/"$file.map
 done
