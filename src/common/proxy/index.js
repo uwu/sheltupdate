@@ -1,7 +1,8 @@
-import { getProxyURL } from "../lib.js";
 import * as Cache from "./cache.js";
-import {config} from "../../config.js";
-import {proxyCacheHitArr, proxyVsRedirect} from "../../state.js";
+import {config} from "../config.js";
+import {proxyCacheHitArr, proxyVsRedirect} from "../state.js";
+
+export const getProxyURL = (url) => `/${url.split("/").slice(2).join("/")}`;
 
 export default async (context, options = {}, rpl = undefined, base = config.apiBases.v1) => {
 	const req = context.req;

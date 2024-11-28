@@ -1,6 +1,6 @@
 import {getCustomFinal, getFinal} from "./patchModule.js";
-import {requestCounts} from "../state.js";
-import {branches} from "../branchesLoader.js";
+import {requestCounts} from "../common/state.js";
+import {branches} from "../common/branchesLoader.js";
 
 export const handleModule =
 	(c) => {

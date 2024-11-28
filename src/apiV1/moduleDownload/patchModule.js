@@ -6,8 +6,12 @@ import path from "path";
 import unzipper from "unzipper";
 import archiver from "archiver";
 
-import basicProxy from "../../generic/proxy/index.js";
-import {branches} from "../../branchesLoader.js";
+import basicProxy from "../../common/proxy/index.js";
+import {branches} from "../../common/branchesLoader.js";
+import {
+	finalizeDesktopCoreIndex,
+	finalizeDesktopCorePreload
+} from "../../common/desktopCoreTemplates.js";
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -45,11 +49,9 @@ export default async (c, cacheDir, cacheFinalFile) => {
 
 	console.log("Patching file");
 
-	let code = readFileSync(`${cacheExtractDir}/index.js`, "utf-8");
-
-	code = `${branch.patch}\n\n${code}`;
-
-	writeFileSync(`${cacheExtractDir}/index.js`, code);
+	writeFileSync(`${cacheExtractDir}/index.js`, finalizeDesktopCoreIndex(branch.patch, !!branch.preload));
+	if (branch.preload)
+		writeFileSync(`${cacheExtractDir}/preload.js`, finalizeDesktopCorePreload(branch.preload));
 
 	console.log("Copying other files");
 

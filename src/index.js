@@ -3,8 +3,8 @@ import {logger} from "hono/logger";
 import {createMiddleware} from "hono/factory";
 import {serve} from "@hono/node-server";
 
-import {config, version} from "./config.js";
-import {branches} from "./branchesLoader.js";
+import {config, version} from "./common/config.js";
+import {branches} from "./common/branchesLoader.js";
 
 // API handlers
 import apiV1 from "./apiV1/index.js";

@@ -16,7 +16,7 @@ echo "Downloading latest release..."
 
 mkdir -p "$extractedPath"
 
-for file in vencordDesktopMain.js vencordDesktopPreload.js renderer.js; do
+for file in vencordDesktopMain.js vencordDesktopPreload.js renderer.js vencordDesktopRenderer.css; do
 	curl -sL $releaseUrl/$file     -o "$extractedPath/"$file
 	curl -sL $releaseUrl/$file.map -o "$extractedPath/"$file.map
 done

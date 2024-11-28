@@ -1,10 +1,16 @@
 import {readFileSync} from "fs";
-import {dirname} from "path";
+import {dirname, resolve} from "path";
 import {fileURLToPath} from "url";
+
+export const srcDir = dirname(dirname(fileURLToPath(import.meta.url)));
+
+export const startTime = Date.now();
+
+export const version = "1";
 
 let rawCfg;
 try {
-	rawCfg = JSON.parse(readFileSync("../config.json", "utf8"));
+	rawCfg = JSON.parse(readFileSync(resolve(srcDir, "../config.json"), "utf8"));
 } catch (e) {
 	console.error("Failed to load config, using defaults");
 }
@@ -32,9 +38,3 @@ export const config = Object.freeze({
 });
 
 console.log(config);
-
-export const srcDir = dirname(fileURLToPath(import.meta.url));
-
-export const startTime = Date.now();
-
-export const version = "1";

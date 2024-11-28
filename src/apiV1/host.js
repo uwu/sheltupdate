@@ -1,6 +1,6 @@
-import {branches} from "../branchesLoader.js";
-import {requestCounts} from "../state.js";
-import basicProxy from "../generic/proxy/index.js"
+import {branches} from "../common/branchesLoader.js";
+import {requestCounts} from "../common/state.js";
+import basicProxy from "../common/proxy/index.js"
 
 export const handleNonSquirrel = async (c) => {
 	// Non-Squirrel (Linux)

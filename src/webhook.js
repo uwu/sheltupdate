@@ -1,5 +1,5 @@
-import {config} from "./config.js";
-import {uniqueUsers} from "./state.js";
+import {config} from "./common/config.js";
+import {uniqueUsers} from "./common/state.js";
 
 if (config.webhook.enable) {
 	const url = config.webhook.url;

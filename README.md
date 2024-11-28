@@ -8,7 +8,7 @@ Changes from GooseUpdate:
  - Different branches, for use with shelter
  - Hugely refactored and converted to use much more modern technology
 	(axios -> fetch, fastify -> hono, etc.)
- - (TODO) A more robust patch system that improves multi-mod support
+ - A more robust patch system that improves multi-mod support
 
 # Branches
 
@@ -16,8 +16,8 @@ Check the [shelter documentation](https://github.com/uwu/shelter/blob/main/READM
 
 The [uwu.network instance](https://inject.shelter.uwu.network) of sheltupdate hosts the branches exactly as found in this repository:
  - `shelter` - injects shelter
- - `vencord` - injects vencord. currently cannot coexist with shelter (WIP)
- - `betterdiscord` - injects BD.
+ - `vencord` - injects vencord
+ - `betterdiscord` - injects BD
  - `reactdevtools` - adds react dev tools to your client
 
 # Deploying
@@ -50,9 +50,19 @@ SheltUpdate branches patch `discord_desktop_core` with files stored in `branches
 
 Branches must have a `patch.js` file to handle their injection in their branch directory, which is prepended to Discord's base `index.js` of the module.
 
+They may optionally include a `preload.js` file to supplement their injection,
+which will automatically be injected for you by sheltupdate.
+
 ```javascript
-// Any code you want to inject goes here
+// patch.js
 require('mod.js')
+```
+
+```javascript
+// preload.js (optional)
+const { webFrame } = require("electron");
+
+webFrame.top.executeJavaScript("console.log('HELLO FROM THE RENDERER');");
 ```
 
 If other files are in the branch directory, they will be added the module directory.

@@ -1,6 +1,6 @@
-import basicProxy from "../generic/proxy/index.js";
-import {branches} from "../branchesLoader.js";
-import {requestCounts, uniqueUsers} from "../state.js";
+import basicProxy from "../common/proxy/index.js";
+import {branches} from "../common/branchesLoader.js";
+import {requestCounts, uniqueUsers} from "../common/state.js";
 
 export const handleModules = async (c) => {
 	const {branch, channel} = c.req.param();

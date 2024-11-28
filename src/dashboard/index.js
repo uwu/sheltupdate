@@ -1,7 +1,7 @@
 import { readFileSync } from "fs";
 import { join } from "path";
-import {proxyCacheHitArr, proxyVsRedirect, requestCounts, uniqueUsers} from "../state.js";
-import {srcDir, startTime, version} from "../config.js";
+import {proxyCacheHitArr, proxyVsRedirect, requestCounts, uniqueUsers} from "../common/state.js";
+import {srcDir, startTime, version} from "../common/config.js";
 
 // Hell.
 const indexTemplate = readFileSync(join(srcDir, "dashboard", "template.html"), "utf8");

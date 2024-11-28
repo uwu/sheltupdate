@@ -1,11 +1,11 @@
 import {existsSync, readFileSync} from "fs";
 import path from "path";
 
-import basicRedirect from "../../generic/redirect.js";
+import basicRedirect from "../../common/redirect.js";
 
 import patch from "./patchModule.js";
-import {branches} from "../../branchesLoader.js";
-import {requestCounts} from "../../state.js";
+import {branches} from "../../common/branchesLoader.js";
+import {requestCounts} from "../../common/state.js";
 
 export const handleModuleDownload = async (c) => {
 	const {

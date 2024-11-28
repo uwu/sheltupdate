@@ -1,8 +1,8 @@
-import basicProxy from "../generic/proxy/index.js";
+import basicProxy from "../common/proxy/index.js";
 import { patch, createModule } from "./patchModule.js";
-import {config} from "../config.js";
-import {branches} from "../branchesLoader.js";
-import {requestCounts, uniqueUsers} from "../state.js";
+import {config} from "../common/config.js";
+import {branches} from "../common/branchesLoader.js";
+import {requestCounts, uniqueUsers} from "../common/state.js";
 
 const base = config.apiBases.v2;
 const host = config.host;

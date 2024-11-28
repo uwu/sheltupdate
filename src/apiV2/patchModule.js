@@ -7,13 +7,15 @@ import { join, resolve } from "path";
 import tar from "tar";
 
 import { brotliDecompressSync, brotliCompressSync } from "zlib";
-import {branches} from "../branchesLoader.js";
+import {branches} from "../common/branchesLoader.js";
+import {
+	finalizeDesktopCoreIndex,
+	finalizeDesktopCorePreload
+} from "../common/desktopCoreTemplates.js";
 
 const cacheBase = "../cache";
 
-const desktopCoreBase = `module.exports = require('./core.asar');`;
-
-let cache = {
+const cache = {
 	patched: {},
 	created: {},
 };
@@ -22,10 +24,7 @@ const sha256 = (data) => createHash("sha256").update(data).digest("hex");
 
 const getCacheName = (moduleName, moduleVersion, branchName) => `${branchName}-${moduleName}-${moduleVersion}`;
 
-const download = async (url) =>
-	await fetch(url).then(r => r.arrayBuffer());
-
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const download = (url) => fetch(url).then(r => r.arrayBuffer());
 
 const getBufferFromStream = async (stream) => {
 	const chunks = [];
@@ -39,6 +38,9 @@ const getBufferFromStream = async (stream) => {
 	});
 };
 
+// this is called by /manifest, and causes us to pre-emptively create and cache
+// module for single branches, and it returns the relevant sha256
+// these cached fake modules will later be used to construct the full patched discord_desktop_core.
 export const createModule = async (branchName, branch) => {
 	const moduleName = `goose_${branchName}`;
 	const cacheName = getCacheName(moduleName, branch.version, "custom");
@@ -82,8 +84,12 @@ export const createModule = async (branchName, branch) => {
 	}
 
 	writeFileSync(`${eDir}/files/index.js`, branch.patch);
-
 	files.push(resolve(`${eDir}/files/index.js`));
+
+	if (branch.preload) {
+		writeFileSync(`${eDir}/files/preload.js`, branch.preload);
+		files.push(resolve(`${eDir}/files/preload.js`));
+	}
 
 	for (let f of files) {
 		const key = f
@@ -167,21 +173,22 @@ export const patch = async (m, branchName) => {
 
 	console.log("patching extracted files");
 
-	let deltaManifest = JSON.parse(readFileSync(`${eDir}/delta_manifest.json`));
+	let deltaManifest = JSON.parse(readFileSync(`${eDir}/delta_manifest.json`, "utf8"));
 
-	const moddedIndex = `${branchName
-		.split("+")
-		.map((x) => `require('../../goose_${x}-${branches[x].version}/goose_${x}/index.js');`)
-		.join("\n")}
-
-${desktopCoreBase}`;
-	//`${branch.patch}\n\n${desktopCoreBase};
-
+	const moddedIndex = finalizeDesktopCoreIndex(branch.patch, !!branch.preload);
 	deltaManifest.files["index.js"].New.Sha256 = sha256(moddedIndex);
+
+	let moddedPreload;
+	if (branch.preload) {
+		moddedPreload = finalizeDesktopCorePreload(branch.preload);
+		deltaManifest.files["preload.js"] = { New: { Sha256: sha256(moddedPreload) } };
+	}
 
 	console.log("adding extra branch files");
 
-	let files = [];
+	// TODO: vencord will not work on windows without this
+
+	/* let files = [];
 
 	function copyFolderSync(from, to) {
 		mkdirSync(to);
@@ -196,7 +203,7 @@ ${desktopCoreBase}`;
 		});
 	}
 
-	/* for (let f of branch.files) {
+	for (let f of branch.files) {
     if (lstatSync(f).isDirectory()) {
       copyFolderSync(f, `${eDir}/files/${f.split('/').pop()}`)
     } else {
@@ -224,6 +231,8 @@ ${desktopCoreBase}`;
 	writeFileSync(`${eDir}/delta_manifest.json`, JSON.stringify(deltaManifest));
 
 	writeFileSync(`${eDir}/files/index.js`, moddedIndex);
+	if (moddedPreload)
+		writeFileSync(`${eDir}/files/preload.js`, moddedPreload);
 
 	console.log("creating new tar");
 
@@ -235,6 +244,7 @@ ${desktopCoreBase}`;
 			"delta_manifest.json",
 			"files/core.asar",
 			"files/index.js",
+			...(branch.preload ? ["files/preload.js"] : []),
 			"files/package.json",
 			//...(files.map((x) => x.replace(/\\/g, '/').replace(new RegExp(`${eDir.replace('+', '\\+').replace('..', '.*')}/`), '')))
 		],

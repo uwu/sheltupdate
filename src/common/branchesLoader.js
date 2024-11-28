@@ -36,12 +36,18 @@ const init = () => {
 		let files = glob.sync(`${d}/*`);
 
 		let patch = "";
-		for (const f of files) {
+		let preload = undefined; // optional
+		for (let i = 0; i < files.length; i++) {
+			const f = files[i];
 			const filename = f.split("/").pop();
 
 			if (filename === "patch.js") {
 				patch = readFileSync(f, "utf8");
-				files.splice(files.indexOf(f), 1);
+				files.splice(i--, 1);
+			}
+			else if (filename === "preload.js") {
+				preload = readFileSync(f, "utf8");
+				files.splice(i--, 1);
 			}
 		}
 
@@ -60,6 +66,7 @@ const init = () => {
 		branches[name] = {
 			files,
 			patch,
+			preload,
 			version,
 			type,
 		};
@@ -92,6 +99,7 @@ const init = () => {
 			branches[key] = {
 				files: b.map((x) => x.files).reduce((x, a) => a.concat(x), []),
 				patch: b.map((x) => x.patch).reduce((x, a) => `${x}\n{\n${a}\n}`, ""),
+				preload: b.map((x) => x.preload).reduce((x, a) => !a ? x : `${x}\n{\n${a}\n}`, ""),
 				version: parseInt(b.map((x) => x.version).reduce((x, a) => `${x}0${a}`)),
 				type: "mixed",
 			};
