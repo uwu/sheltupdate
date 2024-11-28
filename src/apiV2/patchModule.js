@@ -1,8 +1,9 @@
 import { Readable } from "stream";
 import { createHash } from "crypto";
 
-import { mkdirSync, writeFileSync, readFileSync, readdirSync, lstatSync, copyFileSync } from "fs";
+import { mkdirSync, writeFileSync, readFileSync, readdirSync, lstatSync, copyFileSync, mkdtempSync } from "fs";
 import { join, resolve } from "path";
+import {tmpdir} from "os";
 
 import tar from "tar";
 
@@ -13,7 +14,7 @@ import {
 	finalizeDesktopCorePreload
 } from "../common/desktopCoreTemplates.js";
 
-const cacheBase = "../cache";
+const cacheBase = mkdtempSync(join(tmpdir(), "sheltupdate-cache-"));
 
 const cache = {
 	patched: {},
