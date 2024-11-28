@@ -89,14 +89,12 @@ const init = () => {
 
 			const b = c.map((x) => branches[x]);
 
-			const res = {
+			branches[key] = {
 				files: b.map((x) => x.files).reduce((x, a) => a.concat(x), []),
-				patch: b.map((x) => x.patch).reduce((x, a) => `${x}\n${a}`, ""),
+				patch: b.map((x) => x.patch).reduce((x, a) => `${x}\n{\n${a}\n}`, ""),
 				version: parseInt(b.map((x) => x.version).reduce((x, a) => `${x}0${a}`)),
 				type: "mixed",
 			};
-
-			branches[key] = res;
 		}
 	}
 

@@ -1,4 +1,3 @@
-{
 const electron = require("electron");
 const path = require("path");
 
@@ -34,4 +33,3 @@ require.cache[electronPath].exports = {
 	...electron,
 	BrowserWindow: ProxiedBrowserWindow,
 };
-}
