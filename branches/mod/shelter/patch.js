@@ -63,21 +63,19 @@ electron.ipcMain.handle("SHELTER_BUNDLE_FETCH", getShelterBundle);
 // #endregion
 
 // #region CSP
-electron.app.on("ready", () => {
-  electron.session.defaultSession.webRequest.onHeadersReceived(({ responseHeaders }, done) => {
-    const cspHeaders = Object.keys(responseHeaders).filter((name) =>
-      name.toLowerCase().startsWith("content-security-policy")
-    );
+electron.session.defaultSession.webRequest.onHeadersReceived(({ responseHeaders }, done) => {
+	const cspHeaders = Object.keys(responseHeaders).filter((name) =>
+	name.toLowerCase().startsWith("content-security-policy")
+	);
 
-    for (const header of cspHeaders) {
-      delete responseHeaders[header];
-    }
+	for (const header of cspHeaders) {
+	delete responseHeaders[header];
+	}
 
-    done({ responseHeaders });
-  });
-
-  electron.session.defaultSession.webRequest.onHeadersReceived = () => {};
+	done({ responseHeaders });
 });
+
+electron.session.defaultSession.webRequest.onHeadersReceived = () => {};
 // #endregion
 
 // #region DevTools
