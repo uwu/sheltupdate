@@ -1,3 +1,5 @@
+export const nullBodyStatuses = [101, 204, 205, 304];
+
 // I'm sick and tired of resp body reuse issues
 export default class ReusableResponse {
 
@@ -6,7 +8,7 @@ export default class ReusableResponse {
 	get body() {
 		// this method does not exist in chrome and safari
 		// but it DOES exist in both node and deno :) yay
-		return ReadableStream.from(new Uint8Array(this.#body));
+		return nullBodyStatuses.includes(this.status) ? null : ReadableStream.from(new Uint8Array(this.#body));
 	}
 
 	get bodyUsed() {
