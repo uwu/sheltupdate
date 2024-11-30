@@ -5,10 +5,14 @@ export default class ReusableResponse {
 
 	#body;
 
+	get #isNullBody() {
+		return nullBodyStatuses.includes(this.status)
+	}
+
 	get body() {
 		// this method does not exist in chrome and safari
 		// but it DOES exist in both node and deno :) yay
-		return nullBodyStatuses.includes(this.status) ? null : ReadableStream.from(new Uint8Array(this.#body));
+		return this.#isNullBody ? null : ReadableStream.from(new Uint8Array(this.#body));
 	}
 
 	get bodyUsed() {
@@ -73,6 +77,6 @@ export default class ReusableResponse {
 	}
 
 	toRealRes() {
-		return new Response(this.#body, {...this});
+		return new Response(this.#isNullBody ? null : this.#body, {...this});
 	}
 }
