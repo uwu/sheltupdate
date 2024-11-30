@@ -17,7 +17,7 @@ export const handleManifest = async (c) => {
 
 	requestCounts.v2_manifest++;
 
-	const ip = c.req.header("cf-connecting-ip") ?? c.env.incoming.socket.remoteAddress;
+	const ip = originatingIp(c);
 
 	uniqueUsers[ip] = {
 		platform: c.req.query("platform"),

@@ -1,6 +1,7 @@
 import basicProxy from "../common/proxy/index.js";
 import {branches} from "../common/branchesLoader.js";
 import {requestCounts, uniqueUsers} from "../common/state.js";
+import originatingIp from "../common/originatingIp.js";
 
 export const handleModules = async (c) => {
 	const {branch, channel} = c.req.param();
@@ -15,7 +16,7 @@ export const handleModules = async (c) => {
 	console.log({ type: "check_for_module_updates", channel });
 
 	if (platform === "linux" || platform === "win" || platform === "osx") {
-		const ip = c.req.header("cf-connecting-ip") ?? c.env.incoming.socket.remoteAddress;
+		const ip = originatingIp(c);
 
 		uniqueUsers[ip] = {
 			platform,
