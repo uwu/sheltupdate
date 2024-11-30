@@ -1,6 +1,7 @@
 import * as Cache from "./cache.js";
 import {config} from "../config.js";
 import {proxyCacheHitArr, proxyVsRedirect} from "../state.js";
+import ReusableResponse from "../reusableResponse.js";
 
 export const getProxyURL = (url) => `/${url.split("/").slice(2).join("/")}`;
 
@@ -30,7 +31,7 @@ export default async (context, options = {}, rpl = undefined, base = config.apiB
 
 		proxyCacheHitArr.push("cached");
 
-		return cached.resp.clone();
+		return cached.resp.toRealRes();
 	}
 
 	proxyCacheHitArr.push("not cached");
@@ -45,21 +46,16 @@ export default async (context, options = {}, rpl = undefined, base = config.apiB
 		},
 	);
 
-	const prox = new Response(proxRaw.body,
-		{
-			headers: {
-				...Object.fromEntries(proxRaw.headers.entries()),
-				"content-encoding": ""
-			},
-			status: proxRaw.status,
-		})
+	const prox = await ReusableResponse.create(proxRaw);
+	prox.headers.delete("Content-Encoding");
 
 	Cache.set(cacheUrl, {
-		resp: prox.clone(),
+		resp: prox,
 
 		cachedOn: now,
 		lastUsed: now,
 	});
 
-	return prox;
+	// I do not know why hono/undici will not accept my ReusableResponse as is.
+	return prox.toRealRes();
 };

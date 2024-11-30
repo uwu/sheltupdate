@@ -3,6 +3,7 @@ import { patch, createModule } from "./patchModule.js";
 import {config} from "../common/config.js";
 import {branches} from "../common/branchesLoader.js";
 import {requestCounts, uniqueUsers} from "../common/state.js";
+import originatingIp from "../common/originatingIp.js";
 
 const base = config.apiBases.v2;
 const host = config.host;
