@@ -60,6 +60,17 @@ const getShelterBundle = () =>
 
 // #region IPC
 electron.ipcMain.handle("SHELTER_BUNDLE_FETCH", getShelterBundle);
+
+// used by preload
+electron.ipcMain.handle("SHELTER_BRANCHCHANGE_SECURITY_DIALOG", (_, installedStr) =>
+	electron.dialog.showMessageBox({
+		message: `Confirm you want to change your installed mods to: ${installedStr}?`,
+		type: "warning",
+		buttons: ["Cancel", "Confirm"],
+		title: "Sheltupdate mods change",
+		detail: "We confirm for security reasons that this action is intended by the user. Only continue if you got here from the shelter \"Client Mods\" UI.",
+	})
+);
 // #endregion
 
 // #region CSP
