@@ -62,9 +62,9 @@ const getShelterBundle = () =>
 electron.ipcMain.handle("SHELTER_BUNDLE_FETCH", getShelterBundle);
 
 // used by preload
-electron.ipcMain.handle("SHELTER_BRANCHCHANGE_SECURITY_DIALOG", (_, installedStr) =>
+electron.ipcMain.handle("SHELTER_BRANCHCHANGE_SECURITY_DIALOG", (_, message) =>
 	electron.dialog.showMessageBox({
-		message: `Confirm you want to change your installed mods to: ${installedStr}?`,
+		message,
 		type: "warning",
 		buttons: ["Cancel", "Confirm"],
 		title: "Sheltupdate mods change",

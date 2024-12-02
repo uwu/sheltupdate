@@ -9,7 +9,7 @@ const selUiJs = fss.readFileSync(path.join(__dirname, "selector-ui.js"), "utf8")
 // build shelter injector plugins manifest
 const injPlugins = {
 	// temporarily commented out as it is NOT production ready yet
-	/*"sheltupdate-branch-selector": {
+	"sheltupdate-branch-selector": {
 		js: selUiJs,
 		manifest: {
 			name: "sheltupdate branch selector",
@@ -21,7 +21,7 @@ const injPlugins = {
 			allowedActions: {},
 			loaderName: "sheltupdate"
 		}
-	}*/
+	}
 };
 
 // inject shelter
@@ -119,8 +119,14 @@ if (cfgPath) {
 	async function setBranches(branches) {
 		const settings = JSON.parse(await fsa.readFile(cfgPath, "utf8"));
 
-		settings.UPDATE_ENDPOINT = `https://inject.shelter.uwu.network/${branches.join("+")}`;
-		settings.NEW_UPDATE_ENDPOINT = `https://inject.shelter.uwu.network/${branches.join("+")}/`;
+		if (branches.length) {
+			settings.UPDATE_ENDPOINT = `https://inject.shelter.uwu.network/${branches.join("+")}`;
+			settings.NEW_UPDATE_ENDPOINT = `https://inject.shelter.uwu.network/${branches.join("+")}/`;
+		}
+		else {
+			delete settings.UPDATE_ENDPOINT;
+			delete settings.NEW_UPDATE_ENDPOINT;
+		}
 
 		await fsa.writeFile(cfgPath, JSON.stringify(settings));
 	}
@@ -129,13 +135,11 @@ if (cfgPath) {
 		getAllowedBranches: () => Promise.resolve(branches),
 		getCurrentBranches: readBranches,
 
-		// TODO: need an uninstall function too
-
 		setBranches: async (br) => {
 			// validate renderer-side input carefully. this code is actually security-critical
 			// as if it is not sufficiently safe, privescs such as a plugin enabling BD so that it can
 			// get access to require("fs") are possible.
-			if (!Array.isArray(br))
+			if (!Array.isArray(br) && br.length > 0)
 				throw new Error("[sheltupdate] invalid branches passed to setBranches");
 
 			// don't use `in` or `[]` as those are true for e.g. __proto__
@@ -146,7 +150,7 @@ if (cfgPath) {
 			// get user permission first, this is our main privesc safeguard
 			const dialogState = await ipcRenderer.invoke(
 				"SHELTER_BRANCHCHANGE_SECURITY_DIALOG",
-				br.map(b => branches[b].name).join(", ")
+				`Confirm you want to change your installed mods to: ${br.map(b => branches[b].name).join(", ")}?`
 			);
 
 			if (dialogState.response === 0)
@@ -154,6 +158,20 @@ if (cfgPath) {
 
 			// set the branches
 			await setBranches(br);
-		}
+		},
+
+		// this is a goofy function to have to write
+		uninstall: async () => {
+
+			// once again get user permission
+			const res = await ipcRenderer.invoke(
+				"SHELTER_BRANCHCHANGE_SECURITY_DIALOG",
+				`Confirm you want to uninstall your client mods? Your settings will not be deleted.`
+			);
+			if (res.response === 0)
+				throw new Error("[sheltupdate] User declined security check");
+
+			await setBranches([]);
+		},
 	});
 }
