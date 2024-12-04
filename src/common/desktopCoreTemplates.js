@@ -41,7 +41,7 @@ ${hasPreload ? preloadScaffold : ""}
 ${patches}
 
 // END PATCHES, CHAINLOAD:
-module.exports = require('./core.asar');`
+module.exports = require('./core.asar');`;
 
 export const finalizeDesktopCorePreload = (preloads) =>
 	`// SHELTUPDATE PATCH FRAMEWORK PRELOAD HEADER:

@@ -1,8 +1,8 @@
 import basicProxy from "../common/proxy/index.js";
 import { patch, createModule } from "./patchModule.js";
-import {config} from "../common/config.js";
-import {branches} from "../common/branchesLoader.js";
-import {requestCounts, uniqueUsers} from "../common/state.js";
+import { config } from "../common/config.js";
+import { branches } from "../common/branchesLoader.js";
+import { requestCounts, uniqueUsers } from "../common/state.js";
 import originatingIp from "../common/originatingIp.js";
 
 const base = config.apiBases.v2;
@@ -29,7 +29,7 @@ export const handleManifest = async (c) => {
 		time: Date.now(),
 	};
 
-	let json = await basicProxy(c, {}, undefined, base).then(r => r.json());
+	let json = await basicProxy(c, {}, undefined, base).then((r) => r.json());
 
 	const branchModules = branch.split("+").map((x) => `goose_${x}`);
 
@@ -59,10 +59,7 @@ export const handleManifest = async (c) => {
 	// Modify version to prefix branch's version
 	json.modules.discord_desktop_core.full.module_version = newVersion;
 
-	json.modules.discord_desktop_core.full.package_sha256 = await patch(
-		json.modules.discord_desktop_core.full,
-		branch,
-	);
+	json.modules.discord_desktop_core.full.package_sha256 = await patch(json.modules.discord_desktop_core.full, branch);
 
 	// Modify URL to use this host
 	json.modules.discord_desktop_core.full.url = `${host}/${branch}/${json.modules.discord_desktop_core.full.url.split("/").slice(3).join("/").replace(`${oldVersion}/full.distro`, `${newVersion}/full.distro`)}`;

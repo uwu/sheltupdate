@@ -3,16 +3,13 @@ import { createHash } from "crypto";
 
 import { mkdirSync, writeFileSync, readFileSync, readdirSync, lstatSync, copyFileSync, mkdtempSync } from "fs";
 import { join, resolve } from "path";
-import {tmpdir} from "os";
+import { tmpdir } from "os";
 
 import tar from "tar";
 
 import { brotliDecompressSync, brotliCompressSync } from "zlib";
-import {branches} from "../common/branchesLoader.js";
-import {
-	finalizeDesktopCoreIndex,
-	finalizeDesktopCorePreload
-} from "../common/desktopCoreTemplates.js";
+import { branches } from "../common/branchesLoader.js";
+import { finalizeDesktopCoreIndex, finalizeDesktopCorePreload } from "../common/desktopCoreTemplates.js";
 
 const cacheBase = mkdtempSync(join(tmpdir(), "sheltupdate-cache-"));
 
@@ -25,7 +22,7 @@ const sha256 = (data) => createHash("sha256").update(data).digest("hex");
 
 const getCacheName = (moduleName, moduleVersion, branchName) => `${branchName}-${moduleName}-${moduleVersion}`;
 
-const download = (url) => fetch(url).then(r => r.arrayBuffer());
+const download = (url) => fetch(url).then((r) => r.arrayBuffer());
 
 const getBufferFromStream = async (stream) => {
 	const chunks = [];
@@ -203,26 +200,28 @@ export const patch = async (m, branchName) => {
 	}
 
 	for (let f of branch.files) {
-		const dest = `${eDir}/files/${f.split('/').pop()}`;
+		const dest = `${eDir}/files/${f.split("/").pop()}`;
 		if (lstatSync(f).isDirectory()) {
-			copyFolderSync(f, dest)
+			copyFolderSync(f, dest);
 		} else {
 			files.push(dest);
 			copyFileSync(f, dest);
 		}
-  }
+	}
 
-   for (let f of files) {
-    const key = f.replace(/\\/g, '/').replace(new RegExp(`${eDir.replace('+', '\\+').replace('..', '.*')}/files/`), '');
+	for (let f of files) {
+		const key = f
+			.replace(/\\/g, "/")
+			.replace(new RegExp(`${eDir.replace("+", "\\+").replace("..", ".*")}/files/`), "");
 
-    deltaManifest.files[key] = {
-      New: {
-        Sha256: sha256(readFileSync(f))
-      }
-    };
+		deltaManifest.files[key] = {
+			New: {
+				Sha256: sha256(readFileSync(f)),
+			},
+		};
 
-    console.log(key, deltaManifest.files[key].New.Sha256);
-  }
+		console.log(key, deltaManifest.files[key].New.Sha256);
+	}
 
 	console.log(deltaManifest);
 
@@ -231,8 +230,7 @@ export const patch = async (m, branchName) => {
 	writeFileSync(`${eDir}/delta_manifest.json`, JSON.stringify(deltaManifest));
 
 	writeFileSync(`${eDir}/files/index.js`, moddedIndex);
-	if (moddedPreload)
-		writeFileSync(`${eDir}/files/preload.js`, moddedPreload);
+	if (moddedPreload) writeFileSync(`${eDir}/files/preload.js`, moddedPreload);
 
 	console.log("creating new tar");
 
@@ -246,7 +244,9 @@ export const patch = async (m, branchName) => {
 			"files/index.js",
 			...(branch.preload ? ["files/preload.js"] : []),
 			"files/package.json",
-			...(files.map((x) => x.replace(/\\/g, '/').replace(new RegExp(`${eDir.replace('+', '\\+').replace('..', '.*')}/`), '')))
+			...files.map((x) =>
+				x.replace(/\\/g, "/").replace(new RegExp(`${eDir.replace("+", "\\+").replace("..", ".*")}/`), ""),
+			),
 		],
 	);
 
@@ -268,10 +268,7 @@ export const patch = async (m, branchName) => {
 
 export const getCustomFinal = (req) => {
 	const moduleName = req.param("moduleName");
-	const cached =
-		cache.created[
-			getCacheName(moduleName, branches[moduleName.substring(6)].version, "custom")
-		];
+	const cached = cache.created[getCacheName(moduleName, branches[moduleName.substring(6)].version, "custom")];
 
 	if (!cached) {
 		return;

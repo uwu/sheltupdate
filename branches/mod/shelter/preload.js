@@ -14,21 +14,19 @@ const injPlugins = {
 		manifest: {
 			name: "sheltupdate branch selector",
 			author: "uwu.network",
-			description: "responsible for the 'Client Mods' UI on sheltupdate installs"
+			description: "responsible for the 'Client Mods' UI on sheltupdate installs",
 		},
 		injectorIntegration: {
 			isVisible: false,
 			allowedActions: {},
-			loaderName: "sheltupdate"
-		}
-	}
+			loaderName: "sheltupdate",
+		},
+	},
 };
 
 // inject shelter
 ipcRenderer.invoke("SHELTER_BUNDLE_FETCH").then((bundle) => {
-  webFrame.executeJavaScript(
-	  `const SHELTER_INJECTOR_PLUGINS = ${JSON.stringify(injPlugins)}; ${bundle}`
-  );
+	webFrame.executeJavaScript(`const SHELTER_INJECTOR_PLUGINS = ${JSON.stringify(injPlugins)}; ${bundle}`);
 });
 
 // everything below this line is for the plugin selector UI exclusively
@@ -46,8 +44,7 @@ try {
 			// settings.json exists!
 			cfgPath = cfgPathSettings;
 			break;
-		}
-		catch {}
+		} catch {}
 
 		// if we hit a "discord" folder and still don't find it, just give up
 		if (cfgPath.split("/").at(-1).toLowerCase() === "discord") {
@@ -55,14 +52,11 @@ try {
 			break;
 		}
 	}
-}
-catch {
+} catch {
 	cfgPath = undefined;
 }
 
-if (!cfgPath) console.warn(
-	"[sheltupdate] could not locate settings.json, branch selection UI will be unavailable."
-);
+if (!cfgPath) console.warn("[sheltupdate] could not locate settings.json, branch selection UI will be unavailable.");
 
 if (cfgPath) {
 	const rg1 = /^https:\/\/inject\.shelter\.uwu\.network\/([\w-+]+)$/;
@@ -72,28 +66,28 @@ if (cfgPath) {
 	// for now i'm just hardcoding this, but building it in such a way that its easy to replace.
 	// this is intended to be temporary.
 
-	const branches =  {
+	const branches = {
 		shelter: {
 			name: "shelter",
 			desc: "Injects shelter",
-			type: "mod"
+			type: "mod",
 		},
 		vencord: {
 			name: "Vencord",
 			desc: "Injects Vencord; This is not an officially supported Vencord install method",
-			type: "mod"
+			type: "mod",
 		},
 		betterdiscord: {
 			name: "BetterDiscord",
 			desc: "Injects BetterDiscord",
-			type: "mod"
+			type: "mod",
 		},
 
 		reactdevtools: {
 			name: "React Developer Tools",
 			desc: "Adds the React Dev Tools to the web developer panel",
-			type: "tool"
-		}
+			type: "tool",
+		},
 	};
 
 	async function readBranches() {
@@ -102,14 +96,14 @@ if (cfgPath) {
 		if (typeof settings.UPDATE_ENDPOINT === "string") {
 			const match = settings.UPDATE_ENDPOINT.match(rg1);
 			if (match && match[1]) {
-				return match[1].split("+")
+				return match[1].split("+");
 			}
 		}
 
 		if (typeof settings.NEW_UPDATE_ENDPOINT === "string") {
 			const match = settings.NEW_UPDATE_ENDPOINT.match(rg2);
 			if (match && match[1]) {
-				return match[1].split("+")
+				return match[1].split("+");
 			}
 		}
 
@@ -122,8 +116,7 @@ if (cfgPath) {
 		if (branches.length) {
 			settings.UPDATE_ENDPOINT = `https://inject.shelter.uwu.network/${branches.join("+")}`;
 			settings.NEW_UPDATE_ENDPOINT = `https://inject.shelter.uwu.network/${branches.join("+")}/`;
-		}
-		else {
+		} else {
 			delete settings.UPDATE_ENDPOINT;
 			delete settings.NEW_UPDATE_ENDPOINT;
 		}
@@ -150,7 +143,7 @@ if (cfgPath) {
 			// get user permission first, this is our main privesc safeguard
 			const dialogState = await ipcRenderer.invoke(
 				"SHELTER_BRANCHCHANGE_SECURITY_DIALOG",
-				`Confirm you want to change your installed mods to: ${br.map(b => branches[b].name).join(", ")}?`
+				`Confirm you want to change your installed mods to: ${br.map((b) => branches[b].name).join(", ")}?`,
 			);
 
 			if (dialogState.response === 0)
@@ -162,14 +155,12 @@ if (cfgPath) {
 
 		// this is a goofy function to have to write
 		uninstall: async () => {
-
 			// once again get user permission
 			const res = await ipcRenderer.invoke(
 				"SHELTER_BRANCHCHANGE_SECURITY_DIALOG",
-				`Confirm you want to uninstall your client mods? Your settings will not be deleted.`
+				`Confirm you want to uninstall your client mods? Your settings will not be deleted.`,
 			);
-			if (res.response === 0)
-				throw new Error("[sheltupdate] User declined security check");
+			if (res.response === 0) throw new Error("[sheltupdate] User declined security check");
 
 			await setBranches([]);
 		},

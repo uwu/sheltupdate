@@ -1,25 +1,13 @@
 (() => {
-
 	const {
-		plugins: {removePlugin},
-		solid: {createSignal},
-		solidH: {html},
-		ui: {
-         Text,
-			LinkButton,
-			Divider,
-			Button,
-			ButtonColors,
-			showToast,
-			Header,
-			HeaderTags,
-			SwitchItem,
-			Space
-		}
+		plugins: { removePlugin },
+		solid: { createSignal },
+		solidH: { html },
+		ui: { Text, LinkButton, Divider, Button, ButtonColors, showToast, Header, HeaderTags, SwitchItem, Space },
 	} = shelter;
 
 	const {
-		settings: { registerSection }
+		settings: { registerSection },
 	} = shelter.plugin.scoped;
 
 	// deal with this plugin still existing after sheltupdate is gone!
@@ -41,20 +29,17 @@
 
 	const updateCurrent = () => SheltupdateNative.getCurrentBranches().then(setCurrentBranches);
 	updateCurrent().then(() => {
-		if (window.Vencord && !currentBranches.includes("vencord"))
-			setVencordOtherwiseLoaded(true);
+		if (window.Vencord && !currentBranches.includes("vencord")) setVencordOtherwiseLoaded(true);
 
-		if (window.BdApi && !currentBranches.includes("betterdiscord"))
-			setBdOtherwiseLoaded(true);
+		if (window.BdApi && !currentBranches.includes("betterdiscord")) setBdOtherwiseLoaded(true);
 	});
 
-	SheltupdateNative.getAllowedBranches().then(branches => {
+	SheltupdateNative.getAllowedBranches().then((branches) => {
 		// group by type, conveniently "mod" is before "tool" alphabetically
-      const grouped = {};
+		const grouped = {};
 		for (const branchName in branches) {
 			const data = branches[branchName];
-			if (!grouped[data.type])
-				grouped[data.type] = {};
+			if (!grouped[data.type]) grouped[data.type] = {};
 
 			grouped[data.type][branchName] = data;
 		}
@@ -64,11 +49,16 @@
 	});
 
 	const prettyModNames = (branches) => {
-		const modNames = ["shelter", ...branches().filter(b => b !== "shelter").map(b => branchMetaRaw()[b].name)];
+		const modNames = [
+			"shelter",
+			...branches()
+				.filter((b) => b !== "shelter")
+				.map((b) => branchMetaRaw()[b].name),
+		];
 
 		if (modNames.length === 1) return modNames[0];
 		if (modNames.length === 2) return modNames.join(" and ");
-		const lastMod = modNames.pop()
+		const lastMod = modNames.pop();
 		return modNames.join(", ") + ", and " + lastMod;
 	};
 
@@ -77,15 +67,16 @@
 	registerSection("header", "Sheltupdate");
 	registerSection("section", "sheltupdate", "Client Mods", SettingsView);
 
-	function BranchEntry(props/*: { name, data, value, onChange } */) {
+	function BranchEntry(props /*: { name, data, value, onChange } */) {
 		// note: if shelter is disabled (i.e. you uninstalled sheltupdate), allow switching back on
-		const disabled = () => props.name === "shelter" && props.value
-			? "You need shelter to have access to this menu. Try uninstalling sheltupdate."
-			: props.name === "vencord" && vencordOtherwiseLoaded()
-				? "Vencord is currently loaded by some other mechanism."
-				: props.name === "betterdiscord" && bdOtherwiseLoaded()
-					? "BetterDiscord is currently loaded by some other mechanism."
-					: undefined;
+		const disabled = () =>
+			props.name === "shelter" && props.value
+				? "You need shelter to have access to this menu. Try uninstalling sheltupdate."
+				: props.name === "vencord" && vencordOtherwiseLoaded()
+					? "Vencord is currently loaded by some other mechanism."
+					: props.name === "betterdiscord" && bdOtherwiseLoaded()
+						? "BetterDiscord is currently loaded by some other mechanism."
+						: undefined;
 
 		return html`
 			<${SwitchItem}
@@ -132,62 +123,65 @@
 			  <${Divider} mt mb />
 
 			  <!-- lol .map(), what is this, react? -->
-			  ${() => Object.values(branchMetaGrouped()).flatMap(Object.entries)
-					.map(([branchName, branchData]) => html`
+			  ${() =>
+					Object.values(branchMetaGrouped())
+						.flatMap(Object.entries)
+						.map(
+							([branchName, branchData]) => html`
 						<${BranchEntry}
 							name=${() => branchName}
 							data=${() => branchData}
 							value=${() => pendingBranches().has(branchName)}
 							onChange=${(e) => {
-						const pb = pendingBranches();
-						if (e) pb.add(branchName);
-						else pb.delete(branchName);
-						// reactivity ugh
-						setPendingBranches(new Set(pb));
-					}}
+								const pb = pendingBranches();
+								if (e) pb.add(branchName);
+								else pb.delete(branchName);
+								// reactivity ugh
+								setPendingBranches(new Set(pb));
+							}}
 						/>
-					`)}
+					`,
+						)}
 
 			  <div style="display: flex">
-				  ${() => unsavedChanges()
-					  ? html`
+				  ${() =>
+						unsavedChanges()
+							? html`
 							<${Text}>
 								You have unsaved changes!<br />
 								Applying will require fully closing and reopening Discord.
 							<//>
 							<div style="flex: 1" />
 							<${Button} grow onClick=${(e) => {
-						  SheltupdateNative.setBranches([...pendingBranches()])
-							  .then(updateCurrent, (err) => {
-								  updateCurrent();
-								  showToast({
-									  title: "Failed to change mods!",
-									  content: err?.message ?? err,
-									  duration: 3000
-								  });
-							  });
-					  }}
+								SheltupdateNative.setBranches([...pendingBranches()]).then(updateCurrent, (err) => {
+									updateCurrent();
+									showToast({
+										title: "Failed to change mods!",
+										content: err?.message ?? err,
+										duration: 3000,
+									});
+								});
+							}}
 							>
 								Save Mods
 							<//>
 						`
-					  : html`<div style="flex: 1" />`
-				  }
+							: html`<div style="flex: 1" />`}
 
 				  <${Button}
 					  grow
 					  color=${ButtonColors.RED}
 					  onClick=${(e) => {
-						  setUninstallCache(currentBranches())
-						  SheltupdateNative.uninstall().then(updateCurrent, (err) => {
-							  updateCurrent();
-							  showToast({
-								  title: "Failed to change mods!",
-								  content: err?.message ?? err,
-								  duration: 3000
-							  });
-						  });
-					  }}
+							setUninstallCache(currentBranches());
+							SheltupdateNative.uninstall().then(updateCurrent, (err) => {
+								updateCurrent();
+								showToast({
+									title: "Failed to change mods!",
+									content: err?.message ?? err,
+									duration: 3000,
+								});
+							});
+						}}
 					  style=${{ "margin-left": "1rem" }}
 				  >
 					  Uninstall shelter
@@ -218,14 +212,15 @@
 				<${Button}
 					grow
 					color=${ButtonColors.GREEN}
-					onClick=${(e) => SheltupdateNative.setBranches(uninstallCache()).then(updateCurrent, err => {
-						updateCurrent();
-						showToast({
-							title: "Failed to change mods!",
-							content: err?.message ?? err,
-							duration: 3000
-						});
-					})}
+					onClick=${(e) =>
+						SheltupdateNative.setBranches(uninstallCache()).then(updateCurrent, (err) => {
+							updateCurrent();
+							showToast({
+								title: "Failed to change mods!",
+								content: err?.message ?? err,
+								duration: 3000,
+							});
+						})}
 					style=${{ "margin-top": "2rem" }}
 				>
 					Revert uninstall
@@ -233,5 +228,4 @@
 			</div>
 		`;
 	}
-
 })();

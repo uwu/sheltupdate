@@ -5,4 +5,4 @@ export default (c) => {
 	const xff = c.req.header("x-forwarded-for")?.split(",")[0];
 
 	return cfIp ?? xff ?? peerAddr;
-}
+};

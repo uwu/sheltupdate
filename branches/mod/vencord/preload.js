@@ -1,6 +1,6 @@
-const {readFileSync} = require("fs");
-const {join} = require("path");
-const {webFrame} = require("electron");
+const { readFileSync } = require("fs");
+const { join } = require("path");
+const { webFrame } = require("electron");
 
 // run vencord's preload
 require("./vencord-desktop/vencordDesktopPreload.js");

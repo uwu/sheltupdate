@@ -2,11 +2,10 @@ export const nullBodyStatuses = [101, 204, 205, 304];
 
 // I'm sick and tired of resp body reuse issues
 export default class ReusableResponse {
-
 	#body;
 
 	get #isNullBody() {
-		return nullBodyStatuses.includes(this.status)
+		return nullBodyStatuses.includes(this.status);
 	}
 
 	get body() {
@@ -16,7 +15,7 @@ export default class ReusableResponse {
 	}
 
 	get bodyUsed() {
-		return false
+		return false;
 	}
 
 	headers;
@@ -28,8 +27,7 @@ export default class ReusableResponse {
 	url;
 
 	static async create(resp) {
-		if (resp.bodyUsed)
-			throw new Error("cannot turn a used response into a reusable one");
+		if (resp.bodyUsed) throw new Error("cannot turn a used response into a reusable one");
 
 		return new ReusableResponse(resp, await resp.arrayBuffer());
 	}
@@ -73,10 +71,10 @@ export default class ReusableResponse {
 	}
 
 	text() {
-		return Promise.resolve(new TextDecoder().decode(this.#body))
+		return Promise.resolve(new TextDecoder().decode(this.#body));
 	}
 
 	toRealRes() {
-		return new Response(this.#isNullBody ? null : this.#body, {...this});
+		return new Response(this.#isNullBody ? null : this.#body, { ...this });
 	}
 }

@@ -1,8 +1,7 @@
-import {Hono} from "hono";
-import {handleNonSquirrel, handleSquirrel} from "./host.js";
-import {handleModuleDownload} from "./moduleDownload/index.js";
-import {handleModules} from "./modules.js";
-
+import { Hono } from "hono";
+import { handleNonSquirrel, handleSquirrel } from "./host.js";
+import { handleModuleDownload } from "./moduleDownload/index.js";
+import { handleModules } from "./modules.js";
 
 export default new Hono()
 	.get("/:branch/updates/:channel", handleNonSquirrel)

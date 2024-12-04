@@ -1,11 +1,11 @@
 import basicProxy from "../common/proxy/index.js";
-import {branches} from "../common/branchesLoader.js";
-import {requestCounts, uniqueUsers} from "../common/state.js";
+import { branches } from "../common/branchesLoader.js";
+import { requestCounts, uniqueUsers } from "../common/state.js";
 import originatingIp from "../common/originatingIp.js";
 
 export const handleModules = async (c) => {
-	const {branch, channel} = c.req.param();
-	const {platform, host_version} = c.req.query();
+	const { branch, channel } = c.req.param();
+	const { platform, host_version } = c.req.query();
 
 	if (!branches[branch]) {
 		return c.notFound("Invalid sheltupdate branch");
@@ -28,14 +28,12 @@ export const handleModules = async (c) => {
 		};
 	}
 
-	let json = await basicProxy(c).then(r => r.json());
+	let json = await basicProxy(c).then((r) => r.json());
 
 	console.log(json);
 
 	if (json.discord_desktop_core)
-		json.discord_desktop_core = parseInt(
-			`${branches[branch].version}${json.discord_desktop_core.toString()}`,
-		);
+		json.discord_desktop_core = parseInt(`${branches[branch].version}${json.discord_desktop_core.toString()}`);
 
 	return c.json(json);
 };

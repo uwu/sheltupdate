@@ -1,4 +1,4 @@
-import {existsSync, mkdirSync, rmSync} from "fs";
+import { existsSync, mkdirSync, rmSync } from "fs";
 
 export let proxyCacheHitArr = [];
 export let proxyVsRedirect = [];

@@ -7,26 +7,20 @@ import unzipper from "unzipper";
 import archiver from "archiver";
 
 import basicProxy from "../../common/proxy/index.js";
-import {branches} from "../../common/branchesLoader.js";
-import {
-	finalizeDesktopCoreIndex,
-	finalizeDesktopCorePreload
-} from "../../common/desktopCoreTemplates.js";
+import { branches } from "../../common/branchesLoader.js";
+import { finalizeDesktopCoreIndex, finalizeDesktopCorePreload } from "../../common/desktopCoreTemplates.js";
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export default async (c, cacheDir, cacheFinalFile) => {
-	const {branch: branch_, channel, version} = c.req.param();
-	const {platform, host_version} = c.req.query();
+	const { branch: branch_, channel, version } = c.req.param();
+	const { platform, host_version } = c.req.query();
 
 	const branch = branches[branch_];
 
 	console.log("[CustomModule] Could not find cache dir, creating custom version");
 
-	const prox = await basicProxy(
-		c, {},
-		[version, version.substring(branch.version.toString().length)],
-	);
+	const prox = await basicProxy(c, {}, [version, version.substring(branch.version.toString().length)]);
 
 	console.time("fromNetwork");
 
@@ -50,8 +44,7 @@ export default async (c, cacheDir, cacheFinalFile) => {
 	console.log("Patching file");
 
 	writeFileSync(`${cacheExtractDir}/index.js`, finalizeDesktopCoreIndex(branch.patch, !!branch.preload));
-	if (branch.preload)
-		writeFileSync(`${cacheExtractDir}/preload.js`, finalizeDesktopCorePreload(branch.preload));
+	if (branch.preload) writeFileSync(`${cacheExtractDir}/preload.js`, finalizeDesktopCorePreload(branch.preload));
 
 	console.log("Copying other files");
 
@@ -102,6 +95,6 @@ export default async (c, cacheDir, cacheFinalFile) => {
 	outputStream.close();
 	outputStream.destroy();
 
-	c.header("Content-Type", "application/zip")
+	c.header("Content-Type", "application/zip");
 	return c.body(readFileSync(cacheFinalFile));
 };

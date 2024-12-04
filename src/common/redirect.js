@@ -1,6 +1,6 @@
 import { getProxyURL } from "./proxy/index.js";
-import {proxyVsRedirect} from "./state.js";
-import {config} from "./config.js";
+import { proxyVsRedirect } from "./state.js";
+import { config } from "./config.js";
 
 export default async (context, base = config.apiBases.v1) => {
 	proxyVsRedirect.push("redirect");

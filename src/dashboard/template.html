@@ -1,621 +1,607 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <title>sheltupdate Dashboard</title>
-
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-
-  <link href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css" rel="stylesheet">
-  <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
-
-  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-
-  <style>
-    body, html {
-      margin: 0;
-      padding: 0;
-
-      background-color: #f5f5f5;
-    }
-
-    *, *::before, *::after {
-      box-sizing: border-box;
-
-      font-family: var(--mdc-typography-headline4-font-family, var(--mdc-typography-font-family, Roboto, sans-serif));
-    }
-
-    #main {
-      padding: 4vw;
-      padding-top: calc(4vw + 40px);
-
-      display: flex;
-      gap: 3vh;
-
-      flex-direction: column;
-      align-items: center;
-    }
-
-    #main > h2 {
-      margin: 0;
-    }
-
-    .mdc-top-app-bar__section--align-end {
-      gap: 20px;
-    }
-
-    .app-fab--absolute {
-      position: fixed;
-      bottom: 1rem;
-      right: 1rem;
-
-      z-index: 10;
-    }
-
-    @media (min-width: 1024px) {
-      .app-fab--absolute {
-        bottom: 1.5rem;
-        right: 1.5rem;
-      }
-    }
-
-    .column-container {
-      display: flex;
-      gap: 5vw;
-    }
-
-    .column {
-      width: 50%;
-      height: 100%;
-
-      flex: 1 1 50%;
-      display: flex;
-      flex-direction: column;
-
-      gap: 20px;
-    }
-
-    .demo-card {
-      width: 100%;
-
-      padding: 18px;
-    }
-
-    .demo-card__title {
-      margin-top: 0;
-    }
-
-    .dual {
-      display: flex;
-      flex-wrap: wrap;
-
-      gap: 20px;
-      width: 100%;
-    }
-
-    .dual > .demo-card {
-      width: calc(50% - 10px);
-    }
-
-    .dual.quad > .demo-card {
-      width: calc(25% - 15px);
-    }
-
-    .dual.quad .mdc-typography--headline6 {
-      font-size: 90%;
-    }
-
-    .pie {
-      margin: 12px auto;
-      border-radius: 100%;
-      height: 200px;
-      overflow: hidden;
-      position: relative;
-      width: 200px;
-    }
-    .pie__segment {
-      --a: calc(var(--over50, 0) * -100%);
-      --b: calc((1 + var(--over50, 0)) * 100%);
-      --degrees: calc((var(--offset, 0) / 100) * 360);
-      -webkit-clip-path: polygon(var(--a) var(--a), var(--b) var(--a), var(--b) var(--b), var(--a) var(--b));
-      clip-path: polygon(var(--a) var(--a), var(--b) var(--a), var(--b) var(--b), var(--a) var(--b));
-      height: 100%;
-      position: absolute;
-      transform: translate(0, -50%) rotate(90deg) rotate(calc(var(--degrees) * 1deg));
-      transform-origin: 50% 100%;
-      width: 100%;
-      z-index: calc(1 + var(--over50));
-    }
-    .pie__segment:after,
-    .pie__segment:before {
-      background: var(--bg, #e74c3c);
-      content: '';
-      height: 100%;
-      position: absolute;
-      width: 100%;
-    }
-    .pie__segment:before {
-      --degrees: calc((var(--value, 45) / 100) * 360);
-      transform: translate(0, 100%) rotate(calc(var(--degrees) * 1deg));
-      transform-origin: 50% 0%;
-    }
-    .pie__segment:after {
-      opacity: var(--over50, 0);
-    }
-
-    .pie__label {
-      bottom: 0;
-      left: 0;
-
-      position: absolute;
-      text-align: center;
-
-      width: 50%;
-      z-index: 2;
-
-      font-size: 14px;
-    }
-
-    @media screen and (max-width: 800px) {
-      .column-container {
-        flex-wrap: wrap;
-      }
-
-      .column {
-        width: 100%;
-      }
-    }
-
-    @media screen and (max-width: 1100px) and (min-width: 800px) {
-      .dual-collapse .pie {
-        width: 150px;
-        height: 150px;
-      }
-    }
-
-    @media screen and (max-width: 550px) {
-      .dual-collapse .pie {
-        width: 150px;
-        height: 150px;
-      }
-    }
-
-    @media screen and (max-width: 430px) {
-      .dual-collapse .demo-card {
-        width: 100%;
-      }
-
-      .dual-collapse .pie {
-        width: 200px;
-        height: 200px;
-      }
-    }
-
-    #assist-modal {
-      display: none;
-
-      width: 100%;
-      height: 100%;
-
-      position: absolute;
-
-      top: 0;
-      left: 0;
-
-      z-index: 99;
-
-      background-color: rgba(0, 0, 0, .8);
-
-      overflow: none;
-
-      animation: back-change .5s;
-    }
-
-    @keyframes back-change {
-      from { background: none; }
-     to { background: rgba(0,0,0,.8); }
-    }
-
-    #assist-modal > .mdc-card {
-      position: absolute;
-
-      top: 50%;
-      left: 50%;
-
-      transform: translate(-50%, -50%);
-
-      padding: 24px;
-    }
-
-    #assist-modal.show {
-      display: block;
-    }
-
-    #step-1-card, #step-2-card, #step-3-card, #step-4-card, #step-5-card {
-      opacity: 0;
-      margin-top: -99999px;
-
-      transition: opacity .5s;
-    }
-
-    #step-1-card.show, #step-2-card.show, #step-3-card.show, #step-4-card.show, #step-5-card.show {
-      margin-top: 0;
-      opacity: 1;
-    }
-
-    pre {
-      background-color: #eeeeee;
-
-      padding: 6px;
-    }
-
-    code {
-      background-color: #eeeeee;
-    }
-
-    .items {
-      display: flex;
-      flex-direction: column;
-
-      gap: 2px;
-    }
-
-    .items > .desc {
-      color: var(--mdc-theme-text-hint-on-background);
-      padding-left: 46px;
-
-      margin-bottom: 18px;
-    }
-
-    .channels {
-      display: grid;
-      flex-direction: row;
-
-      grid-template-columns: repeat(2, 100px);
-
-      gap: 30px;
-    }
-
-    .channels > button {
-      width: 100px;
-      height: 100px;
-
-      font-size: 100%;
-    }
-
-    .items > button {
-
-    }
-
-    .items:not(.channels) > :nth-last-child(2) {
-      margin-bottom: 40px;
-    }
-
-    #fileSelect {
-      display: none;
-    }
-
-    .badge {
-      font-weight: bold;
-      font-size: 90%;
-
-      border-radius: 5px;
-      padding: 4px;
-
-      color: white;
-      background-color: black;
-    }
-
-    .badge.beta {
-      background-color: #DE3163;
-    }
-
-    .badge.alpha {
-      background-color: #6495ED;
-    }
-
-    .divide {
-      height: 2px;
-      width: 100%;
-
-      background-color: var(--mdc-theme-text-hint-on-background);
-
-      margin-bottom: 14px;
-      margin-top: 4px;
-    }
-
-    .mdc-checkbox--disabled + label {
-      color: var(--mdc-theme-text-hint-on-background);
-    }
-
-    .mdc-typography {
-      color: var(--mdc-theme-text-primary-on-background);
-    }
-
-    body.dark {
-      background-color: rgb(13, 14, 14);
-
-      --mdc-theme-text-primary-on-background: rgba(255, 255, 255, 0.87);
-
-      --mdc-theme-text-secondary-on-background: rgba(255, 255, 255, 0.5);
-      --mdc-theme-text-hint-on-background: var(--mdc-theme-text-secondary-on-background);
-
-      --mdc-theme-surface: rgb(24, 26, 27);
-
-      --mdc-checkbox-unchecked-color: var(--mdc-theme-text-hint-on-background);
-    }
-
-    #themer-light {
-      display: none;
-    }
-
-    body.dark #themer-light {
-      display: inline;
-    }
-
-    body.dark #themer-dark {
-      display: none;
-    }
-
-    body.dark .mdc-radio .mdc-radio__native-control:enabled:not(:checked)+.mdc-radio__background .mdc-radio__outer-circle {
-      border-color: var(--mdc-theme-text-secondary-on-background);
-    }
-
-    body.dark .mdc-button--raised:disabled, .mdc-button--unelevated:disabled {
-      color: var(--mdc-theme-text-secondary-on-background);
-    }
-
-    .pie-legend {
-      width: fit-content;
-      margin: auto;
-
-      padding: 8px;
-
-      display: flex;
-      flex-wrap: wrap;
-
-      gap: 10px;
-
-      background-color: rgb(38, 42, 43);
-      border-radius: var(--mdc-shape-medium, 4px);
-    }
-
-    .pie-legend > div {
-      color: var(--mdc-theme-text-primary-on-background);
-    }
-
-    .pie-legend > div::before {
-      content: ' ';
-      background-color: var(--bg);
-
-      width: 20px;
-      height: 20px;
-      display: inline-block;
-
-      vertical-align: bottom;
-      margin-right: 5px;
-
-      border-radius: 50%;
-    }
-  </style>
-</head>
-
-<body class="dark">
-  <header class="mdc-top-app-bar">
-    <div class="mdc-top-app-bar__row">
-      <section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-start">
-        <span class="mdc-top-app-bar__title">sheltupdate rTEMPLATE_VERSION</span>
-      </section>
-      <section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-end" role="toolbar">
-
-        <button id="themer" class="mdc-theme--secondary-bg mdc-button mdc-button--raised">
-          <span id="themer-light" class="material-icons">
-            brightness_high
-          </span>
-
-          <span id="themer-dark" class="material-icons">
-            brightness_low
-          </span>
-        </button>
-      </section>
-    </div>
-  </header>
-
-  <div id="main">
-    <h2 class="mdc-typography mdc-typography--headline4">Statistics</h2>
-
-    <div class="column-container">
-      <div class="column">
-        <div class="dual dual-collapse">
-          <div class="mdc-card demo-card">
-            <div class="" tabindex="0">
-              <div class="demo-card__primary">
-                <h2 class="demo-card__title mdc-typography mdc-typography--headline6">Total Users</h2>
-                <h3 class="demo-card__subtitle mdc-typography mdc-typography--headline2">TEMPLATE_TOTAL_USERS</h3>
-              </div>
-              <!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The total amount of users who have requested updates this server session</div> -->
-            </div>
-          </div>
-
-          <div class="mdc-card demo-card">
-            <div class="" tabindex="0">
-              <div class="demo-card__primary">
-                <h2 class="demo-card__title mdc-typography mdc-typography--headline6">OS</h2>
-                TEMPLATE_PIE_OS
-              </div>
-              <!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The demographic of OS usage</div> -->
-            </div>
-          </div>
-
-          <div class="mdc-card demo-card">
-            <div class="" tabindex="0">
-              <div class="demo-card__primary">
-                <h2 class="demo-card__title mdc-typography mdc-typography--headline6">Discord Channel</h2>
-                TEMPLATE_PIE_HOST_CHANNELS
-              </div>
-              <!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The demographic of OS usage</div> -->
-            </div>
-          </div>
-
-          <div class="mdc-card demo-card">
-            <div class="" tabindex="0">
-              <div class="demo-card__primary">
-                <h2 class="demo-card__title mdc-typography mdc-typography--headline6">API Version</h2>
-                TEMPLATE_PIE_API_VERSION
-              </div>
-              <!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The demographic of OS usage</div> -->
-            </div>
-          </div>
-
-          <div class="mdc-card demo-card">
-            <div class="" tabindex="0">
-              <div class="demo-card__primary">
-                <h2 class="demo-card__title mdc-typography mdc-typography--headline6">Host Version</h2>
-                TEMPLATE_PIE_HOST_VERSIONS
-              </div>
-              <!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The demographic of OS usage</div> -->
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="column">
-        <div class="mdc-card demo-card">
-          <div class="" tabindex="0">
-            <div class="demo-card__primary">
-              <h2 class="demo-card__title mdc-typography mdc-typography--headline6">Branches</h2>
-              TEMPLATE_PIE_BRANCHES
-            </div>
-            <!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The demographic of OS usage</div> -->
-          </div>
-        </div>
-
-        <div class="dual dual-collapse">
-          <div class="mdc-card demo-card">
-            <div class="" tabindex="0">
-              <div class="demo-card__primary">
-                <h2 class="demo-card__title mdc-typography mdc-typography--headline6">V1 - Cache Rate</h2>
-                TEMPLATE_PIE_CACHE
-              </div>
-              <!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The demographic of OS usage</div> -->
-            </div>
-          </div>
-
-          <div class="mdc-card demo-card">
-            <div class="" tabindex="0">
-              <div class="demo-card__primary">
-                <h2 class="demo-card__title mdc-typography mdc-typography--headline6">V1 - Redirect Rate</h2>
-                TEMPLATE_PIE_VS
-              </div>
-              <!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The demographic of OS usage</div> -->
-            </div>
-          </div>
-        </div>
-
-        <div class="dual">
-          <div class="mdc-card demo-card">
-            <div class="" tabindex="0">
-              <div class="demo-card__primary">
-                <h2 class="demo-card__title mdc-typography mdc-typography--headline6">Squirrel Host</h2>
-                <h3 class="demo-card__subtitle mdc-typography mdc-typography--headline4">TEMPLATE_COUNT_HOST_SQUIRREL</h3>
-              </div>
-              <!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The total amount of users who have requested updates this server session</div> -->
-            </div>
-          </div>
-
-          <div class="mdc-card demo-card">
-            <div class="" tabindex="0">
-              <div class="demo-card__primary">
-                <h2 class="demo-card__title mdc-typography mdc-typography--headline6">Non-Squirrel Host</h2>
-                <h3 class="demo-card__subtitle mdc-typography mdc-typography--headline4">TEMPLATE_COUNT_HOST_NOTSQUIRREL</h3>
-              </div>
-              <!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The total amount of users who have requested updates this server session</div> -->
-            </div>
-          </div>
-
-          <div class="mdc-card demo-card">
-            <div class="" tabindex="0">
-              <div class="demo-card__primary">
-                <h2 class="demo-card__title mdc-typography mdc-typography--headline6">V1 - Modules</h2>
-                <h3 class="demo-card__subtitle mdc-typography mdc-typography--headline4">TEMPLATE_COUNT_MODULES</h3>
-              </div>
-              <!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The total amount of users who have requested updates this server session</div> -->
-            </div>
-          </div>
-
-          <div class="mdc-card demo-card">
-            <div class="" tabindex="0">
-              <div class="demo-card__primary">
-                <h2 class="demo-card__title mdc-typography mdc-typography--headline6">V1 - Module Downloads</h2>
-                <h3 class="demo-card__subtitle mdc-typography mdc-typography--headline4">TEMPLATE_COUNT_MODULE_DOWNLOAD</h3>
-              </div>
-              <!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The total amount of users who have requested updates this server session</div> -->
-            </div>
-          </div>
-
-          <div class="mdc-card demo-card">
-            <div class="" tabindex="0">
-              <div class="demo-card__primary">
-                <h2 class="demo-card__title mdc-typography mdc-typography--headline6">V2 - Manifests</h2>
-                <h3 class="demo-card__subtitle mdc-typography mdc-typography--headline4">TEMPLATE_COUNT_V2_MANIFEST</h3>
-              </div>
-              <!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The total amount of users who have requested updates this server session</div> -->
-            </div>
-          </div>
-
-          <div class="mdc-card demo-card">
-            <div class="" tabindex="0">
-              <div class="demo-card__primary">
-                <h2 class="demo-card__title mdc-typography mdc-typography--headline6">V2 - Module Downloads</h2>
-                <h3 class="demo-card__subtitle mdc-typography mdc-typography--headline4">TEMPLATE_COUNT_V2_MODULE</h3>
-              </div>
-              <!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The total amount of users who have requested updates this server session</div> -->
-            </div>
-          </div>
-
-          <div class="mdc-card demo-card">
-            <div class="" tabindex="0">
-              <div class="demo-card__primary">
-                <h2 class="demo-card__title mdc-typography mdc-typography--headline6">Uptime</h2>
-                <h3 class="demo-card__subtitle mdc-typography mdc-typography--headline4">TEMPLATE_UPTIME</h3>
-              </div>
-              <!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The total amount of users who have requested updates this server session</div> -->
-            </div>
-          </div>
-
-          <div class="mdc-card demo-card">
-            <div class="" tabindex="0">
-              <div class="demo-card__primary">
-                <h2 class="demo-card__title mdc-typography mdc-typography--headline6">Last Update Request</h2>
-                <h3 class="demo-card__subtitle mdc-typography mdc-typography--headline4">TEMPLATE_LAST_UPDATE</h3>
-              </div>
-              <!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The total amount of users who have requested updates this server session</div> -->
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div id="tooltip-id" class="mdc-tooltip" role="tooltip" aria-hidden="true">
-    <div class="mdc-tooltip__surface">
-      lorem ipsum dolor
-    </div>
-  </div>
-
-  <input type="file" id="fileSelect">
-
-  <script>
-    window.mdc.autoInit();
-
-    const themer = document.getElementById('themer');
-
-    themer.onclick = () => {
-      if (document.body.classList.contains('dark')) {
-        document.body.classList.remove('dark');
-      } else {
-        document.body.classList.add('dark');
-      }
-    };
-    </script>
-</body>
+	<head>
+		<title>sheltupdate Dashboard</title>
+
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+		<link
+			href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css"
+			rel="stylesheet"
+		>
+		<script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
+
+		<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+
+		<style>
+		body, html {
+		  margin: 0;
+		  padding: 0;
+		  background-color: #f5f5f5;
+		}
+
+		*, *::before, *::after {
+		  box-sizing: border-box;
+		  font-family: var(--mdc-typography-headline4-font-family, var(--mdc-typography-font-family, Roboto, sans-serif));
+		}
+
+		#main {
+		  display: flex;
+		  flex-direction: column;
+		  align-items: center;
+		  padding: 4vw;
+		  padding-top: calc(4vw + 40px);
+		  gap: 3vh;
+		}
+
+		#main > h2 {
+		  margin: 0;
+		}
+
+		.mdc-top-app-bar__section--align-end {
+		  gap: 20px;
+		}
+
+		.app-fab--absolute {
+		  z-index: 10;
+		  position: fixed;
+		  right: 1rem;
+		  bottom: 1rem;
+		}
+
+		@media (min-width: 1024px) {
+		  .app-fab--absolute {
+		    right: 1.5rem;
+		    bottom: 1.5rem;
+		  }
+		}
+
+		.column-container {
+		  display: flex;
+		  gap: 5vw;
+		}
+
+		.column {
+		  display: flex;
+		  flex: 1 1 50%;
+		  flex-direction: column;
+		  width: 50%;
+		  height: 100%;
+		  gap: 20px;
+		}
+
+		.demo-card {
+		  width: 100%;
+		  padding: 18px;
+		}
+
+		.demo-card__title {
+		  margin-top: 0;
+		}
+
+		.dual {
+		  display: flex;
+		  flex-wrap: wrap;
+		  width: 100%;
+		  gap: 20px;
+		}
+
+		.dual > .demo-card {
+		  width: calc(50% - 10px);
+		}
+
+		.dual.quad > .demo-card {
+		  width: calc(25% - 15px);
+		}
+
+		.dual.quad .mdc-typography--headline6 {
+		  font-size: 90%;
+		}
+
+		.pie {
+		  position: relative;
+		  width: 200px;
+		  height: 200px;
+		  margin: 12px auto;
+		  overflow: hidden;
+		  border-radius: 100%;
+		}
+		.pie__segment {
+		  --a: calc(var(--over50, 0) * -100%);
+		  --b: calc((1 + var(--over50, 0)) * 100%);
+		  --degrees: calc(var(--offset, 0) / 100 * 360);
+		  z-index: calc(1 + var(--over50));
+		  position: absolute;
+		  width: 100%;
+		  height: 100%;
+		  transform: translate(0, -50%) rotate(90deg) rotate(calc(var(--degrees) * 1deg));
+		  transform-origin: 50% 100%;
+		  -webkit-clip-path: polygon(var(--a) var(--a), var(--b) var(--a), var(--b) var(--b), var(--a) var(--b));
+		  clip-path: polygon(var(--a) var(--a), var(--b) var(--a), var(--b) var(--b), var(--a) var(--b));
+		}
+		.pie__segment:after,
+		.pie__segment:before {
+		  position: absolute;
+		  width: 100%;
+		  height: 100%;
+		  background: var(--bg, #e74c3c);
+		  content: "";
+		}
+		.pie__segment:before {
+		  --degrees: calc(var(--value, 45) / 100 * 360);
+		  transform: translate(0, 100%) rotate(calc(var(--degrees) * 1deg));
+		  transform-origin: 50% 0%;
+		}
+		.pie__segment:after {
+		  opacity: var(--over50, 0);
+		}
+
+		.pie__label {
+		  z-index: 2;
+		  position: absolute;
+		  bottom: 0;
+		  left: 0;
+		  width: 50%;
+		  font-size: 14px;
+		  text-align: center;
+		}
+
+		@media screen and (max-width: 800px) {
+		  .column-container {
+		    flex-wrap: wrap;
+		  }
+
+		  .column {
+		    width: 100%;
+		  }
+		}
+
+		@media screen and (max-width: 1100px) and (min-width: 800px) {
+		  .dual-collapse .pie {
+		    width: 150px;
+		    height: 150px;
+		  }
+		}
+
+		@media screen and (max-width: 550px) {
+		  .dual-collapse .pie {
+		    width: 150px;
+		    height: 150px;
+		  }
+		}
+
+		@media screen and (max-width: 430px) {
+		  .dual-collapse .demo-card {
+		    width: 100%;
+		  }
+
+		  .dual-collapse .pie {
+		    width: 200px;
+		    height: 200px;
+		  }
+		}
+
+		#assist-modal {
+		  display: none;
+		  z-index: 99;
+		  position: absolute;
+		  top: 0;
+		  left: 0;
+		  width: 100%;
+		  height: 100%;
+		  overflow: none;
+		  background-color: rgba(0, 0, 0, .8);
+		  animation: back-change .5s;
+		}
+
+		@keyframes back-change {
+		  from {
+		    background: none;
+		  }
+		  to {
+		    background: rgba(0, 0, 0, .8);
+		  }
+		}
+
+		#assist-modal > .mdc-card {
+		  position: absolute;
+		  top: 50%;
+		  left: 50%;
+		  padding: 24px;
+		  transform: translate(-50%, -50%);
+		}
+
+		#assist-modal.show {
+		  display: block;
+		}
+
+		#step-1-card, #step-2-card, #step-3-card, #step-4-card, #step-5-card {
+		  margin-top: -99999px;
+		  opacity: 0;
+		  transition: opacity .5s;
+		}
+
+		#step-1-card.show, #step-2-card.show, #step-3-card.show, #step-4-card.show, #step-5-card.show {
+		  margin-top: 0;
+		  opacity: 1;
+		}
+
+		pre {
+		  padding: 6px;
+		  background-color: #eeeeee;
+		}
+
+		code {
+		  background-color: #eeeeee;
+		}
+
+		.items {
+		  display: flex;
+		  flex-direction: column;
+		  gap: 2px;
+		}
+
+		.items > .desc {
+		  margin-bottom: 18px;
+		  padding-left: 46px;
+		  color: var(--mdc-theme-text-hint-on-background);
+		}
+
+		.channels {
+		  display: grid;
+		  grid-template-columns: repeat(2, 100px);
+		  flex-direction: row;
+		  gap: 30px;
+		}
+
+		.channels > button {
+		  width: 100px;
+		  height: 100px;
+		  font-size: 100%;
+		}
+
+		.items > button {}
+
+		.items:not(.channels) > :nth-last-child(2) {
+		  margin-bottom: 40px;
+		}
+
+		#fileSelect {
+		  display: none;
+		}
+
+		.badge {
+		  padding: 4px;
+		  border-radius: 5px;
+		  background-color: black;
+		  color: white;
+		  font-weight: bold;
+		  font-size: 90%;
+		}
+
+		.badge.beta {
+		  background-color: #de3163;
+		}
+
+		.badge.alpha {
+		  background-color: #6495ed;
+		}
+
+		.divide {
+		  width: 100%;
+		  height: 2px;
+		  margin-top: 4px;
+		  margin-bottom: 14px;
+		  background-color: var(--mdc-theme-text-hint-on-background);
+		}
+
+		.mdc-checkbox--disabled + label {
+		  color: var(--mdc-theme-text-hint-on-background);
+		}
+
+		.mdc-typography {
+		  color: var(--mdc-theme-text-primary-on-background);
+		}
+
+		body.dark {
+		  background-color: rgb(13, 14, 14);
+		  --mdc-theme-text-primary-on-background: rgba(255, 255, 255, .87);
+		  --mdc-theme-text-secondary-on-background: rgba(255, 255, 255, .5);
+		  --mdc-theme-text-hint-on-background: var(--mdc-theme-text-secondary-on-background);
+		  --mdc-theme-surface: rgb(24, 26, 27);
+		  --mdc-checkbox-unchecked-color: var(--mdc-theme-text-hint-on-background);
+		}
+
+		#themer-light {
+		  display: none;
+		}
+
+		body.dark #themer-light {
+		  display: inline;
+		}
+
+		body.dark #themer-dark {
+		  display: none;
+		}
+
+		body.dark
+		  .mdc-radio
+		  .mdc-radio__native-control:enabled:not(:checked)
+		  + .mdc-radio__background
+		  .mdc-radio__outer-circle {
+		  border-color: var(--mdc-theme-text-secondary-on-background);
+		}
+
+		body.dark .mdc-button--raised:disabled, .mdc-button--unelevated:disabled {
+		  color: var(--mdc-theme-text-secondary-on-background);
+		}
+
+		.pie-legend {
+		  display: flex;
+		  flex-wrap: wrap;
+		  width: fit-content;
+		  margin: auto;
+		  padding: 8px;
+		  gap: 10px;
+		  border-radius: var(--mdc-shape-medium, 4px);
+		  background-color: rgb(38, 42, 43);
+		}
+
+		.pie-legend > div {
+		  color: var(--mdc-theme-text-primary-on-background);
+		}
+
+		.pie-legend > div::before {
+		  display: inline-block;
+		  width: 20px;
+		  height: 20px;
+		  margin-right: 5px;
+		  border-radius: 50%;
+		  background-color: var(--bg);
+		  content: " ";
+		  vertical-align: bottom;
+		}
+		</style>
+	</head>
+
+	<body class="dark">
+		<header class="mdc-top-app-bar">
+			<div class="mdc-top-app-bar__row">
+				<section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-start">
+					<span class="mdc-top-app-bar__title">sheltupdate rTEMPLATE_VERSION</span>
+				</section>
+				<section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-end" role="toolbar">
+					<button id="themer" class="mdc-theme--secondary-bg mdc-button mdc-button--raised">
+						<span id="themer-light" class="material-icons">
+							brightness_high
+						</span>
+
+						<span id="themer-dark" class="material-icons">
+							brightness_low
+						</span>
+					</button>
+				</section>
+			</div>
+		</header>
+
+		<div id="main">
+			<h2 class="mdc-typography mdc-typography--headline4">Statistics</h2>
+
+			<div class="column-container">
+				<div class="column">
+					<div class="dual dual-collapse">
+						<div class="mdc-card demo-card">
+							<div class="" tabindex="0">
+								<div class="demo-card__primary">
+									<h2 class="demo-card__title mdc-typography mdc-typography--headline6">Total Users</h2>
+									<h3 class="demo-card__subtitle mdc-typography mdc-typography--headline2">
+										TEMPLATE_TOTAL_USERS
+									</h3>
+								</div>
+								<!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The total amount of users who have requested updates this server session</div> -->
+							</div>
+						</div>
+
+						<div class="mdc-card demo-card">
+							<div class="" tabindex="0">
+								<div class="demo-card__primary">
+									<h2 class="demo-card__title mdc-typography mdc-typography--headline6">OS</h2>
+									TEMPLATE_PIE_OS
+								</div>
+								<!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The demographic of OS usage</div> -->
+							</div>
+						</div>
+
+						<div class="mdc-card demo-card">
+							<div class="" tabindex="0">
+								<div class="demo-card__primary">
+									<h2 class="demo-card__title mdc-typography mdc-typography--headline6">Discord Channel</h2>
+									TEMPLATE_PIE_HOST_CHANNELS
+								</div>
+								<!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The demographic of OS usage</div> -->
+							</div>
+						</div>
+
+						<div class="mdc-card demo-card">
+							<div class="" tabindex="0">
+								<div class="demo-card__primary">
+									<h2 class="demo-card__title mdc-typography mdc-typography--headline6">API Version</h2>
+									TEMPLATE_PIE_API_VERSION
+								</div>
+								<!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The demographic of OS usage</div> -->
+							</div>
+						</div>
+
+						<div class="mdc-card demo-card">
+							<div class="" tabindex="0">
+								<div class="demo-card__primary">
+									<h2 class="demo-card__title mdc-typography mdc-typography--headline6">Host Version</h2>
+									TEMPLATE_PIE_HOST_VERSIONS
+								</div>
+								<!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The demographic of OS usage</div> -->
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="column">
+					<div class="mdc-card demo-card">
+						<div class="" tabindex="0">
+							<div class="demo-card__primary">
+								<h2 class="demo-card__title mdc-typography mdc-typography--headline6">Branches</h2>
+								TEMPLATE_PIE_BRANCHES
+							</div>
+							<!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The demographic of OS usage</div> -->
+						</div>
+					</div>
+
+					<div class="dual dual-collapse">
+						<div class="mdc-card demo-card">
+							<div class="" tabindex="0">
+								<div class="demo-card__primary">
+									<h2 class="demo-card__title mdc-typography mdc-typography--headline6">V1 - Cache Rate</h2>
+									TEMPLATE_PIE_CACHE
+								</div>
+								<!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The demographic of OS usage</div> -->
+							</div>
+						</div>
+
+						<div class="mdc-card demo-card">
+							<div class="" tabindex="0">
+								<div class="demo-card__primary">
+									<h2 class="demo-card__title mdc-typography mdc-typography--headline6">V1 - Redirect Rate</h2>
+									TEMPLATE_PIE_VS
+								</div>
+								<!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The demographic of OS usage</div> -->
+							</div>
+						</div>
+					</div>
+
+					<div class="dual">
+						<div class="mdc-card demo-card">
+							<div class="" tabindex="0">
+								<div class="demo-card__primary">
+									<h2 class="demo-card__title mdc-typography mdc-typography--headline6">Squirrel Host</h2>
+									<h3 class="demo-card__subtitle mdc-typography mdc-typography--headline4">
+										TEMPLATE_COUNT_HOST_SQUIRREL
+									</h3>
+								</div>
+								<!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The total amount of users who have requested updates this server session</div> -->
+							</div>
+						</div>
+
+						<div class="mdc-card demo-card">
+							<div class="" tabindex="0">
+								<div class="demo-card__primary">
+									<h2 class="demo-card__title mdc-typography mdc-typography--headline6">Non-Squirrel Host</h2>
+									<h3 class="demo-card__subtitle mdc-typography mdc-typography--headline4">
+										TEMPLATE_COUNT_HOST_NOTSQUIRREL
+									</h3>
+								</div>
+								<!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The total amount of users who have requested updates this server session</div> -->
+							</div>
+						</div>
+
+						<div class="mdc-card demo-card">
+							<div class="" tabindex="0">
+								<div class="demo-card__primary">
+									<h2 class="demo-card__title mdc-typography mdc-typography--headline6">V1 - Modules</h2>
+									<h3 class="demo-card__subtitle mdc-typography mdc-typography--headline4">
+										TEMPLATE_COUNT_MODULES
+									</h3>
+								</div>
+								<!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The total amount of users who have requested updates this server session</div> -->
+							</div>
+						</div>
+
+						<div class="mdc-card demo-card">
+							<div class="" tabindex="0">
+								<div class="demo-card__primary">
+									<h2 class="demo-card__title mdc-typography mdc-typography--headline6">
+										V1 - Module Downloads
+									</h2>
+									<h3 class="demo-card__subtitle mdc-typography mdc-typography--headline4">
+										TEMPLATE_COUNT_MODULE_DOWNLOAD
+									</h3>
+								</div>
+								<!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The total amount of users who have requested updates this server session</div> -->
+							</div>
+						</div>
+
+						<div class="mdc-card demo-card">
+							<div class="" tabindex="0">
+								<div class="demo-card__primary">
+									<h2 class="demo-card__title mdc-typography mdc-typography--headline6">V2 - Manifests</h2>
+									<h3 class="demo-card__subtitle mdc-typography mdc-typography--headline4">
+										TEMPLATE_COUNT_V2_MANIFEST
+									</h3>
+								</div>
+								<!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The total amount of users who have requested updates this server session</div> -->
+							</div>
+						</div>
+
+						<div class="mdc-card demo-card">
+							<div class="" tabindex="0">
+								<div class="demo-card__primary">
+									<h2 class="demo-card__title mdc-typography mdc-typography--headline6">
+										V2 - Module Downloads
+									</h2>
+									<h3 class="demo-card__subtitle mdc-typography mdc-typography--headline4">
+										TEMPLATE_COUNT_V2_MODULE
+									</h3>
+								</div>
+								<!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The total amount of users who have requested updates this server session</div> -->
+							</div>
+						</div>
+
+						<div class="mdc-card demo-card">
+							<div class="" tabindex="0">
+								<div class="demo-card__primary">
+									<h2 class="demo-card__title mdc-typography mdc-typography--headline6">Uptime</h2>
+									<h3 class="demo-card__subtitle mdc-typography mdc-typography--headline4">TEMPLATE_UPTIME</h3>
+								</div>
+								<!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The total amount of users who have requested updates this server session</div> -->
+							</div>
+						</div>
+
+						<div class="mdc-card demo-card">
+							<div class="" tabindex="0">
+								<div class="demo-card__primary">
+									<h2 class="demo-card__title mdc-typography mdc-typography--headline6">
+										Last Update Request
+									</h2>
+									<h3 class="demo-card__subtitle mdc-typography mdc-typography--headline4">
+										TEMPLATE_LAST_UPDATE
+									</h3>
+								</div>
+								<!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The total amount of users who have requested updates this server session</div> -->
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div id="tooltip-id" class="mdc-tooltip" role="tooltip" aria-hidden="true">
+			<div class="mdc-tooltip__surface">
+				lorem ipsum dolor
+			</div>
+		</div>
+
+		<input type="file" id="fileSelect">
+
+		<script>
+		window.mdc.autoInit();
+
+		const themer = document.getElementById("themer");
+
+		themer.onclick = () => {
+			if (document.body.classList.contains("dark")) {
+				document.body.classList.remove("dark");
+			} else {
+				document.body.classList.add("dark");
+			}
+		};
+		</script>
+	</body>
 </html>

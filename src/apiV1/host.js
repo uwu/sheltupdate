@@ -1,6 +1,6 @@
-import {branches} from "../common/branchesLoader.js";
-import {requestCounts} from "../common/state.js";
-import basicProxy from "../common/proxy/index.js"
+import { branches } from "../common/branchesLoader.js";
+import { requestCounts } from "../common/state.js";
+import basicProxy from "../common/proxy/index.js";
 
 export const handleNonSquirrel = async (c) => {
 	// Non-Squirrel (Linux)
@@ -22,7 +22,7 @@ export const handleNonSquirrel = async (c) => {
 	//basicRedirect(req, res);
 
 	return basicProxy(c);
-}
+};
 
 export const handleSquirrel = async (c) => {
 	// Squirrel (non-Linux)
@@ -36,8 +36,8 @@ export const handleSquirrel = async (c) => {
 		type: "host_squirrel",
 		id: c.req.query("id"),
 		localVersion: c.req.query("localVersion"),
-		arch: c.req.query("arch")
+		arch: c.req.query("arch"),
 	});
 
 	return basicProxy(c);
-}
+};

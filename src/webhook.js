@@ -1,5 +1,5 @@
-import {config} from "./common/config.js";
-import {uniqueUsers} from "./common/state.js";
+import { config } from "./common/config.js";
+import { uniqueUsers } from "./common/state.js";
 
 if (config.webhook.enable) {
 	const url = config.webhook.url;
@@ -45,5 +45,4 @@ if (config.webhook.enable) {
 
 	setTimeout(sendStats, 60 * 1000);
 	setInterval(sendStats, 60 * 60 * 1000);
-
 }

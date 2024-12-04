@@ -1,6 +1,6 @@
 import * as Cache from "./cache.js";
-import {config} from "../config.js";
-import {proxyCacheHitArr, proxyVsRedirect} from "../state.js";
+import { config } from "../config.js";
+import { proxyCacheHitArr, proxyVsRedirect } from "../state.js";
 import ReusableResponse from "../reusableResponse.js";
 
 export const getProxyURL = (url) => `/${url.split("/").slice(2).join("/")}`;
@@ -38,13 +38,10 @@ export default async (context, options = {}, rpl = undefined, base = config.apiB
 
 	console.log("not cached");
 
-	const proxRaw = await fetch(
-		`${base}${url}`,
-		{
-			headers: { "User-Agent": config.proxy.useragent },
-			...options,
-		},
-	);
+	const proxRaw = await fetch(`${base}${url}`, {
+		headers: { "User-Agent": config.proxy.useragent },
+		...options,
+	});
 
 	const prox = await ReusableResponse.create(proxRaw);
 	prox.headers.delete("Content-Encoding");
