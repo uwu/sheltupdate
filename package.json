@@ -3,12 +3,15 @@
 	"private": true,
 	"description": "A modern fork of GooseUpdate to inject shelter with.",
 	"main": "src/index.js",
-	"scripts": {},
+	"scripts": {
+		"format": "dprint fmt"
+	},
 	"author": "GooseMod, Yellowsink",
 	"license": "MIT",
 	"dependencies": {
 		"@hono/node-server": "^1.13.7",
 		"archiver": "^5.0.2",
+		"dprint": "^0.47.6",
 		"glob": "^7.1.6",
 		"hono": "^4.6.12",
 		"tar": "^6.0.5",

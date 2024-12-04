@@ -2,11 +2,12 @@
 	"lineWidth": 120,
 	"useTabs": true,
 	"indentWidth": 3,
+	"newLineKind": "lf",
 
 	"biome": {},
 	"yaml": {},
 	"markup": {},
-	"excludes": ["pnpm-lock.yaml", "**/node_modules"],
+	"excludes": ["pnpm-lock.yaml", "**/node_modules", "**/reactdevtools/ext"],
 	"plugins": [
 		"https://plugins.dprint.dev/g-plane/markup_fmt-v0.13.0.wasm",
 		"https://plugins.dprint.dev/g-plane/pretty_yaml-v0.5.0.wasm",
