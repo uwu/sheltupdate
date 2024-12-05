@@ -6,7 +6,7 @@ export const srcDir = dirname(dirname(fileURLToPath(import.meta.url)));
 
 export const startTime = Date.now();
 
-export const version = "4";
+export const version = "5";
 
 let rawCfg;
 try {
