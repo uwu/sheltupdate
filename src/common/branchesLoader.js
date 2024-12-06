@@ -4,6 +4,7 @@ import { createHash } from "crypto";
 
 import glob from "glob";
 import { srcDir } from "./config.js";
+import {log, withLogSection} from "./logger.js";
 
 /*export*/ let branches = {};
 
@@ -27,10 +28,10 @@ const sortBranchesInPlace = (b) => {
 
 export const getBranch = (b) => branches[sortBranchesInPlace(b.split("+"))?.join("+")];
 
-const init = () => {
+const init = withLogSection("branch loader", () => {
 	const dirs = glob.sync(join(srcDir, "..", "branches", "*", "*"));
 
-	console.log("Loading branches...", dirs);
+	log("Loading branches...", dirs);
 
 	for (let d of dirs) {
 		const splits = d.split("/");
@@ -74,11 +75,9 @@ const init = () => {
 			version,
 			type,
 		};
-
-		console.log(d, branches[name]);
 	}
 
-	console.log("\nCreating mixed branches...");
+	log("Creating mixed branches...");
 
 	const baseBranchNames = Object.keys(branches);
 
@@ -116,10 +115,7 @@ const init = () => {
 		};
 	}
 
-	/*console.log(Object.fromEntries(
-		Object.entries(branches)
-			.map(([k, v]) => [k, v.version])
-	));*/
-};
+	log("done!");
+});
 
 init();

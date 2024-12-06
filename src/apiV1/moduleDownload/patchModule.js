@@ -9,20 +9,19 @@ import archiver from "archiver";
 import basicProxy from "../../common/proxy/index.js";
 import { getBranch } from "../../common/branchesLoader.js";
 import { finalizeDesktopCoreIndex, finalizeDesktopCorePreload } from "../../common/desktopCoreTemplates.js";
+import {log, withLogSection} from "../../common/logger.js";
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-export default async (c, cacheDir, cacheFinalFile) => {
-	const { branch: branch_, channel, version } = c.req.param();
-	const { platform, host_version } = c.req.query();
+export default withLogSection("module patcher", async (c, cacheDir, cacheFinalFile) => {
+	const { branch: branch_, /*channel,*/ version } = c.req.param();
+	//const { platform, host_version } = c.req.query();
 
 	const branch = getBranch(branch_);
 
-	console.log("[CustomModule] Could not find cache dir, creating custom version");
+	log("patching discord_desktop_core");
 
 	const prox = await basicProxy(c, {}, [version, version.substring(branch.version.toString().length)]);
-
-	console.time("fromNetwork");
 
 	let s = stream.Readable.from(prox.body);
 
@@ -30,23 +29,15 @@ export default async (c, cacheDir, cacheFinalFile) => {
 
 	let t = s.pipe(unzipper.Extract({ path: `${cacheExtractDir}` }));
 
-	console.log("waiting");
+	log("waiting on network...");
 
 	await new Promise((res) => t.on("finish", res));
 	await sleep(100);
 
-	console.log("waited");
-
-	console.log("Extract finished");
-
-	console.time("fromExtract");
-
-	console.log("Patching file");
+	log("copying files...");
 
 	writeFileSync(`${cacheExtractDir}/index.js`, finalizeDesktopCoreIndex(branch.patch, !!branch.preload));
 	if (branch.preload) writeFileSync(`${cacheExtractDir}/preload.js`, finalizeDesktopCorePreload(branch.preload));
-
-	console.log("Copying other files");
 
 	function copyFolderSync(from, to) {
 		mkdirSync(to);
@@ -60,8 +51,6 @@ export default async (c, cacheDir, cacheFinalFile) => {
 	}
 
 	for (let f of branch.files) {
-		console.log(f, f.split("/").pop());
-
 		if (lstatSync(f).isDirectory()) {
 			copyFolderSync(f, `${cacheExtractDir}/${f.split("/").pop()}`);
 		} else {
@@ -69,7 +58,7 @@ export default async (c, cacheDir, cacheFinalFile) => {
 		}
 	}
 
-	console.log("Creating new final zip");
+	log("creating module zip...");
 
 	const outputStream = createWriteStream(`${cacheFinalFile}`);
 
@@ -81,14 +70,9 @@ export default async (c, cacheDir, cacheFinalFile) => {
 
 	archive.finalize();
 
-	console.log("Waiting for archive to finish");
-
 	await new Promise((res) => outputStream.on("close", res));
 
-	console.log("Finished - sending file");
-
-	console.timeEnd("fromNetwork");
-	console.timeEnd("fromExtract");
+	log("finished patching module!");
 
 	s.destroy();
 
@@ -97,4 +81,4 @@ export default async (c, cacheDir, cacheFinalFile) => {
 
 	c.header("Content-Type", "application/zip");
 	return c.body(readFileSync(cacheFinalFile));
-};
+});

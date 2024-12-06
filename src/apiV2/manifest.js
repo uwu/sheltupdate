@@ -4,17 +4,20 @@ import { config } from "../common/config.js";
 import { getBranch } from "../common/branchesLoader.js";
 import { requestCounts, uniqueUsers } from "../common/state.js";
 import originatingIp from "../common/originatingIp.js";
+import {log, withLogSection} from "../common/logger.js";
 
 const base = config.apiBases.v2;
 const host = config.host;
 
 // https://discord.com/api/updates/distributions/app/manifests/latest?channel=canary&platform=win&arch=x86
 
-export const handleManifest = async (c) => {
+export const handleManifest = withLogSection("v2 manifest", async (c) => {
 	const branch = c.req.param("branch");
 	if (!getBranch(branch)) {
 		return c.notFound("Invalid sheltupdate branch");
 	}
+
+	log(JSON.stringify(c.req.param()), JSON.stringify(c.req.query()));
 
 	requestCounts.v2_manifest++;
 
@@ -50,8 +53,6 @@ export const handleManifest = async (c) => {
 		};
 	}
 
-	console.log(json);
-
 	json.modules.discord_desktop_core.deltas = []; // Remove deltas
 
 	const oldVersion = json.modules.discord_desktop_core.full.module_version;
@@ -65,10 +66,8 @@ export const handleManifest = async (c) => {
 	// Modify URL to use this host
 	json.modules.discord_desktop_core.full.url = `${host}/${branch}/${json.modules.discord_desktop_core.full.url.split("/").slice(3).join("/").replace(`${oldVersion}/full.distro`, `${newVersion}/full.distro`)}`;
 
-	console.log(json.modules.discord_desktop_core);
-
 	return c.json(json);
-};
+});
 
 /*
   - Similar to branches except this is way more general use

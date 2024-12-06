@@ -2,8 +2,9 @@ import basicProxy from "../common/proxy/index.js";
 import { getBranch } from "../common/branchesLoader.js";
 import { requestCounts, uniqueUsers } from "../common/state.js";
 import originatingIp from "../common/originatingIp.js";
+import {log, withLogSection} from "../common/logger.js";
 
-export const handleModules = async (c) => {
+export const handleModules = withLogSection("v1 module update check", async (c) => {
 	const { branch, channel } = c.req.param();
 	const { platform, host_version } = c.req.query();
 
@@ -14,7 +15,7 @@ export const handleModules = async (c) => {
 
 	requestCounts.modules++;
 
-	console.log({ type: "check_for_module_updates", channel });
+	log(JSON.stringify(c.req.param()), JSON.stringify(c.req.query()));
 
 	if (platform === "linux" || platform === "win" || platform === "osx") {
 		const ip = originatingIp(c);
@@ -31,10 +32,8 @@ export const handleModules = async (c) => {
 
 	let json = await basicProxy(c).then((r) => r.json());
 
-	console.log(json);
-
 	if (json.discord_desktop_core)
 		json.discord_desktop_core = parseInt(`${branchObj.version}${json.discord_desktop_core.toString()}`);
 
 	return c.json(json);
-};
+});

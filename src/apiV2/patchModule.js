@@ -10,6 +10,7 @@ import tar from "tar";
 import { brotliDecompressSync, brotliCompressSync } from "zlib";
 import { getBranch } from "../common/branchesLoader.js";
 import { finalizeDesktopCoreIndex, finalizeDesktopCorePreload } from "../common/desktopCoreTemplates.js";
+import {log, withLogSection} from "../common/logger.js";
 
 const cacheBase = mkdtempSync(join(tmpdir(), "sheltupdate-cache-"));
 
@@ -39,12 +40,14 @@ const getBufferFromStream = async (stream) => {
 // this is called by /manifest, and causes us to pre-emptively create and cache
 // module for single branches, and it returns the relevant sha256
 // these cached fake modules will later be used to construct the full patched discord_desktop_core.
-export const createModule = async (branchName, branch) => {
+export const createModule = withLogSection("module patcher", async (branchName, branch) => {
 	const moduleName = `goose_${branchName}`;
 	const cacheName = getCacheName(moduleName, branch.version, "custom");
 
 	const cached = cache.created[cacheName];
 	if (cached) return cached.hash;
+
+	log(`creating custom module ${moduleName}`);
 
 	const eDir = `${cacheBase}/${cacheName}/extract`;
 	mkdirSync(eDir, { recursive: true });
@@ -54,6 +57,8 @@ export const createModule = async (branchName, branch) => {
 		manifest_version: 1,
 		files: {},
 	};
+
+	log(`copying branch files...`);
 
 	let files = [];
 
@@ -99,11 +104,11 @@ export const createModule = async (branchName, branch) => {
 				Sha256: sha256(readFileSync(f)),
 			},
 		};
-
-		console.log(key, deltaManifest.files[key].New.Sha256);
 	}
 
 	writeFileSync(`${eDir}/delta_manifest.json`, JSON.stringify(deltaManifest));
+
+	log(`creating module tar...`);
 
 	const tarStream = tar.c(
 		{
@@ -119,9 +124,9 @@ export const createModule = async (branchName, branch) => {
 
 	const tarBuffer = await getBufferFromStream(tarStream);
 
-	const final = brotliCompressSync(tarBuffer);
+	log(`compressing...`);
 
-	console.log(final);
+	const final = brotliCompressSync(tarBuffer);
 
 	const finalHash = sha256(final);
 
@@ -130,20 +135,22 @@ export const createModule = async (branchName, branch) => {
 		final,
 	};
 
+	log(`finished creating custom module!`);
+
 	return finalHash;
-};
+});
 
-export const patch = async (m, branchName) => {
+export const patch = withLogSection("module patcher", async (m, branchName) => {
 	const cacheName = getCacheName("discord_desktop_core", m.module_version, branchName);
-
-	console.log("patch", cache, cacheName);
 
 	const cached = cache.patched[cacheName];
 	if (cached) return cached.hash;
 
+	log(`patching desktop_core for ${branchName}`);
+
 	const branch = getBranch(branchName);
 
-	console.log(m.url);
+	log(`waiting on network...`);
 
 	const data = await download(m.url);
 	const brotli = brotliDecompressSync(data);
@@ -159,15 +166,13 @@ export const patch = async (m, branchName) => {
 		}),
 	);
 
-	console.log("extracting");
+	log("extracting stock module...");
 
 	await new Promise((res) => {
 		xTar.on("finish", () => res());
 	});
 
-	console.log("extracted");
-
-	console.log("patching extracted files");
+	log("patching module files...");
 
 	let deltaManifest = JSON.parse(readFileSync(`${eDir}/delta_manifest.json`, "utf8"));
 
@@ -179,10 +184,6 @@ export const patch = async (m, branchName) => {
 		moddedPreload = finalizeDesktopCorePreload(branch.preload);
 		deltaManifest.files["preload.js"] = { New: { Sha256: sha256(moddedPreload) } };
 	}
-
-	console.log("adding extra branch files");
-
-	// TODO: vencord will not work on windows without this
 
 	let files = [];
 
@@ -219,20 +220,14 @@ export const patch = async (m, branchName) => {
 				Sha256: sha256(readFileSync(f)),
 			},
 		};
-
-		console.log(key, deltaManifest.files[key].New.Sha256);
 	}
-
-	console.log(deltaManifest);
-
-	console.log("writing patched files");
 
 	writeFileSync(`${eDir}/delta_manifest.json`, JSON.stringify(deltaManifest));
 
 	writeFileSync(`${eDir}/files/index.js`, moddedIndex);
 	if (moddedPreload) writeFileSync(`${eDir}/files/preload.js`, moddedPreload);
 
-	console.log("creating new tar");
+	log(`creating module tar...`);
 
 	const tarStream = tar.c(
 		{
@@ -250,12 +245,10 @@ export const patch = async (m, branchName) => {
 
 	const tarBuffer = await getBufferFromStream(tarStream);
 
-	// THIS is the slow part -- sink
+	log("compressing...");
+
 	const final = brotliCompressSync(tarBuffer);
 
-	console.log(final);
-
-	// and probably this
 	const finalHash = sha256(final);
 
 	cache.patched[cacheName] = {
@@ -263,8 +256,10 @@ export const patch = async (m, branchName) => {
 		final,
 	};
 
+	log("finished patching module!");
+
 	return finalHash;
-};
+});
 
 export const getCustomFinal = (req) => {
 	const moduleName = req.param("moduleName");
@@ -277,20 +272,21 @@ export const getCustomFinal = (req) => {
 	return cached.final;
 };
 
-export const getFinal = (req) => {
+export const getFinal = withLogSection("module patcher", (req) => {
 	const moduleName = req.param("moduleName");
 	const moduleVersion = req.param("moduleVersion");
 	const branchName = req.param("branch");
 	const cached = cache.patched[getCacheName(moduleName, moduleVersion, branchName)];
 
-	console.log("getFinal", cache, getCacheName(moduleName, moduleVersion, branchName));
+	log("serve final module", /*cache,*/ getCacheName(moduleName, moduleVersion, branchName));
 
 	if (!cached) {
+		log("module was not cached, this should never happen.");
 		// uhhh it should always be
 		return;
 	}
 
 	return cached.final;
-};
+});
 
 // export const getChecksum = async (m, branch) => sha256(await patch(m, branch));

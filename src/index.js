@@ -5,6 +5,7 @@ import { serve } from "@hono/node-server";
 
 import { config, version } from "./common/config.js";
 //import { branches } from "./common/branchesLoader.js";
+import {resetLogger} from "./common/logger.js";
 
 // API handlers
 import apiV1 from "./apiV1/index.js";
@@ -20,6 +21,7 @@ const app = new Hono()
 		createMiddleware(async (c, next) => {
 			await next();
 			c.header("Server", `sheltupdate/r${version}`);
+			resetLogger();
 		}),
 	)
 	.route("/", apiV1)
