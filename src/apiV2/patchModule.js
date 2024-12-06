@@ -7,7 +7,7 @@ import { tmpdir } from "os";
 
 import tar from "tar";
 
-import { brotliDecompressSync, brotliCompressSync } from "zlib";
+import { brotliDecompressSync, brotliCompressSync, constants } from "zlib";
 import { getBranch } from "../common/branchesLoader.js";
 import { finalizeDesktopCoreIndex, finalizeDesktopCorePreload } from "../common/desktopCoreTemplates.js";
 import {log, withLogSection} from "../common/logger.js";
@@ -36,6 +36,9 @@ const getBufferFromStream = async (stream) => {
 		stream.on("end", () => resolve(Buffer.concat(chunks)));
 	});
 };
+
+// node uses quality level 11 by default which is INSANE
+const brotlify = (buf) => brotliCompressSync(buf, { params: { [constants.BROTLI_PARAM_QUALITY]: 9 } });
 
 // this is called by /manifest, and causes us to pre-emptively create and cache
 // module for single branches, and it returns the relevant sha256
@@ -126,7 +129,7 @@ export const createModule = withLogSection("module patcher", async (branchName, 
 
 	log(`compressing...`);
 
-	const final = brotliCompressSync(tarBuffer);
+	const final = brotlify(tarBuffer);
 
 	const finalHash = sha256(final);
 
@@ -247,7 +250,7 @@ export const patch = withLogSection("module patcher", async (m, branchName) => {
 
 	log("compressing...");
 
-	const final = brotliCompressSync(tarBuffer);
+	const final = brotlify(tarBuffer);
 
 	const finalHash = sha256(final);
 
