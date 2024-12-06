@@ -2,6 +2,7 @@ import { getBranch } from "../common/branchesLoader.js";
 import { requestCounts } from "../common/state.js";
 import basicProxy from "../common/proxy/index.js";
 import { log, withLogSection } from "../common/logger.js";
+import { config } from "../common/config.js";
 
 export const handleNonSquirrel = withLogSection("v1 host linux", async (c) => {
 	// Non-Squirrel (Linux)
@@ -9,7 +10,7 @@ export const handleNonSquirrel = withLogSection("v1 host linux", async (c) => {
 		return c.notFound("Invalid sheltupdate branch");
 	}
 
-	requestCounts.host_notsquirrel++;
+	if (config.stats) requestCounts.host_notsquirrel++;
 
 	log(JSON.stringify(c.req.param()), JSON.stringify(c.req.query()));
 
@@ -22,7 +23,7 @@ export const handleSquirrel = withLogSection("v1 host squirrel", async (c) => {
 		return c.notFound("Invalid sheltupdate branch");
 	}
 
-	requestCounts.host_squirrel++;
+	if (config.stats) requestCounts.host_squirrel++;
 
 	log(JSON.stringify(c.req.param()), JSON.stringify(c.req.query()));
 

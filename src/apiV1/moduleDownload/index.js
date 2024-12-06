@@ -7,6 +7,7 @@ import patch from "./patchModule.js";
 import { getBranch } from "../../common/branchesLoader.js";
 import { requestCounts } from "../../common/state.js";
 import { log, withLogSection } from "../../common/logger.js";
+import { config } from "../../common/config.js";
 
 export const handleModuleDownload = withLogSection("v1 download module", async (c) => {
 	const { branch, /*channel,*/ module, version } = c.req.param();
@@ -15,7 +16,7 @@ export const handleModuleDownload = withLogSection("v1 download module", async (
 		return c.notFound("Invalid sheltupdate branch");
 	}
 
-	requestCounts.module_download++;
+	if (config.stats) requestCounts.module_download++;
 
 	log(JSON.stringify(c.req.param()), JSON.stringify(c.req.query()));
 

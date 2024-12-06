@@ -19,18 +19,19 @@ export const handleManifest = withLogSection("v2 manifest", async (c) => {
 
 	log(JSON.stringify(c.req.param()), JSON.stringify(c.req.query()));
 
-	requestCounts.v2_manifest++;
+	if (config.stats) requestCounts.v2_manifest++;
 
 	const ip = originatingIp(c);
 
-	uniqueUsers[ip] = {
-		platform: c.req.query("platform"),
-		host_version: "unknown",
-		channel: c.req.query("channel"),
-		branch,
-		apiVersion: "v2",
-		time: Date.now(),
-	};
+	if (config.stats)
+		uniqueUsers[ip] = {
+			platform: c.req.query("platform"),
+			host_version: "unknown",
+			channel: c.req.query("channel"),
+			branch,
+			apiVersion: "v2",
+			time: Date.now(),
+		};
 
 	let json = await basicProxy(c, {}, undefined, base).then((r) => r.json());
 

@@ -9,7 +9,7 @@ export const getProxyURL = (url) => `/${url.split("/").slice(2).join("/")}`;
 export default withLogSection("proxy", async (context, options = {}, rpl = undefined, base = config.apiBases.v1) => {
 	const req = context.req;
 	const rUrl = req.url.replace(/.*:\/\/[^/]*/, "");
-	proxyVsRedirect.push("proxy");
+	if (config.stats) proxyVsRedirect.push("proxy");
 
 	let url = rpl !== undefined ? rUrl.replace(rpl[0], rpl[1]) : rUrl;
 	url = getProxyURL(url);
@@ -26,12 +26,12 @@ export default withLogSection("proxy", async (context, options = {}, rpl = undef
 
 		cached.lastUsed = now;
 
-		proxyCacheHitArr.push("cached");
+		if (config.stats) proxyCacheHitArr.push("cached");
 
 		return cached.resp.toRealRes();
 	}
 
-	proxyCacheHitArr.push("not cached");
+	if (config.stats) proxyCacheHitArr.push("not cached");
 
 	log("not cached");
 
