@@ -116,10 +116,10 @@ const init = () => {
 		};
 	}
 
-	console.log(Object.fromEntries(
+	/*console.log(Object.fromEntries(
 		Object.entries(branches)
 			.map(([k, v]) => [k, v.version])
-	));
+	));*/
 };
 
 init();

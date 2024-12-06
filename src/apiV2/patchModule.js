@@ -211,8 +211,8 @@ export const patch = async (m, branchName) => {
 
 	for (let f of files) {
 		const key = f
-			.replace(/\\/g, "/")
-			.replace(new RegExp(`${eDir.replace("+", "\\+").replace("..", ".*")}/files/`), "");
+			.slice(eDir.length + "/files/".length)
+			.replace(/\\/g, "/");
 
 		deltaManifest.files[key] = {
 			New: {
@@ -244,18 +244,18 @@ export const patch = async (m, branchName) => {
 			"files/index.js",
 			...(branch.preload ? ["files/preload.js"] : []),
 			"files/package.json",
-			...files.map((x) =>
-				x.replace(/\\/g, "/").replace(new RegExp(`${eDir.replace("+", "\\+").replace("..", ".*")}/`), ""),
-			),
+			...files.map((x) => x.slice(eDir.length + 1).replace(/\\/g, "/")),
 		],
 	);
 
 	const tarBuffer = await getBufferFromStream(tarStream);
 
+	// THIS is the slow part -- sink
 	const final = brotliCompressSync(tarBuffer);
 
 	console.log(final);
 
+	// and probably this
 	const finalHash = sha256(final);
 
 	cache.patched[cacheName] = {
