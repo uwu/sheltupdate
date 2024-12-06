@@ -1,7 +1,7 @@
 import basicProxy from "../common/proxy/index.js";
 import { patch, createModule } from "./patchModule.js";
 import { config } from "../common/config.js";
-import { branches } from "../common/branchesLoader.js";
+import { getBranch } from "../common/branchesLoader.js";
 import { requestCounts, uniqueUsers } from "../common/state.js";
 import originatingIp from "../common/originatingIp.js";
 
@@ -12,7 +12,7 @@ const host = config.host;
 
 export const handleManifest = async (c) => {
 	const branch = c.req.param("branch");
-	if (!branches[branch]) {
+	if (!getBranch(branch)) {
 		return c.notFound("Invalid sheltupdate branch");
 	}
 
@@ -24,7 +24,7 @@ export const handleManifest = async (c) => {
 		platform: c.req.query("platform"),
 		host_version: "unknown",
 		channel: c.req.query("channel"),
-		branch: branch,
+		branch,
 		apiVersion: "v2",
 		time: Date.now(),
 	};
@@ -38,11 +38,12 @@ export const handleManifest = async (c) => {
 	const currentHostVersion = json.modules["discord_desktop_core"].full.host_version;
 
 	for (let m of branchModules) {
+		const branchObj = getBranch(m.substring(6));
 		json.modules[m] = {
 			full: {
 				host_version: currentHostVersion,
-				module_version: branches[m.substring(6)].version,
-				package_sha256: await createModule(m.substring(6), branches[m.substring(6)]),
+				module_version: branchObj.version,
+				package_sha256: await createModule(m.substring(6), branchObj),
 				url: `${host}/custom_module/${m}/full.distro`,
 			},
 			deltas: [],
@@ -54,7 +55,7 @@ export const handleManifest = async (c) => {
 	json.modules.discord_desktop_core.deltas = []; // Remove deltas
 
 	const oldVersion = json.modules.discord_desktop_core.full.module_version;
-	const newVersion = parseInt(`${branches[branch].version}${oldVersion.toString()}`);
+	const newVersion = parseInt(`${getBranch(branch).version}${oldVersion.toString()}`);
 
 	// Modify version to prefix branch's version
 	json.modules.discord_desktop_core.full.module_version = newVersion;

@@ -1,9 +1,9 @@
 import { getCustomFinal, getFinal } from "./patchModule.js";
 import { requestCounts } from "../common/state.js";
-import { branches } from "../common/branchesLoader.js";
+import { getBranch } from "../common/branchesLoader.js";
 
 export const handleModule = (c) => {
-	if (!branches[c.req.param("branch")]) {
+	if (!getBranch(c.req.param("branch"))) {
 		return c.notFound("Invalid sheltupdate branch");
 	}
 

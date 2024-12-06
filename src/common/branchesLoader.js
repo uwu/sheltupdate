@@ -5,9 +5,27 @@ import { createHash } from "crypto";
 import glob from "glob";
 import { srcDir } from "./config.js";
 
-export let branches = {};
+/*export*/ let branches = {};
 
 const sha256 = (data) => createHash("sha256").update(data).digest("hex");
+
+const orderingMap = new Map(); // string => number
+
+const sortBranchesInPlace = (b) => {
+	try {
+		return b.sort((a, b) => {
+			const oa = orderingMap.get(a);
+			const ob = orderingMap.get(b);
+			if (oa === undefined || ob === undefined) throw new Error("Invalid branch requested");
+
+			return oa - ob;
+		});
+	} catch {
+		return undefined;
+	}
+};
+
+export const getBranch = (b) => branches[sortBranchesInPlace(b.split("+"))?.join("+")];
 
 const init = () => {
 	const dirs = glob.sync(join(srcDir, "..", "branches", "*", "*"));
@@ -19,19 +37,6 @@ const init = () => {
 
 		const name = splits.pop();
 		const type = splits.pop();
-
-		//const filePaths = glob.sync(`${d}/**/*`).filter((x) => x.match(/.*\..*$/));
-		/*
-    console.log(name, filePaths);
-
-    let files = [];
-
-    for (let f of filePaths) {
-      files.push({
-        path: f,
-        content: fs.readFileSync(f)
-      });
-    }*/
 
 		let files = glob.sync(`${d}/*`);
 
@@ -75,34 +80,39 @@ const init = () => {
 
 	console.log("\nCreating mixed branches...");
 
-	const branchNames = Object.keys(branches);
+	const baseBranchNames = Object.keys(branches);
 
-	let combinations = [[]];
-	for (const value of branchNames) {
-		const copy = [...combinations];
-		for (const prefix of copy) {
-			combinations.push(prefix.concat(value));
+	// make it easy to sort branches into this order in future
+	for (let i = 0; i < baseBranchNames.length; i++) orderingMap.set(baseBranchNames[i], i);
+
+	const allBranches = [];
+	// thanks lith for this one :)
+	{
+		const n = baseBranchNames.length;
+
+		for (let i = 1; i < 1 << n; i++) {
+			const combination = [];
+
+			for (let j = 0; j < n; j++) if (i & (1 << j)) combination.push(baseBranchNames[j]);
+
+			allBranches.push(combination);
 		}
 	}
 
-	combinations = combinations.filter((x) => x.length > 1);
+	for (const bNames of allBranches) {
+		if (bNames.length === 1) continue; // already just fine
 
-	for (const original of combinations) {
-		const reverse = original.slice().reverse();
+		const key = bNames.join("+");
 
-		for (const c of [reverse, original]) {
-			const key = c.join("+");
+		const bs = bNames.map((n) => branches[n]);
 
-			const b = c.map((x) => branches[x]);
-
-			branches[key] = {
-				files: b.map((x) => x.files).reduce((x, a) => a.concat(x), []),
-				patch: b.map((x) => x.patch).reduce((x, a) => `${x}\n{\n${a}\n}`, ""),
-				preload: b.map((x) => x.preload).reduce((x, a) => (!a ? x : `${x}\n{\n${a}\n}`), ""),
-				version: parseInt(b.map((x) => x.version).reduce((x, a) => `${x}0${a}`)),
-				type: "mixed",
-			};
-		}
+		branches[key] = {
+			files: bs.map((x) => x.files).reduce((x, a) => a.concat(x), []),
+			patch: bs.map((x) => x.patch).reduce((x, a) => `${x}\n{\n${a}\n}`, ""),
+			preload: bs.map((x) => x.preload).reduce((x, a) => (!a ? x : `${x}\n{\n${a}\n}`), ""),
+			version: parseInt(bs.map((x) => x.version).reduce((x, a) => `${x}0${a}`)),
+			type: "mixed",
+		};
 	}
 
 	// console.log(branches);

@@ -8,7 +8,7 @@ import { tmpdir } from "os";
 import tar from "tar";
 
 import { brotliDecompressSync, brotliCompressSync } from "zlib";
-import { branches } from "../common/branchesLoader.js";
+import { getBranch } from "../common/branchesLoader.js";
 import { finalizeDesktopCoreIndex, finalizeDesktopCorePreload } from "../common/desktopCoreTemplates.js";
 
 const cacheBase = mkdtempSync(join(tmpdir(), "sheltupdate-cache-"));
@@ -141,7 +141,7 @@ export const patch = async (m, branchName) => {
 	const cached = cache.patched[cacheName];
 	if (cached) return cached.hash;
 
-	const branch = branches[branchName];
+	const branch = getBranch(branchName);
 
 	console.log(m.url);
 
@@ -268,7 +268,7 @@ export const patch = async (m, branchName) => {
 
 export const getCustomFinal = (req) => {
 	const moduleName = req.param("moduleName");
-	const cached = cache.created[getCacheName(moduleName, branches[moduleName.substring(6)].version, "custom")];
+	const cached = cache.created[getCacheName(moduleName, getBranch(moduleName.substring(6)).version, "custom")];
 
 	if (!cached) {
 		return;

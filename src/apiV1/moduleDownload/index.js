@@ -4,13 +4,13 @@ import path from "path";
 import basicRedirect from "../../common/redirect.js";
 
 import patch from "./patchModule.js";
-import { branches } from "../../common/branchesLoader.js";
+import { getBranch } from "../../common/branchesLoader.js";
 import { requestCounts } from "../../common/state.js";
 
 export const handleModuleDownload = async (c) => {
 	const { branch, channel, module, version } = c.req.param();
 
-	if (!branches[branch]) {
+	if (!getBranch(branch)) {
 		return c.notFound("Invalid sheltupdate branch");
 	}
 

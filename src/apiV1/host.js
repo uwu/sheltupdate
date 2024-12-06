@@ -1,10 +1,10 @@
-import { branches } from "../common/branchesLoader.js";
+import { getBranch } from "../common/branchesLoader.js";
 import { requestCounts } from "../common/state.js";
 import basicProxy from "../common/proxy/index.js";
 
 export const handleNonSquirrel = async (c) => {
 	// Non-Squirrel (Linux)
-	if (!branches[c.req.param("branch")]) {
+	if (!getBranch(c.req.param("branch"))) {
 		return c.notFound("Invalid sheltupdate branch");
 	}
 
@@ -26,7 +26,7 @@ export const handleNonSquirrel = async (c) => {
 
 export const handleSquirrel = async (c) => {
 	// Squirrel (non-Linux)
-	if (!branches[c.req.param("branch")]) {
+	if (!getBranch(c.req.param("branch"))) {
 		return c.notFound("Invalid sheltupdate branch");
 	}
 

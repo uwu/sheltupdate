@@ -7,7 +7,7 @@ import unzipper from "unzipper";
 import archiver from "archiver";
 
 import basicProxy from "../../common/proxy/index.js";
-import { branches } from "../../common/branchesLoader.js";
+import { getBranch } from "../../common/branchesLoader.js";
 import { finalizeDesktopCoreIndex, finalizeDesktopCorePreload } from "../../common/desktopCoreTemplates.js";
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -16,7 +16,7 @@ export default async (c, cacheDir, cacheFinalFile) => {
 	const { branch: branch_, channel, version } = c.req.param();
 	const { platform, host_version } = c.req.query();
 
-	const branch = branches[branch_];
+	const branch = getBranch(branch_);
 
 	console.log("[CustomModule] Could not find cache dir, creating custom version");
 
