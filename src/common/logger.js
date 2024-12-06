@@ -1,3 +1,5 @@
+const INDENT_CHUNK = "   ";
+
 let indent = "";
 let sections = [];
 let cols = [];
@@ -19,8 +21,8 @@ export function resetLogger() {
 	cols = [];
 }
 
-export function startLogSection(name) {
-	if (sections.length) indent += "   ";
+function startLogSection(name) {
+	indent += INDENT_CHUNK;
 	sections.push(name);
 
 	const ccol = sectionCols.get(name);
@@ -32,10 +34,10 @@ export function startLogSection(name) {
 	}
 }
 
-export function logEndSection() {
+function logEndSection() {
 	sections.pop();
 	cols.pop();
-	indent = indent.slice(4);
+	indent = indent.slice(INDENT_CHUNK.length);
 }
 
 export const withLogSection = (name, fn) => (...args) => logSection(name, fn, ...args);
@@ -45,15 +47,18 @@ export function logSection(name, fn, ...args) {
 	try {
 		const res = fn(...args);
 
-		if (res instanceof Promise) {
-			return res.then(r => r, e => {
+		if (res instanceof Promise)
+			return res.then(r => {
+				logEndSection();
+				return r;
+			}, e => {
 				logEndSection();
 				throw e;
 			});
+		else {
+			logEndSection();
+			return res;
 		}
-
-		logEndSection();
-		return res;
 	}
 	catch (e)
 	{
