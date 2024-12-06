@@ -2,7 +2,7 @@ import basicProxy from "../common/proxy/index.js";
 import { getBranch } from "../common/branchesLoader.js";
 import { requestCounts, uniqueUsers } from "../common/state.js";
 import originatingIp from "../common/originatingIp.js";
-import {log, withLogSection} from "../common/logger.js";
+import { log, withLogSection } from "../common/logger.js";
 
 export const handleModules = withLogSection("v1 module update check", async (c) => {
 	const { branch, channel } = c.req.param();

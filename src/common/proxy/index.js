@@ -2,7 +2,7 @@ import * as Cache from "./cache.js";
 import { config } from "../config.js";
 import { proxyCacheHitArr, proxyVsRedirect } from "../state.js";
 import ReusableResponse from "../reusableResponse.js";
-import {log, withLogSection} from "../logger.js";
+import { log, withLogSection } from "../logger.js";
 
 export const getProxyURL = (url) => `/${url.split("/").slice(2).join("/")}`;
 

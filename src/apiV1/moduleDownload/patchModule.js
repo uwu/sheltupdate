@@ -9,7 +9,7 @@ import archiver from "archiver";
 import basicProxy from "../../common/proxy/index.js";
 import { getBranch } from "../../common/branchesLoader.js";
 import { finalizeDesktopCoreIndex, finalizeDesktopCorePreload } from "../../common/desktopCoreTemplates.js";
-import {log, withLogSection} from "../../common/logger.js";
+import { log, withLogSection } from "../../common/logger.js";
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 

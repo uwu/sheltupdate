@@ -1,7 +1,7 @@
 import { getCustomFinal, getFinal } from "./patchModule.js";
 import { requestCounts } from "../common/state.js";
 import { getBranch } from "../common/branchesLoader.js";
-import {log, withLogSection} from "../common/logger.js";
+import { log, withLogSection } from "../common/logger.js";
 
 export const handleModule = withLogSection("v2 download module", (c) => {
 	if (!getBranch(c.req.param("branch"))) {

@@ -4,7 +4,7 @@ import { config } from "../common/config.js";
 import { getBranch } from "../common/branchesLoader.js";
 import { requestCounts, uniqueUsers } from "../common/state.js";
 import originatingIp from "../common/originatingIp.js";
-import {log, withLogSection} from "../common/logger.js";
+import { log, withLogSection } from "../common/logger.js";
 
 const base = config.apiBases.v2;
 const host = config.host;

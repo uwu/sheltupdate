@@ -5,7 +5,7 @@ import { serve } from "@hono/node-server";
 
 import { config, version } from "./common/config.js";
 //import { branches } from "./common/branchesLoader.js";
-import {resetLogger} from "./common/logger.js";
+import { resetLogger } from "./common/logger.js";
 
 // API handlers
 import apiV1 from "./apiV1/index.js";

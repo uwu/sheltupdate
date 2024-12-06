@@ -10,7 +10,7 @@ import tar from "tar";
 import { brotliDecompressSync, brotliCompressSync, constants } from "zlib";
 import { getBranch } from "../common/branchesLoader.js";
 import { finalizeDesktopCoreIndex, finalizeDesktopCorePreload } from "../common/desktopCoreTemplates.js";
-import {log, withLogSection} from "../common/logger.js";
+import { log, withLogSection } from "../common/logger.js";
 
 const cacheBase = mkdtempSync(join(tmpdir(), "sheltupdate-cache-"));
 
@@ -214,9 +214,7 @@ export const patch = withLogSection("module patcher", async (m, branchName) => {
 	}
 
 	for (let f of files) {
-		const key = f
-			.slice(eDir.length + "/files/".length)
-			.replace(/\\/g, "/");
+		const key = f.slice(eDir.length + "/files/".length).replace(/\\/g, "/");
 
 		deltaManifest.files[key] = {
 			New: {

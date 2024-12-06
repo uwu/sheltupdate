@@ -1,12 +1,12 @@
-import {existsSync, readFileSync} from "fs";
+import { existsSync, readFileSync } from "fs";
 import path from "path";
 
 import basicRedirect from "../../common/redirect.js";
 
 import patch from "./patchModule.js";
-import {getBranch} from "../../common/branchesLoader.js";
-import {requestCounts} from "../../common/state.js";
-import {log, withLogSection} from "../../common/logger.js";
+import { getBranch } from "../../common/branchesLoader.js";
+import { requestCounts } from "../../common/state.js";
+import { log, withLogSection } from "../../common/logger.js";
 
 export const handleModuleDownload = withLogSection("v1 download module", async (c) => {
 	const { branch, /*channel,*/ module, version } = c.req.param();
@@ -33,7 +33,6 @@ export const handleModuleDownload = withLogSection("v1 download module", async (
 
 		return patch(c, cacheDir, cacheFinalFile);
 	}
-
 
 	return basicRedirect(c);
 });

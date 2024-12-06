@@ -4,9 +4,9 @@ import { createHash } from "crypto";
 
 import glob from "glob";
 import { srcDir } from "./config.js";
-import {log, withLogSection} from "./logger.js";
+import { log, withLogSection } from "./logger.js";
 
-/*export*/ let branches = {};
+let branches = {};
 
 const sha256 = (data) => createHash("sha256").update(data).digest("hex");
 
