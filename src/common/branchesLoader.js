@@ -110,12 +110,16 @@ const init = () => {
 			files: bs.map((x) => x.files).reduce((x, a) => a.concat(x), []),
 			patch: bs.map((x) => x.patch).reduce((x, a) => `${x}\n{\n${a}\n}`, ""),
 			preload: bs.map((x) => x.preload).reduce((x, a) => (!a ? x : `${x}\n{\n${a}\n}`), ""),
-			version: parseInt(bs.map((x) => x.version).reduce((x, a) => `${x}0${a}`)),
+			// cap the version well under u32::max or some rust code somewhere in the client dies
+			version: Number(BigInt(bs.map((x) => x.version).reduce((x, a) => `${x}0${a}`)) % BigInt(2 ** 31)) + 100,
 			type: "mixed",
 		};
 	}
 
-	// console.log(branches);
+	console.log(Object.fromEntries(
+		Object.entries(branches)
+			.map(([k, v]) => [k, v.version])
+	));
 };
 
 init();
