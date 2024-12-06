@@ -145,7 +145,8 @@ Module.prototype.require = function (path) {
 		try {
 			if (enableDevTools)
 				Object.defineProperty(settingsStore, "DANGEROUS_ENABLE_DEVTOOLS_ONLY_ENABLE_IF_YOU_KNOW_WHAT_YOURE_DOING", {
-					value: true,
+					get: () => true,
+					set: () => {},
 					configurable: false,
 					enumerable: false, // prevents our patched value from getting saved to settings.json
 				});
