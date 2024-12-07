@@ -1,5 +1,6 @@
 import { mkdirSync, readFileSync, cpSync } from "fs";
 import { join } from "path";
+import { pathToFileURL } from "url";
 import { createHash } from "crypto";
 
 import glob from "glob";
@@ -91,7 +92,7 @@ const init = withLogSection("branch finder", async () => {
 				preload = readFileSync(f, "utf8");
 				files.splice(i--, 1);
 			} else if (filename === "meta.js") {
-				const metaMod = await import(f);
+				const metaMod = await import(pathToFileURL(f));
 				displayName = metaMod.name;
 				description = metaMod.description;
 				hidden = !!metaMod.hidden;

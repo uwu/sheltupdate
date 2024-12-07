@@ -1,8 +1,8 @@
 import { Readable } from "stream";
 import { createHash } from "crypto";
 
-import { mkdirSync, writeFileSync, readFileSync, readdirSync, lstatSync, copyFileSync } from "fs";
-import { join, resolve } from "path";
+import { mkdirSync, writeFileSync, readFileSync, readdirSync, lstatSync, copyFileSync, existsSync } from "fs";
+import { join, resolve, basename, relative } from "path";
 
 import tar from "tar";
 
@@ -50,9 +50,11 @@ export const createModule = withLogSection("module patcher", async (branchName, 
 
 	log(`creating custom module ${moduleName}`);
 
-	const eDir = `${cacheBase}/${cacheName}/extract`;
-	mkdirSync(eDir, { recursive: true });
-	mkdirSync(`${eDir}/files`);
+	const eDir = join(cacheBase, cacheName, "extract");
+	const filesDir = join(eDir, "files");
+	if (!existsSync(filesDir)) {
+		mkdirSync(filesDir, { recursive: true });
+	}
 
 	let deltaManifest = {
 		manifest_version: 1,
@@ -77,28 +79,27 @@ export const createModule = withLogSection("module patcher", async (branchName, 
 	}
 
 	for (let f of branch.files) {
+		const outPath = join(filesDir, basename(f));
 		if (lstatSync(f).isDirectory()) {
-			copyFolderSync(f, `${eDir}/files/${f.split("/").pop()}`);
+			copyFolderSync(f, outPath);
 		} else {
-			const outPath = `${eDir}/files/${f.split("/").pop()}`;
-
 			files.push(outPath);
 			copyFileSync(f, outPath);
 		}
 	}
 
-	writeFileSync(`${eDir}/files/index.js`, branch.patch);
-	files.push(resolve(`${eDir}/files/index.js`));
+	const indexPath = join(filesDir, "index.js");
+	writeFileSync(indexPath, branch.patch);
+	files.push(indexPath);
 
 	if (branch.preload) {
-		writeFileSync(`${eDir}/files/preload.js`, branch.preload);
-		files.push(resolve(`${eDir}/files/preload.js`));
+		const preloadPath = join(filesDir, "preload.js");
+		writeFileSync(preloadPath, branch.preload);
+		files.push(preloadPath);
 	}
 
 	for (let f of files) {
-		const key = f
-			.replace(/\\/g, "/")
-			.replace(new RegExp(`${eDir.replace("+", "\\+").replace("..", ".*")}/files/`), "");
+		const key = relative(filesDir, f);
 
 		deltaManifest.files[key] = {
 			New: {
@@ -107,7 +108,7 @@ export const createModule = withLogSection("module patcher", async (branchName, 
 		};
 	}
 
-	writeFileSync(`${eDir}/delta_manifest.json`, JSON.stringify(deltaManifest));
+	writeFileSync(join(eDir, "delta_manifest.json"), JSON.stringify(deltaManifest));
 
 	log(`creating module tar...`);
 
@@ -115,12 +116,7 @@ export const createModule = withLogSection("module patcher", async (branchName, 
 		{
 			cwd: eDir,
 		},
-		[
-			"delta_manifest.json",
-			...files.map((x) =>
-				x.replace(/\\/g, "/").replace(new RegExp(`${eDir.replace("+", "\\+").replace("..", ".*")}/`), ""),
-			),
-		],
+		["delta_manifest.json", ...files.map((f) => relative(eDir, f))],
 	);
 
 	const tarBuffer = await getBufferFromStream(tarStream);
@@ -160,7 +156,8 @@ export const patch = withLogSection("module patcher", async (m, branchName) => {
 
 	const stream = Readable.from(brotli);
 
-	const eDir = `${cacheBase}/${cacheName}/extract`;
+	const eDir = join(cacheBase, cacheName, "extract");
+	const filesDir = join(eDir, "files");
 	mkdirSync(eDir, { recursive: true });
 
 	const xTar = stream.pipe(
@@ -177,7 +174,7 @@ export const patch = withLogSection("module patcher", async (m, branchName) => {
 
 	log("patching module files...");
 
-	let deltaManifest = JSON.parse(readFileSync(`${eDir}/delta_manifest.json`, "utf8"));
+	let deltaManifest = JSON.parse(readFileSync(join(eDir, "delta_manifest.json"), "utf8"));
 
 	const moddedIndex = finalizeDesktopCoreIndex(branch.patch, !!branch.preload);
 	deltaManifest.files["index.js"].New.Sha256 = sha256(moddedIndex);
@@ -204,7 +201,7 @@ export const patch = withLogSection("module patcher", async (m, branchName) => {
 	}
 
 	for (let f of branch.files) {
-		const dest = `${eDir}/files/${f.split("/").pop()}`;
+		const dest = join(filesDir, basename(f));
 		if (lstatSync(f).isDirectory()) {
 			copyFolderSync(f, dest);
 		} else {
@@ -214,7 +211,7 @@ export const patch = withLogSection("module patcher", async (m, branchName) => {
 	}
 
 	for (let f of files) {
-		const key = f.slice(eDir.length + "/files/".length).replace(/\\/g, "/");
+		const key = relative(filesDir, f);
 
 		deltaManifest.files[key] = {
 			New: {
@@ -223,10 +220,10 @@ export const patch = withLogSection("module patcher", async (m, branchName) => {
 		};
 	}
 
-	writeFileSync(`${eDir}/delta_manifest.json`, JSON.stringify(deltaManifest));
+	writeFileSync(join(eDir, "delta_manifest.json"), JSON.stringify(deltaManifest));
 
-	writeFileSync(`${eDir}/files/index.js`, moddedIndex);
-	if (moddedPreload) writeFileSync(`${eDir}/files/preload.js`, moddedPreload);
+	writeFileSync(join(filesDir, "index.js"), moddedIndex);
+	if (moddedPreload) writeFileSync(join(filesDir, "preload.js"), moddedPreload);
 
 	log(`creating module tar...`);
 
@@ -236,11 +233,11 @@ export const patch = withLogSection("module patcher", async (m, branchName) => {
 		},
 		[
 			"delta_manifest.json",
-			"files/core.asar",
-			"files/index.js",
-			...(branch.preload ? ["files/preload.js"] : []),
-			"files/package.json",
-			...files.map((x) => x.slice(eDir.length + 1).replace(/\\/g, "/")),
+			join("files", "core.asar"),
+			join("files", "index.js"),
+			...(branch.preload ? [join("files", "preload.js")] : []),
+			join("files", "package.json"),
+			...files.map((f) => relative(eDir, f)),
 		],
 	);
 
