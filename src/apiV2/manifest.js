@@ -1,7 +1,7 @@
 import basicProxy from "../common/proxy/index.js";
 import { patch, createModule } from "./patchModule.js";
 import { config } from "../common/config.js";
-import { getBranch } from "../common/branchesLoader.js";
+import { ensureBranchIsReady, getBranch } from "../common/branchesLoader.js";
 import { requestCounts, uniqueUsers } from "../common/state.js";
 import originatingIp from "../common/originatingIp.js";
 import { log, withLogSection } from "../common/logger.js";
@@ -42,12 +42,17 @@ export const handleManifest = withLogSection("v2 manifest", async (c) => {
 	const currentHostVersion = json.modules["discord_desktop_core"].full.host_version;
 
 	for (let m of branchModules) {
-		const branchObj = getBranch(m.substring(6));
+		const branchName = m.substring(6);
+
+		// make sure its ready!
+		await ensureBranchIsReady(branchName);
+
+		const branchObj = getBranch(branchName);
 		json.modules[m] = {
 			full: {
 				host_version: currentHostVersion,
 				module_version: branchObj.version,
-				package_sha256: await createModule(m.substring(6), branchObj),
+				package_sha256: await createModule(branchName, branchObj),
 				url: `${host}/custom_module/${m}/full.distro`,
 			},
 			deltas: [],

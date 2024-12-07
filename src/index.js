@@ -4,7 +4,7 @@ import { createMiddleware } from "hono/factory";
 import { serve } from "@hono/node-server";
 
 import { config, version } from "./common/config.js";
-//import { branches } from "./common/branchesLoader.js";
+import { getSingleBranchMetas } from "./common/branchesLoader.js";
 import { resetLogger } from "./common/logger.js";
 
 // API handlers
@@ -26,15 +26,10 @@ const app = new Hono()
 	)
 	.route("/", apiV1)
 	.route("/", apiV2)
-	.get("/", handleDashboard);
-/*.get("/guapi/branches", async (c) => {
-		let ret = Object.keys(branches);
-
-		const type = c.req.query("type");
-		if (type) ret = ret.filter((x) => x.type === type);
-
-		return c.json(ret);
-	})*/
+	.get("/", handleDashboard)
+	.get("/sheltupdate_branches", async (c) => {
+		return c.json(getSingleBranchMetas());
+	});
 
 serve({
 	fetch: app.fetch,

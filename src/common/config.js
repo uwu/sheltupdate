@@ -19,6 +19,7 @@ export const config = Object.freeze({
 	port: rawCfg?.port || 8080,
 	host: rawCfg?.host || `http://localhost:${rawCfg?.port || 8080}`,
 	stats: rawCfg?.stats ?? true,
+	setupIntervalHours: rawCfg?.setupIntervalHours ?? 3,
 	proxy: {
 		cache: {
 			lastUsedRemoveHours: rawCfg?.proxy?.cache?.lastUsedRemoveHours ?? 1,

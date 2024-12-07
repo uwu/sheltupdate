@@ -57,8 +57,17 @@ SheltUpdate branches patch `discord_desktop_core` with files stored in `branches
 
 Branches must have a `patch.js` file to handle their injection in their branch directory, which is prepended to Discord's base `index.js` of the module.
 
+They must have a `meta.js` file that exports a `name` and `description`, and can optionally export a `setup` function,
+which may be asynchronous and will be periodically run. Use this to download other branch files you need.
+As arguments, you will be passed an absolute path to a folder to leave your files in,
+which on scheduled setup reruns *may or may not* contain your previous set-up files, and a log function.
+You have access to node and `@electron/asar`.
+
 They may optionally include a `preload.js` file to supplement their injection,
 which will automatically be injected for you by sheltupdate.
+
+sheltupdate will not automatically pick up and inject anything into the renderer, but it is trivial to implement this
+in your preload.
 
 ```javascript
 // patch.js

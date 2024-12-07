@@ -1,4 +1,13 @@
-import { readFileSync, writeFileSync, mkdirSync, readdirSync, lstatSync, copyFileSync, createWriteStream } from "fs";
+import {
+	readFileSync,
+	writeFileSync,
+	mkdirSync,
+	readdirSync,
+	lstatSync,
+	copyFileSync,
+	createWriteStream,
+	rmdirSync,
+} from "fs";
 
 import stream from "stream";
 import path from "path";
@@ -7,15 +16,16 @@ import unzipper from "unzipper";
 import archiver from "archiver";
 
 import basicProxy from "../../common/proxy/index.js";
-import { getBranch } from "../../common/branchesLoader.js";
+import { ensureBranchIsReady, getBranch } from "../../common/branchesLoader.js";
 import { finalizeDesktopCoreIndex, finalizeDesktopCorePreload } from "../../common/desktopCoreTemplates.js";
 import { log, withLogSection } from "../../common/logger.js";
-
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export default withLogSection("module patcher", async (c, cacheDir, cacheFinalFile) => {
 	const { branch: branch_, /*channel,*/ version } = c.req.param();
 	//const { platform, host_version } = c.req.query();
+
+	// wait for branch to be ready!
+	await ensureBranchIsReady(branch_);
 
 	const branch = getBranch(branch_);
 
@@ -25,14 +35,13 @@ export default withLogSection("module patcher", async (c, cacheDir, cacheFinalFi
 
 	let s = stream.Readable.from(prox.body);
 
-	const cacheExtractDir = `${cacheDir}/extract`;
+	const cacheExtractDir = `${cacheDir}/extract` + Math.random().toString(16);
 
 	let t = s.pipe(unzipper.Extract({ path: `${cacheExtractDir}` }));
 
 	log("waiting on network...");
 
 	await new Promise((res) => t.on("finish", res));
-	await sleep(100);
 
 	log("copying files...");
 
@@ -78,6 +87,8 @@ export default withLogSection("module patcher", async (c, cacheDir, cacheFinalFi
 
 	outputStream.close();
 	outputStream.destroy();
+
+	rmdirSync(cacheExtractDir);
 
 	c.header("Content-Type", "application/zip");
 	return c.body(readFileSync(cacheFinalFile));

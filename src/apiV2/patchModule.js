@@ -1,18 +1,16 @@
 import { Readable } from "stream";
 import { createHash } from "crypto";
 
-import { mkdirSync, writeFileSync, readFileSync, readdirSync, lstatSync, copyFileSync, mkdtempSync } from "fs";
+import { mkdirSync, writeFileSync, readFileSync, readdirSync, lstatSync, copyFileSync } from "fs";
 import { join, resolve } from "path";
-import { tmpdir } from "os";
 
 import tar from "tar";
 
 import { brotliDecompressSync, brotliCompressSync, constants } from "zlib";
-import { getBranch } from "../common/branchesLoader.js";
+import { ensureBranchIsReady, getBranch } from "../common/branchesLoader.js";
 import { finalizeDesktopCoreIndex, finalizeDesktopCorePreload } from "../common/desktopCoreTemplates.js";
 import { log, withLogSection } from "../common/logger.js";
-
-const cacheBase = mkdtempSync(join(tmpdir(), "sheltupdate-cache-"));
+import { cacheBase } from "../common/fsCache.js";
 
 const cache = {
 	patched: {},
@@ -150,6 +148,8 @@ export const patch = withLogSection("module patcher", async (m, branchName) => {
 	if (cached) return cached.hash;
 
 	log(`patching desktop_core for ${branchName}`);
+
+	await ensureBranchIsReady(branchName);
 
 	const branch = getBranch(branchName);
 
