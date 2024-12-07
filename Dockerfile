@@ -1,8 +1,6 @@
 FROM node:23-alpine
 
-RUN apk add --no-cache curl
-
-RUN npm i -g pnpm asar
+RUN npm i -g pnpm
 
 COPY src src
 COPY branches branches
@@ -11,18 +9,7 @@ COPY pnpm-lock.yaml pnpm-lock.yaml
 
 RUN pnpm i --frozen-lockfile --prod
 
-COPY branchSetups branchSetups
-
-RUN <<EOF
-cd branchSetups
-for f in *.sh; do
-	./$f
-done
-cd ..
-EOF
-
-RUN npm rm -g pnpm asar
-RUN apk del curl
+RUN npm rm -g pnpm
 
 EXPOSE 8080/tcp
 ENTRYPOINT ["node", "src/index.js"]
