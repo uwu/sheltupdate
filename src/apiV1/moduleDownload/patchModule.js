@@ -10,7 +10,7 @@ import {
 } from "fs";
 
 import stream from "stream";
-import path from "path";
+import { join, basename } from "path";
 
 import unzipper from "unzipper";
 import archiver from "archiver";
@@ -35,9 +35,9 @@ export default withLogSection("module patcher", async (c, cacheDir, cacheFinalFi
 
 	let s = stream.Readable.from(prox.body);
 
-	const cacheExtractDir = `${cacheDir}/extract` + Math.random().toString(16);
+	const cacheExtractDir = join(cacheDir, "extract" + Math.random().toString(16));;
 
-	let t = s.pipe(unzipper.Extract({ path: `${cacheExtractDir}` }));
+	let t = s.pipe(unzipper.Extract({ path: cacheExtractDir }));
 
 	log("waiting on network...");
 
@@ -45,25 +45,25 @@ export default withLogSection("module patcher", async (c, cacheDir, cacheFinalFi
 
 	log("copying files...");
 
-	writeFileSync(`${cacheExtractDir}/index.js`, finalizeDesktopCoreIndex(branch.patch, !!branch.preload));
-	if (branch.preload) writeFileSync(`${cacheExtractDir}/preload.js`, finalizeDesktopCorePreload(branch.preload));
+	writeFileSync(join(cacheExtractDir, "index.js"), finalizeDesktopCoreIndex(branch.patch, !!branch.preload));
+	if (branch.preload) writeFileSync(join(cacheExtractDir, "preload.js"), finalizeDesktopCorePreload(branch.preload));
 
 	function copyFolderSync(from, to) {
 		mkdirSync(to);
 		readdirSync(from).forEach((element) => {
-			if (lstatSync(path.join(from, element)).isFile()) {
-				copyFileSync(path.join(from, element), path.join(to, element));
+			if (lstatSync(join(from, element)).isFile()) {
+				copyFileSync(join(from, element), join(to, element));
 			} else {
-				copyFolderSync(path.join(from, element), path.join(to, element));
+				copyFolderSync(join(from, element), join(to, element));
 			}
 		});
 	}
 
 	for (let f of branch.files) {
 		if (lstatSync(f).isDirectory()) {
-			copyFolderSync(f, `${cacheExtractDir}/${f.split("/").pop()}`);
+			copyFolderSync(f, join(cacheExtractDir, basename(f)));
 		} else {
-			copyFileSync(f, `${cacheExtractDir}/${f.split("/").pop()}`);
+			copyFileSync(f, join(cacheExtractDir, basename(f)));
 		}
 	}
 
