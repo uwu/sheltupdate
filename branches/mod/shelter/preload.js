@@ -55,6 +55,22 @@ const branches = {
 		desc: "Adds the React Dev Tools to the web developer panel",
 		type: "tool",
 	},
+
+	spotify_embed_volume: {
+		name: "Spotify Embed Volume",
+		desc: "Adds a volume slider to Spotify embeds",
+		type: "tweak",
+	},
+	yt_ad_block: {
+		name: "YouTube Ad Block",
+		desc: "Removes ads in embeds and in the Watch Together activity",
+		type: "tweak",
+	},
+	yt_embed_fix: {
+		name: "YouTube Embed Fix",
+		desc: "Enables more videos to be viewable from within Discord (like UMG blocked ones)",
+		type: "tweak",
+	},
 };
 
 const readBranches = () => ipcRenderer.invoke("SHELTER_BRANCH_GET");
