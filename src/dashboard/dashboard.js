@@ -1,6 +1,7 @@
-// for some reason esm.sh needs bundle-deps for this.
-// oh well, plot is huge so this probably helps a lot.
-import * as Plot from "@observablehq/plot?bundle-deps";
+// for some reason esm.sh needs bundle-deps for this. probably helps bundle size anyway.
+// full bundle: 391.25kB, partial bundle: 246.31kB. its something!
+import * as Plot from "@observablehq/plot?bundle-deps&exports=plot,barX,text,gridX";
+// full bundle: 82.36kB, partial bundle: 23.15kB
 import {
 	format,
 	formatDurationWithOptions,
