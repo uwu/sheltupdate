@@ -6,7 +6,9 @@ export const srcDir = dirname(dirname(fileURLToPath(import.meta.url)));
 
 export const startTime = Date.now();
 
-export const version = "16";
+export const version = readFileSync(resolve(srcDir, "../CHANGELOG.md"), "utf8").match(/## r(\d.*)/)[1];
+
+if (!version) throw new Error("Version number not found, changelog is missing or has invalid format.");
 
 let rawCfg;
 try {

@@ -24,6 +24,8 @@ The [uwu.network instance](https://inject.shelter.uwu.network) of sheltupdate ho
 1. Install SheltUpdate's dependencies with `npm install`
 2. Copy `config.example.json` to `config.json` and modify it to your liking, then run `node src/index.js`.
 
+The required files to deploy are `src`, `node_modules`, `branches`, `config.json`, `package.json` and `CHANGELOG.md`.
+
 ## Deploying with Docker
 
 Run the container as so:

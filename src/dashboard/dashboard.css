@@ -81,7 +81,7 @@ body {
 	grid-template-columns: 1fr 1fr 1fr;
 	place-items: center;
 	flex: 1;
-	align-self: center;
+	align-self: stretch;
 }
 
 #cache-grid .sub { align-self: end; }

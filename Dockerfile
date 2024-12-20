@@ -13,6 +13,7 @@ FROM node:23-alpine
 COPY src src
 COPY branches branches
 COPY package.json package.json
+COPY CHANGELOG.md CHANGELOG.md
 
 COPY --from=pnpm-container node_modules node_modules
 
