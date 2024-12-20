@@ -62,12 +62,12 @@ body {
 
 .stats-card > * { margin: 0; }
 
-.stats-card.basic > .sub {
+.stats-card .sub {
 	font-style: italic;
 	align-self: start;
 }
 
-.stats-card.basic > .basic-big {
+.stats-card .basic-big {
 	font-size: 1.25rem;
 	margin-bottom: 0.5rem;
 }
@@ -75,6 +75,17 @@ body {
 #left-flex .stats-card {
 	justify-content: center;
 }
+
+#cache-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr 1fr;
+	place-items: center;
+	flex: 1;
+	align-self: center;
+}
+
+#cache-grid .sub { align-self: end; }
+#cache-grid > * { margin: 0; }
 
 #prop-grid {
 	display: grid;

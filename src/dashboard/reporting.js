@@ -46,7 +46,7 @@ export function reportUniqueUser(ip, platform, host_version, channel, branch, ap
 		channel,
 		branch,
 		apiVer,
-		time: Date.now(),
+		//time: Date.now(),
 	};
 }
 

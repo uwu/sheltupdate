@@ -9,12 +9,17 @@ const html = readFileSync(join(srcDir, "dashboard", "template.html"), "utf8");
 const css_ = readFileSync(join(srcDir, "dashboard", "dashboard.css"), "utf8");
 const js__ = readFileSync(join(srcDir, "dashboard", "dashboard.js"), "utf8");
 
+const hitRatio = ({ hit, miss }) => hit || miss ? (100 * hit / (hit + miss)).toFixed(1) + "%" : "N/A";
+
 const template = temp =>
 	temp.replaceAll("{USER_COUNT}", Object.values(statsState.uniqueUsers).length)
 		.replaceAll("{VERSION}", version)
 		.replaceAll("{START_TIME}", startTime)
 		.replaceAll("{STATE}", JSON.stringify(statsState))
 		.replaceAll("{BRANCHES}", JSON.stringify(getSingleBranchMetas()))
+		.replaceAll("{CACHE_PROX}", hitRatio(statsState.proxyCacheHitRatio))
+		.replaceAll("{CACHE_V1}", hitRatio(statsState.v1ModuleCacheHitRatio))
+		.replaceAll("{CACHE_V2}", hitRatio(statsState.v2ManifestCacheHitRatio));
 
 export default new Hono()
 	.get("/", (c) => c.html(template(html)))

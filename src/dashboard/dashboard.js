@@ -1,7 +1,11 @@
 // for some reason esm.sh needs bundle-deps for this.
 // oh well, plot is huge so this probably helps a lot.
 import * as Plot from "@observablehq/plot?bundle-deps";
-import { format, formatDurationWithOptions, intervalToDuration } from "date-fns/fp?exports=format,formatDurationWithOptions,intervalToDuration";
+import {
+	format,
+	formatDurationWithOptions,
+	intervalToDuration
+} from "date-fns/fp?exports=format,formatDurationWithOptions,intervalToDuration";
 
 const since = (t) => intervalToDuration({ start: t, end: new Date() });
 
@@ -160,16 +164,11 @@ const branchMetadata = {BRANCHES}; /*[
 	},
 ];*/
 
-const userTimes = Object.values(statsState.uniqueUsers).map((u) => u.time);
-const lastUserTime = userTimes.reduce((a, b) => Math.max(a, b), 0); // who needs quickselect?
-
 const startTime = new Date({START_TIME} /*1734667290000*/);
 startTimeEl.textContent = formatTime(startTime);
 
 const refreshTimes = () => {
 	uptimeEl.textContent = formatSince(startTime);
-
-	if (lastUserTime) lastModEl.textContent = formatSince(lastUserTime);
 };
 refreshTimes();
 setInterval(refreshTimes, 1_000);
