@@ -10,7 +10,7 @@ import { resetLogger } from "./common/logger.js";
 // API handlers
 import apiV1 from "./apiV1/index.js";
 import apiV2 from "./apiV2/index.js";
-import { handleDashboard } from "./dashboard/index.js";
+import dashboard from "./dashboard/index.js";
 
 // kick off webhook
 import "./webhook.js";
@@ -26,7 +26,7 @@ const app = new Hono()
 	)
 	.route("/", apiV1)
 	.route("/", apiV2)
-	.get("/", handleDashboard)
+	.route("/", dashboard)
 	.get("/sheltupdate_branches", async (c) => {
 		// cors
 		c.header("Access-Control-Allow-Origin", "*");

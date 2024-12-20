@@ -1,0 +1,102 @@
+body {
+	margin: 0;
+	padding: 1rem;
+	background: black;
+	color: white;
+	font-family: "IBM Plex Mono",
+		ui-monospace, SFMono-Regular, Menlo, Monaco,
+		Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+#header-wrap {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	border-bottom: 1px solid white;
+	margin-bottom: 1rem;
+	padding-bottom: .5rem;
+}
+
+#header-wrap h1 {
+	margin: 0;
+}
+
+#install-btn {
+	color: white;
+	font-size: 1.125rem;
+	text-decoration: none;
+	border: 1px solid white;
+	padding: .25rem .5rem;
+}
+
+#upper-flex {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1rem;
+	margin-bottom: 1.25rem;
+}
+
+#lower-flex {
+	display: flex;
+	gap: 1.25rem;
+}
+
+#left-flex {
+	display: flex;
+	flex-direction: column;
+	gap: 1.25rem;
+}
+
+.stats-card {
+	border: 1px solid white;
+	padding: 1rem;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	column-gap: 2rem;
+	row-gap: 0.25rem;
+	flex-grow: 1;
+	position: relative;
+	min-width: 12rem;
+}
+
+.stats-card > * { margin: 0; }
+
+.stats-card.basic > .sub {
+	font-style: italic;
+	align-self: start;
+}
+
+.stats-card.basic > .basic-big {
+	font-size: 1.25rem;
+	margin-bottom: 0.5rem;
+}
+
+#left-flex .stats-card {
+	justify-content: center;
+}
+
+.card-title {
+	font-size: 1rem;
+	position: absolute;
+	background: black;
+	display: inline-block;
+	padding: 0 0.375rem;
+	top: -.6rem;
+	left: .5rem;
+	text-wrap: nowrap;
+	text-transform: uppercase;
+}
+
+.plot-wrap > * {
+	font-size: 0.875rem !important;
+}
+
+/* the uwu design language does not call for bold text. */
+h1, h2 { font-weight: normal; }
+
+@media (max-width: 1024px) {
+	#lower-flex { flex-direction: column; }
+
+	#install-btn { display: none; }
+}
