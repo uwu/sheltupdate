@@ -1,5 +1,5 @@
 import { config } from "./common/config.js";
-import { uniqueUsers } from "./common/state.js";
+import { statsState } from "./dashboard/reporting.js";
 
 if (config.webhook.enable) {
 	const url = config.webhook.url;
@@ -29,7 +29,7 @@ if (config.webhook.enable) {
 				fields: [
 					{
 						name: "Users",
-						value: Object.values(uniqueUsers).length,
+						value: Object.values(statsState.uniqueUsers).length,
 						inline: true,
 					},
 				],

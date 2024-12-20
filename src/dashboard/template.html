@@ -1,607 +1,346 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<title>sheltupdate Dashboard</title>
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="theme-color" content="#000000">
+	<title>sheltupdate r{VERSION}</title>
 
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<script type="importmap"> { "imports": {
+		"@unocss/": "https://esm.sh/@unocss/",
+		"@observablehq/": "https://esm.sh/@observablehq/",
+		"date-fns/": "https://esm.sh/date-fns/"
+	} }</script>
 
-		<link
-			href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css"
-			rel="stylesheet"
+	<script type="module">
+		import presetUno from "@unocss/preset-uno";
+		import presetWebFonts from "@unocss/preset-web-fonts";
+		import presetAttributify from "@unocss/preset-attributify";
+		import transformerDirectives from "@unocss/transformer-directives";
+		import initUno from "@unocss/runtime";
+
+		initUno({defaults: {
+			presets: [presetUno(), presetAttributify(), presetWebFonts({
+				// lol what
+				customFetch: (url) => fetch(url).then(r => r.text()),
+				fonts: {
+					sans: [{name: "IBM Plex Sans", weights: [400, 700], italic: true}],
+					mono: [{name: "IBM Plex Mono", weights: [400, 700], italic: true}],
+				}
+			})],
+			transformers: [transformerDirectives()]
+		}});
+	</script>
+
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@unocss/reset/normalize.min.css">
+</head>
+
+<body m="0" p="4" bg="black" text="white" font="mono">
+	<div flex="~ items-baseline justify-between" b-b="px white solid" mb="4" pb="2">
+		<h1 m="0">sheltupdate r{VERSION}</h1>
+
+		<a text="white lg" decoration="none" border="px solid white" px="2" float="right"
+			href="https://shelter.uwu.network/install"
 		>
-		<script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
+			Install
+		</a>
+	</div>
 
-		<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+	<p italic>Statistics are not live, even though relative times update.</p>
 
-		<style>
-		body, html {
-		  margin: 0;
-		  padding: 0;
-		  background-color: #f5f5f5;
-		}
+	<div flex="~ wrap" gap="3" mb="3">
 
-		*, *::before, *::after {
-		  box-sizing: border-box;
-		  font-family: var(--mdc-typography-headline4-font-family, var(--mdc-typography-font-family, Roboto, sans-serif));
-		}
+		<div class="stats-card basic">
+			<h2>Server Uptime</h2>
+			<p text="2xl" id="stat-uptime"></p>
+			<p class="sub">Up since <span id="stat-start-time"></span> (local time)</p>
+		</div>
 
-		#main {
-		  display: flex;
-		  flex-direction: column;
-		  align-items: center;
-		  padding: 4vw;
-		  padding-top: calc(4vw + 40px);
-		  gap: 3vh;
-		}
+		<div class="stats-card basic">
+			<h2>Last Module Download</h2>
+			<p text="2xl" id="stat-last-mod">15 minutes</p>
+		</div>
 
-		#main > h2 {
-		  margin: 0;
-		}
+		<div class="stats-card basic">
+			<h2>Unique Users</h2>
+			<p text="2xl">{USER_COUNT}</p>
+			<p class="sub">Users are 100% anonymised</p>
+		</div>
+	</div>
 
-		.mdc-top-app-bar__section--align-end {
-		  gap: 20px;
-		}
-
-		.app-fab--absolute {
-		  z-index: 10;
-		  position: fixed;
-		  right: 1rem;
-		  bottom: 1rem;
-		}
-
-		@media (min-width: 1024px) {
-		  .app-fab--absolute {
-		    right: 1.5rem;
-		    bottom: 1.5rem;
-		  }
-		}
-
-		.column-container {
-		  display: flex;
-		  gap: 5vw;
-		}
-
-		.column {
-		  display: flex;
-		  flex: 1 1 50%;
-		  flex-direction: column;
-		  width: 50%;
-		  height: 100%;
-		  gap: 20px;
-		}
-
-		.demo-card {
-		  width: 100%;
-		  padding: 18px;
-		}
-
-		.demo-card__title {
-		  margin-top: 0;
-		}
-
-		.dual {
-		  display: flex;
-		  flex-wrap: wrap;
-		  width: 100%;
-		  gap: 20px;
-		}
-
-		.dual > .demo-card {
-		  width: calc(50% - 10px);
-		}
-
-		.dual.quad > .demo-card {
-		  width: calc(25% - 15px);
-		}
-
-		.dual.quad .mdc-typography--headline6 {
-		  font-size: 90%;
-		}
-
-		.pie {
-		  position: relative;
-		  width: 200px;
-		  height: 200px;
-		  margin: 12px auto;
-		  overflow: hidden;
-		  border-radius: 100%;
-		}
-		.pie__segment {
-		  --a: calc(var(--over50, 0) * -100%);
-		  --b: calc((1 + var(--over50, 0)) * 100%);
-		  --degrees: calc(var(--offset, 0) / 100 * 360);
-		  z-index: calc(1 + var(--over50));
-		  position: absolute;
-		  width: 100%;
-		  height: 100%;
-		  transform: translate(0, -50%) rotate(90deg) rotate(calc(var(--degrees) * 1deg));
-		  transform-origin: 50% 100%;
-		  -webkit-clip-path: polygon(var(--a) var(--a), var(--b) var(--a), var(--b) var(--b), var(--a) var(--b));
-		  clip-path: polygon(var(--a) var(--a), var(--b) var(--a), var(--b) var(--b), var(--a) var(--b));
-		}
-		.pie__segment:after,
-		.pie__segment:before {
-		  position: absolute;
-		  width: 100%;
-		  height: 100%;
-		  background: var(--bg, #e74c3c);
-		  content: "";
-		}
-		.pie__segment:before {
-		  --degrees: calc(var(--value, 45) / 100 * 360);
-		  transform: translate(0, 100%) rotate(calc(var(--degrees) * 1deg));
-		  transform-origin: 50% 0%;
-		}
-		.pie__segment:after {
-		  opacity: var(--over50, 0);
-		}
-
-		.pie__label {
-		  z-index: 2;
-		  position: absolute;
-		  bottom: 0;
-		  left: 0;
-		  width: 50%;
-		  font-size: 14px;
-		  text-align: center;
-		}
-
-		@media screen and (max-width: 800px) {
-		  .column-container {
-		    flex-wrap: wrap;
-		  }
-
-		  .column {
-		    width: 100%;
-		  }
-		}
-
-		@media screen and (max-width: 1100px) and (min-width: 800px) {
-		  .dual-collapse .pie {
-		    width: 150px;
-		    height: 150px;
-		  }
-		}
-
-		@media screen and (max-width: 550px) {
-		  .dual-collapse .pie {
-		    width: 150px;
-		    height: 150px;
-		  }
-		}
-
-		@media screen and (max-width: 430px) {
-		  .dual-collapse .demo-card {
-		    width: 100%;
-		  }
-
-		  .dual-collapse .pie {
-		    width: 200px;
-		    height: 200px;
-		  }
-		}
-
-		#assist-modal {
-		  display: none;
-		  z-index: 99;
-		  position: absolute;
-		  top: 0;
-		  left: 0;
-		  width: 100%;
-		  height: 100%;
-		  overflow: none;
-		  background-color: rgba(0, 0, 0, .8);
-		  animation: back-change .5s;
-		}
-
-		@keyframes back-change {
-		  from {
-		    background: none;
-		  }
-		  to {
-		    background: rgba(0, 0, 0, .8);
-		  }
-		}
-
-		#assist-modal > .mdc-card {
-		  position: absolute;
-		  top: 50%;
-		  left: 50%;
-		  padding: 24px;
-		  transform: translate(-50%, -50%);
-		}
-
-		#assist-modal.show {
-		  display: block;
-		}
-
-		#step-1-card, #step-2-card, #step-3-card, #step-4-card, #step-5-card {
-		  margin-top: -99999px;
-		  opacity: 0;
-		  transition: opacity .5s;
-		}
-
-		#step-1-card.show, #step-2-card.show, #step-3-card.show, #step-4-card.show, #step-5-card.show {
-		  margin-top: 0;
-		  opacity: 1;
-		}
-
-		pre {
-		  padding: 6px;
-		  background-color: #eeeeee;
-		}
-
-		code {
-		  background-color: #eeeeee;
-		}
-
-		.items {
-		  display: flex;
-		  flex-direction: column;
-		  gap: 2px;
-		}
-
-		.items > .desc {
-		  margin-bottom: 18px;
-		  padding-left: 46px;
-		  color: var(--mdc-theme-text-hint-on-background);
-		}
-
-		.channels {
-		  display: grid;
-		  grid-template-columns: repeat(2, 100px);
-		  flex-direction: row;
-		  gap: 30px;
-		}
-
-		.channels > button {
-		  width: 100px;
-		  height: 100px;
-		  font-size: 100%;
-		}
-
-		.items > button {}
-
-		.items:not(.channels) > :nth-last-child(2) {
-		  margin-bottom: 40px;
-		}
-
-		#fileSelect {
-		  display: none;
-		}
-
-		.badge {
-		  padding: 4px;
-		  border-radius: 5px;
-		  background-color: black;
-		  color: white;
-		  font-weight: bold;
-		  font-size: 90%;
-		}
-
-		.badge.beta {
-		  background-color: #de3163;
-		}
-
-		.badge.alpha {
-		  background-color: #6495ed;
-		}
-
-		.divide {
-		  width: 100%;
-		  height: 2px;
-		  margin-top: 4px;
-		  margin-bottom: 14px;
-		  background-color: var(--mdc-theme-text-hint-on-background);
-		}
-
-		.mdc-checkbox--disabled + label {
-		  color: var(--mdc-theme-text-hint-on-background);
-		}
-
-		.mdc-typography {
-		  color: var(--mdc-theme-text-primary-on-background);
-		}
-
-		body.dark {
-		  background-color: rgb(13, 14, 14);
-		  --mdc-theme-text-primary-on-background: rgba(255, 255, 255, .87);
-		  --mdc-theme-text-secondary-on-background: rgba(255, 255, 255, .5);
-		  --mdc-theme-text-hint-on-background: var(--mdc-theme-text-secondary-on-background);
-		  --mdc-theme-surface: rgb(24, 26, 27);
-		  --mdc-checkbox-unchecked-color: var(--mdc-theme-text-hint-on-background);
-		}
-
-		#themer-light {
-		  display: none;
-		}
-
-		body.dark #themer-light {
-		  display: inline;
-		}
-
-		body.dark #themer-dark {
-		  display: none;
-		}
-
-		body.dark
-		  .mdc-radio
-		  .mdc-radio__native-control:enabled:not(:checked)
-		  + .mdc-radio__background
-		  .mdc-radio__outer-circle {
-		  border-color: var(--mdc-theme-text-secondary-on-background);
-		}
-
-		body.dark .mdc-button--raised:disabled, .mdc-button--unelevated:disabled {
-		  color: var(--mdc-theme-text-secondary-on-background);
-		}
-
-		.pie-legend {
-		  display: flex;
-		  flex-wrap: wrap;
-		  width: fit-content;
-		  margin: auto;
-		  padding: 8px;
-		  gap: 10px;
-		  border-radius: var(--mdc-shape-medium, 4px);
-		  background-color: rgb(38, 42, 43);
-		}
-
-		.pie-legend > div {
-		  color: var(--mdc-theme-text-primary-on-background);
-		}
-
-		.pie-legend > div::before {
-		  display: inline-block;
-		  width: 20px;
-		  height: 20px;
-		  margin-right: 5px;
-		  border-radius: 50%;
-		  background-color: var(--bg);
-		  content: " ";
-		  vertical-align: bottom;
-		}
-		</style>
-	</head>
-
-	<body class="dark">
-		<header class="mdc-top-app-bar">
-			<div class="mdc-top-app-bar__row">
-				<section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-start">
-					<span class="mdc-top-app-bar__title">sheltupdate rTEMPLATE_VERSION</span>
-				</section>
-				<section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-end" role="toolbar">
-					<button id="themer" class="mdc-theme--secondary-bg mdc-button mdc-button--raised">
-						<span id="themer-light" class="material-icons">
-							brightness_high
-						</span>
-
-						<span id="themer-dark" class="material-icons">
-							brightness_low
-						</span>
-					</button>
-				</section>
+	<div flex gap="3">
+		<div flex="~ col basis-3/5" gap="3">
+			<div class="stats-card">
+				<h2>Endpoint Hit Counts</h2>
+				<div id="endpoint-plot-wrap" class="children:text-sm!"></div>
 			</div>
-		</header>
 
-		<div id="main">
-			<h2 class="mdc-typography mdc-typography--headline4">Statistics</h2>
-
-			<div class="column-container">
-				<div class="column">
-					<div class="dual dual-collapse">
-						<div class="mdc-card demo-card">
-							<div class="" tabindex="0">
-								<div class="demo-card__primary">
-									<h2 class="demo-card__title mdc-typography mdc-typography--headline6">Total Users</h2>
-									<h3 class="demo-card__subtitle mdc-typography mdc-typography--headline2">
-										TEMPLATE_TOTAL_USERS
-									</h3>
-								</div>
-								<!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The total amount of users who have requested updates this server session</div> -->
-							</div>
-						</div>
-
-						<div class="mdc-card demo-card">
-							<div class="" tabindex="0">
-								<div class="demo-card__primary">
-									<h2 class="demo-card__title mdc-typography mdc-typography--headline6">OS</h2>
-									TEMPLATE_PIE_OS
-								</div>
-								<!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The demographic of OS usage</div> -->
-							</div>
-						</div>
-
-						<div class="mdc-card demo-card">
-							<div class="" tabindex="0">
-								<div class="demo-card__primary">
-									<h2 class="demo-card__title mdc-typography mdc-typography--headline6">Discord Channel</h2>
-									TEMPLATE_PIE_HOST_CHANNELS
-								</div>
-								<!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The demographic of OS usage</div> -->
-							</div>
-						</div>
-
-						<div class="mdc-card demo-card">
-							<div class="" tabindex="0">
-								<div class="demo-card__primary">
-									<h2 class="demo-card__title mdc-typography mdc-typography--headline6">API Version</h2>
-									TEMPLATE_PIE_API_VERSION
-								</div>
-								<!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The demographic of OS usage</div> -->
-							</div>
-						</div>
-
-						<div class="mdc-card demo-card">
-							<div class="" tabindex="0">
-								<div class="demo-card__primary">
-									<h2 class="demo-card__title mdc-typography mdc-typography--headline6">Host Version</h2>
-									TEMPLATE_PIE_HOST_VERSIONS
-								</div>
-								<!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The demographic of OS usage</div> -->
-							</div>
-						</div>
-					</div>
-				</div>
-
-				<div class="column">
-					<div class="mdc-card demo-card">
-						<div class="" tabindex="0">
-							<div class="demo-card__primary">
-								<h2 class="demo-card__title mdc-typography mdc-typography--headline6">Branches</h2>
-								TEMPLATE_PIE_BRANCHES
-							</div>
-							<!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The demographic of OS usage</div> -->
-						</div>
-					</div>
-
-					<div class="dual dual-collapse">
-						<div class="mdc-card demo-card">
-							<div class="" tabindex="0">
-								<div class="demo-card__primary">
-									<h2 class="demo-card__title mdc-typography mdc-typography--headline6">V1 - Cache Rate</h2>
-									TEMPLATE_PIE_CACHE
-								</div>
-								<!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The demographic of OS usage</div> -->
-							</div>
-						</div>
-
-						<div class="mdc-card demo-card">
-							<div class="" tabindex="0">
-								<div class="demo-card__primary">
-									<h2 class="demo-card__title mdc-typography mdc-typography--headline6">V1 - Redirect Rate</h2>
-									TEMPLATE_PIE_VS
-								</div>
-								<!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The demographic of OS usage</div> -->
-							</div>
-						</div>
-					</div>
-
-					<div class="dual">
-						<div class="mdc-card demo-card">
-							<div class="" tabindex="0">
-								<div class="demo-card__primary">
-									<h2 class="demo-card__title mdc-typography mdc-typography--headline6">Squirrel Host</h2>
-									<h3 class="demo-card__subtitle mdc-typography mdc-typography--headline4">
-										TEMPLATE_COUNT_HOST_SQUIRREL
-									</h3>
-								</div>
-								<!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The total amount of users who have requested updates this server session</div> -->
-							</div>
-						</div>
-
-						<div class="mdc-card demo-card">
-							<div class="" tabindex="0">
-								<div class="demo-card__primary">
-									<h2 class="demo-card__title mdc-typography mdc-typography--headline6">Non-Squirrel Host</h2>
-									<h3 class="demo-card__subtitle mdc-typography mdc-typography--headline4">
-										TEMPLATE_COUNT_HOST_NOTSQUIRREL
-									</h3>
-								</div>
-								<!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The total amount of users who have requested updates this server session</div> -->
-							</div>
-						</div>
-
-						<div class="mdc-card demo-card">
-							<div class="" tabindex="0">
-								<div class="demo-card__primary">
-									<h2 class="demo-card__title mdc-typography mdc-typography--headline6">V1 - Modules</h2>
-									<h3 class="demo-card__subtitle mdc-typography mdc-typography--headline4">
-										TEMPLATE_COUNT_MODULES
-									</h3>
-								</div>
-								<!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The total amount of users who have requested updates this server session</div> -->
-							</div>
-						</div>
-
-						<div class="mdc-card demo-card">
-							<div class="" tabindex="0">
-								<div class="demo-card__primary">
-									<h2 class="demo-card__title mdc-typography mdc-typography--headline6">
-										V1 - Module Downloads
-									</h2>
-									<h3 class="demo-card__subtitle mdc-typography mdc-typography--headline4">
-										TEMPLATE_COUNT_MODULE_DOWNLOAD
-									</h3>
-								</div>
-								<!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The total amount of users who have requested updates this server session</div> -->
-							</div>
-						</div>
-
-						<div class="mdc-card demo-card">
-							<div class="" tabindex="0">
-								<div class="demo-card__primary">
-									<h2 class="demo-card__title mdc-typography mdc-typography--headline6">V2 - Manifests</h2>
-									<h3 class="demo-card__subtitle mdc-typography mdc-typography--headline4">
-										TEMPLATE_COUNT_V2_MANIFEST
-									</h3>
-								</div>
-								<!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The total amount of users who have requested updates this server session</div> -->
-							</div>
-						</div>
-
-						<div class="mdc-card demo-card">
-							<div class="" tabindex="0">
-								<div class="demo-card__primary">
-									<h2 class="demo-card__title mdc-typography mdc-typography--headline6">
-										V2 - Module Downloads
-									</h2>
-									<h3 class="demo-card__subtitle mdc-typography mdc-typography--headline4">
-										TEMPLATE_COUNT_V2_MODULE
-									</h3>
-								</div>
-								<!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The total amount of users who have requested updates this server session</div> -->
-							</div>
-						</div>
-
-						<div class="mdc-card demo-card">
-							<div class="" tabindex="0">
-								<div class="demo-card__primary">
-									<h2 class="demo-card__title mdc-typography mdc-typography--headline6">Uptime</h2>
-									<h3 class="demo-card__subtitle mdc-typography mdc-typography--headline4">TEMPLATE_UPTIME</h3>
-								</div>
-								<!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The total amount of users who have requested updates this server session</div> -->
-							</div>
-						</div>
-
-						<div class="mdc-card demo-card">
-							<div class="" tabindex="0">
-								<div class="demo-card__primary">
-									<h2 class="demo-card__title mdc-typography mdc-typography--headline6">
-										Last Update Request
-									</h2>
-									<h3 class="demo-card__subtitle mdc-typography mdc-typography--headline4">
-										TEMPLATE_LAST_UPDATE
-									</h3>
-								</div>
-								<!-- <div class="demo-card__secondary mdc-typography mdc-typography--body2">The total amount of users who have requested updates this server session</div> -->
-							</div>
-						</div>
-					</div>
-				</div>
+			<div class="stats-card">
+				<h2>Branches</h2>
+				<div id="branches-wrap" class="children:text-sm!"></div>
 			</div>
 		</div>
 
-		<div id="tooltip-id" class="mdc-tooltip" role="tooltip" aria-hidden="true">
-			<div class="mdc-tooltip__surface">
-				lorem ipsum dolor
-			</div>
+		<div class="stats-card" flex="basis-2/5">
+			<h2>Proportions</h2>
+			<div id="plats-wrap" class="children:text-sm!"></div>
+			<div id="chans-wrap" class="children:text-sm!"></div>
+			<div id="hosts-wrap" class="children:text-sm!"></div>
+			<div id="apiv-wrap" class="children:text-sm!"></div>
 		</div>
+	</div>
 
-		<input type="file" id="fileSelect">
+	<script type="module">
+		// for some reason esm.sh needs bundle-deps for this.
+		// oh well, plot is huge so this probably helps a lot.
+		import * as Plot from "@observablehq/plot?bundle-deps";
+		import {format, formatDuration, intervalToDuration} from "date-fns/?exports=format,formatDuration,intervalToDuration";
 
-		<script>
-		window.mdc.autoInit();
+		const since = (t) => intervalToDuration({ start: t, end: new Date() });
 
-		const themer = document.getElementById("themer");
+		const cap = (s) => s.split(" ").map(w => w[0].toUpperCase() + w.slice(1)).join(" ");
 
-		themer.onclick = () => {
-			if (document.body.classList.contains("dark")) {
-				document.body.classList.remove("dark");
-			} else {
-				document.body.classList.add("dark");
+		const [
+			uptimeEl,
+			startTimeEl,
+			lastModEl,
+			endpointWrap,
+			branchesWrap,
+			channelsWrap,
+			platformsWrap,
+			hostVersWrap,
+			apiVersWrap,
+		] = [
+			"stat-uptime",
+			"stat-start-time",
+			"stat-last-mod",
+			"endpoint-plot-wrap",
+			"branches-wrap",
+			"chans-wrap",
+			"plats-wrap",
+			"hosts-wrap",
+			"apiv-wrap"
+		].map(document.getElementById.bind(document));
+
+		const statsState = {STATE} /*{
+			uniqueUsers: {
+				a: {
+					platform: "linux",
+					host_version: "0.0.78",
+					channel: "stable",
+					branch: "shelter+reactdevtools+vencord",
+					apiVer: 1,
+					time: new Date("2024-12-20 9:00:00")
+				},
+				b: {
+					platform: "win",
+					host_version: "unknown",
+					channel: "canary",
+					branch: "shelter+vencord",
+					apiVer: 2,
+					time: new Date("2024-12-20 16:00:00")
+				},
+				c: {
+					platform: "win",
+					host_version: "unknown",
+					channel: "canary",
+					branch: "shelter+vencord",
+					apiVer: 2,
+					time: new Date("2024-12-20 16:00:00")
+				},
+				d: {
+					platform: "mac",
+					host_version: "unknown",
+					channel: "stable",
+					branch: "vencord",
+					apiVer: 2,
+					time: new Date("2024-12-20 13:00:00")
+				}
+			},
+			requestCounts: {
+				v1_host_squirrel: 435,
+				v1_host_notsquirrel: 34,
+				v1_modules: 45,
+				v1_module_download: 345,
+				v2_manifest: 45,
+				v2_module: 56,
+				v2_custom_module: 3,
+			},
+			proxyOrRedirect: {
+				proxied: 0,
+				redirected: 0,
+			},
+			proxyCacheHitRatio: {
+				hit: 0,
+				miss: 0,
+			},
+			v1ModuleCacheHitRatio: {
+				hit: 0,
+				miss: 0,
+			},
+			v2ManifestCacheHitRatio: {
+				hit: 0,
+				miss: 0,
 			}
+		};*/
+
+		const userTimes = Object.values(statsState.uniqueUsers).map(u => u.time);
+		const lastUserTime = userTimes.reduce((a, b) => Math.max(a, b), 0); // who needs quickselect?
+
+		const startTime = new Date({START_TIME} /*1734667290000*/);
+		startTimeEl.textContent = format(startTime, "h:mm:ss b");
+
+		const refreshTimes = () => {
+			uptimeEl.textContent = formatDuration(since(startTime), { format: ["days", "hours", "minutes"]});
+
+			if (lastUserTime)
+				lastModEl.textContent = formatDuration(since(lastUserTime), { format: ["hours", "minutes"] });
 		};
-		</script>
-	</body>
+		refreshTimes();
+		setInterval(refreshTimes, 20_000);
+
+		const endpointsEntries = Object.entries(statsState.requestCounts)
+			.map(([name, hits]) => {
+				const ns = name.split("_");
+
+				return { hits, endpoint: cap(ns.slice(1).join(" ")) + ` [${ns[0].toUpperCase()}]` };
+			});
+
+		const branchCounts = {};
+		const platformCounts = {};
+		const hostVerCounts = {};
+		const apiVerCounts = {};
+		const channelCounts = {};
+		for (const user of Object.values(statsState.uniqueUsers)) {
+			const host = user.host_version === "unknown" ? "Unknown Host" : "Host " + user.host_version;
+
+			for (const br of user.branch.split("+")) {
+				branchCounts[cap(br)] ??= 0;
+				branchCounts[cap(br)]++;
+			}
+			platformCounts[cap(user.platform)] ??= 0;
+			platformCounts[cap(user.platform)]++;
+			hostVerCounts[host] ??= 0;
+			hostVerCounts[host]++;
+			apiVerCounts["API V" + user.apiVer] ??= 0;
+			apiVerCounts["API V" + user.apiVer]++;
+			channelCounts[cap(user.channel)] ??= 0;
+			channelCounts[cap(user.channel)]++;
+		}
+
+		endpointWrap.append(
+			Plot.plot({
+				marginTop: 0,
+				marginLeft: 160,
+				marginRight: 35,
+				label: null,
+				marks: [
+					Plot.barX(endpointsEntries, { y: "endpoint", x: "hits", sort: {y: "-x"} }),
+					Plot.text(endpointsEntries, { y: "endpoint", x: "hits", text: "hits", textAnchor: "start", dx: 3}),
+					Plot.gridX()
+				]
+			})
+		);
+
+		branchesWrap.append(
+			Plot.plot({
+				marginTop: 0,
+				marginLeft: 120,
+				marginRight: 35,
+				label: null,
+				marks: [
+					Plot.barX(Object.entries(branchCounts), { y: "0", x: "1", sort: {y: "-x"} }),
+					Plot.text(Object.entries(branchCounts), { y: "0", x: "1", text: "1", textAnchor: "start", dx: 3 }),
+					Plot.gridX()
+				]
+			})
+		);
+
+		platformsWrap.append(
+			Plot.plot({
+				marginTop: 0,
+				marginLeft: 35,
+				marginRight: 35,
+				label: null,
+				axis: false,
+				color: {legend: true, scheme: "dark2"},
+				marks: [
+					Plot.barX(Object.entries(platformCounts), { x: "1", fill: "0" }),
+					Plot.gridX()
+				]
+			})
+		);
+
+		channelsWrap.append(
+			Plot.plot({
+				marginTop: 0,
+				marginLeft: 35,
+				marginRight: 35,
+				label: null,
+				axis: false,
+				color: {legend: true, scheme: "dark2"},
+				marks: [
+					Plot.barX(Object.entries(channelCounts), { x: "1", fill: "0" }),
+					Plot.gridX()
+				]
+			})
+		);
+
+		hostVersWrap.append(
+			Plot.plot({
+				marginTop: 0,
+				marginLeft: 35,
+				marginRight: 35,
+				label: null,
+				axis: false,
+				color: {legend: true, scheme: "dark2"},
+				marks: [
+					Plot.barX(Object.entries(hostVerCounts), { x: "1", fill: "0" }),
+					Plot.gridX()
+				]
+			})
+		);
+
+		apiVersWrap.append(
+			Plot.plot({
+				marginTop: 0,
+				marginLeft: 35,
+				marginRight: 35,
+				label: null,
+				axis: false,
+				color: {legend: true, scheme: "dark2"},
+				marks: [
+					Plot.barX(Object.entries(apiVerCounts), { x: "1", fill: "0" }),
+					Plot.gridX()
+				]
+			})
+		);
+	</script>
+
+<style>
+	.stats-card {
+		border: 1px solid white;
+		padding: .5rem;
+		display: grid;
+		align-items: baseline;
+		column-gap: 2rem;
+		row-gap: 0.25rem;
+		flex-grow: 1;
+	}
+
+	.stats-card:not(.basic) > div {
+		justify-self: center;
+	}
+
+	.stats-card > * { margin: 0; }
+
+	.stats-card.basic {
+		grid-template-columns: 1fr auto;
+	}
+	.stats-card.basic > .sub {
+		grid-column-end: span 2;
+		font-style: italic;
+	}
+</style>
+</body>
 </html>

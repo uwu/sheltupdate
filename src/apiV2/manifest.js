@@ -1,8 +1,8 @@
 import basicProxy from "../common/proxy/index.js";
-import { patch, createModule } from "./patchModule.js";
+import { createModule, patch } from "./patchModule.js";
 import { config } from "../common/config.js";
 import { ensureBranchIsReady, getBranch } from "../common/branchesLoader.js";
-import { requestCounts, uniqueUsers } from "../common/state.js";
+import { reportEndpoint, reportUniqueUser } from "../dashboard/reporting.js";
 import originatingIp from "../common/originatingIp.js";
 import { log, withLogSection } from "../common/logger.js";
 
@@ -19,19 +19,9 @@ export const handleManifest = withLogSection("v2 manifest", async (c) => {
 
 	log(JSON.stringify(c.req.param()), JSON.stringify(c.req.query()));
 
-	if (config.stats) requestCounts.v2_manifest++;
+	reportEndpoint("v2_manifest");
 
-	const ip = originatingIp(c);
-
-	if (config.stats)
-		uniqueUsers[ip] = {
-			platform: c.req.query("platform"),
-			host_version: "unknown",
-			channel: c.req.query("channel"),
-			branch,
-			apiVersion: "v2",
-			time: Date.now(),
-		};
+	reportUniqueUser(originatingIp(c), c.req.query("platform"), "unknown", c.req.query("channel"), branch, 2);
 
 	let json = await basicProxy(c, {}, undefined, base).then((r) => r.json());
 

@@ -35,7 +35,7 @@ export default withLogSection("module patcher", async (c, cacheDir, cacheFinalFi
 
 	let s = stream.Readable.from(prox.body);
 
-	const cacheExtractDir = join(cacheDir, "extract" + Math.random().toString(16));;
+	const cacheExtractDir = join(cacheDir, "extract" + Math.random().toString(16));
 
 	let t = s.pipe(unzipper.Extract({ path: cacheExtractDir }));
 

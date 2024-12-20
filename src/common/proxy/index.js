@@ -1,6 +1,6 @@
 import * as Cache from "./cache.js";
 import { config } from "../config.js";
-import { proxyCacheHitArr, proxyVsRedirect } from "../state.js";
+import { reportProxyHit, reportProxyMiss } from "../../dashboard/reporting.js";
 import ReusableResponse from "../reusableResponse.js";
 import { log, withLogSection } from "../logger.js";
 
@@ -9,7 +9,6 @@ export const getProxyURL = (url) => `/${url.split("/").slice(2).join("/")}`;
 export default withLogSection("proxy", async (context, options = {}, rpl = undefined, base = config.apiBases.v1) => {
 	const req = context.req;
 	const rUrl = req.url.replace(/.*:\/\/[^/]*/, "");
-	if (config.stats) proxyVsRedirect.push("proxy");
 
 	let url = rpl !== undefined ? rUrl.replace(rpl[0], rpl[1]) : rUrl;
 	url = getProxyURL(url);
@@ -26,12 +25,12 @@ export default withLogSection("proxy", async (context, options = {}, rpl = undef
 
 		cached.lastUsed = now;
 
-		if (config.stats) proxyCacheHitArr.push("cached");
+		reportProxyHit();
 
 		return cached.resp.toRealRes();
 	}
 
-	if (config.stats) proxyCacheHitArr.push("not cached");
+	reportProxyMiss();
 
 	log("not cached");
 

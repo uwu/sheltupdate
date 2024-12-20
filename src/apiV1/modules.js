@@ -1,9 +1,8 @@
 import basicProxy from "../common/proxy/index.js";
 import { ensureBranchIsReady, getBranch } from "../common/branchesLoader.js";
-import { requestCounts, uniqueUsers } from "../common/state.js";
+import { reportEndpoint, reportUniqueUser } from "../dashboard/reporting.js";
 import originatingIp from "../common/originatingIp.js";
 import { log, withLogSection } from "../common/logger.js";
-import { config } from "../common/config.js";
 
 export const handleModules = withLogSection("v1 module update check", async (c) => {
 	const { branch, channel } = c.req.param();
@@ -16,23 +15,12 @@ export const handleModules = withLogSection("v1 module update check", async (c) 
 		return c.notFound("Invalid sheltupdate branch");
 	}
 
-	if (config.stats) requestCounts.modules++;
+	reportEndpoint("v1_modules");
 
 	log(JSON.stringify(c.req.param()), JSON.stringify(c.req.query()));
 
-	if (platform === "linux" || platform === "win" || platform === "osx") {
-		const ip = originatingIp(c);
-
-		if (config.stats)
-			uniqueUsers[ip] = {
-				platform,
-				host_version,
-				channel,
-				branch,
-				apiVersion: "v1",
-				time: Date.now(),
-			};
-	}
+	if (platform === "linux" || platform === "win" || platform === "osx")
+		reportUniqueUser(originatingIp(c), platform, host_version, channel, branch, 1);
 
 	let json = await basicProxy(c).then((r) => r.json());
 

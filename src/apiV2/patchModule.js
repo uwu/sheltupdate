@@ -11,6 +11,7 @@ import { ensureBranchIsReady, getBranch } from "../common/branchesLoader.js";
 import { finalizeDesktopCoreIndex, finalizeDesktopCorePreload } from "../common/desktopCoreTemplates.js";
 import { log, withLogSection } from "../common/logger.js";
 import { cacheBase } from "../common/fsCache.js";
+import { reportV2Cached, reportV2Patched } from "../dashboard/reporting.js";
 
 const cache = {
 	patched: {},
@@ -141,7 +142,11 @@ export const patch = withLogSection("module patcher", async (m, branchName) => {
 	const cacheName = getCacheName("discord_desktop_core", m.module_version, branchName);
 
 	const cached = cache.patched[cacheName];
-	if (cached) return cached.hash;
+	if (cached) {
+		reportV2Cached();
+		return cached.hash;
+	}
+	reportV2Patched();
 
 	log(`patching desktop_core for ${branchName}`);
 

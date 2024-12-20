@@ -5,10 +5,9 @@ import basicRedirect from "../../common/redirect.js";
 
 import patch from "./patchModule.js";
 import { getBranch } from "../../common/branchesLoader.js";
-import { requestCounts } from "../../common/state.js";
+import { reportEndpoint, reportV1Cached, reportV1Patched } from "../../dashboard/reporting.js";
 import { log, withLogSection } from "../../common/logger.js";
-import { config } from "../../common/config.js";
-import {cacheBase} from "../../common/fsCache.js";
+import { cacheBase } from "../../common/fsCache.js";
 
 export const handleModuleDownload = withLogSection("v1 download module", async (c) => {
 	const { branch, /*channel,*/ module, version } = c.req.param();
@@ -17,7 +16,7 @@ export const handleModuleDownload = withLogSection("v1 download module", async (
 		return c.notFound("Invalid sheltupdate branch");
 	}
 
-	if (config.stats) requestCounts.module_download++;
+	reportEndpoint("v1_module_download");
 
 	log(JSON.stringify(c.req.param()), JSON.stringify(c.req.query()));
 
@@ -28,11 +27,13 @@ export const handleModuleDownload = withLogSection("v1 download module", async (
 
 		if (existsSync(cacheFinalFile)) {
 			log("Served cached discord_desktop_core");
+			reportV1Cached();
 
 			c.header("Content-Type", "application/zip");
 			return c.body(readFileSync(cacheFinalFile));
 		}
 
+		reportV1Patched();
 		return patch(c, cacheDir, cacheFinalFile);
 	}
 

@@ -1,10 +1,10 @@
 import { getProxyURL } from "./proxy/index.js";
-import { proxyVsRedirect } from "./state.js";
+import { reportRedirected } from "../dashboard/reporting.js";
 import { config } from "./config.js";
 import { log, withLogSection } from "./logger.js";
 
 export default withLogSection("redirect", async (context, base = config.apiBases.v1) => {
-	if (config.stats) proxyVsRedirect.push("redirect");
+	reportRedirected();
 
 	const rUrl = context.req.url.replace(/.*:\/\/[^/]*/, "");
 	const proxyUrl = `${base}${getProxyURL(rUrl)}`;

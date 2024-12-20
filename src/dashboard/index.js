@@ -1,11 +1,10 @@
 import { readFileSync } from "fs";
 import { join } from "path";
-import { proxyCacheHitArr, proxyVsRedirect, requestCounts, uniqueUsers } from "../common/state.js";
+import { statsState } from "./reporting.js";
 import { srcDir, startTime, version } from "../common/config.js";
 
-// Hell.
 const indexTemplate = readFileSync(join(srcDir, "dashboard", "template.html"), "utf8");
-
+/*
 const generatePie = (arr) => {
 	const colors = ["#D9434B", "#D9D659", "#2E9BD9", "#8C1D23", "#24678C"];
 	const unique = arr.filter((v, i, s) => s.indexOf(v) === i).sort((a, b) => a.localeCompare(b));
@@ -48,30 +47,16 @@ const getDiffTime = (orig) => {
 	const secOver = Math.floor((minTotal * 60) % 60);
 
 	return `${hour.toString().padStart(2, "0")}:${minOver.toString().padStart(2, "0")}:${secOver.toString().padStart(2, "0")}`;
-};
+};*/
 
 export const handleDashboard = (c) => {
-	const usersValues = Object.values(uniqueUsers);
-
 	let temp = indexTemplate.slice(); // fs.readFileSync('index.html', 'utf8'); //  //
-	temp = temp.replace("TEMPLATE_TOTAL_USERS", usersValues.length);
-	temp = temp.replace("TEMPLATE_VERSION", version);
+	temp = temp.replaceAll("{USER_COUNT}", Object.values(statsState.uniqueUsers));
+	temp = temp.replaceAll("{VERSION}", version);
 
-	temp = temp.replace(`TEMPLATE_PIE_OS`, generatePie(usersValues.map((x) => x.platform)));
-	temp = temp.replace(`TEMPLATE_PIE_HOST_VERSIONS`, generatePie(usersValues.map((x) => x.host_version)));
-	temp = temp.replace(`TEMPLATE_PIE_HOST_CHANNELS`, generatePie(usersValues.map((x) => x.channel)));
-	temp = temp.replace(`TEMPLATE_PIE_BRANCHES`, generatePie(usersValues.map((x) => x.branch)));
-	temp = temp.replace(`TEMPLATE_PIE_API_VERSION`, generatePie(usersValues.map((x) => x.apiVersion)));
+	temp = temp.replaceAll("{STATE}", JSON.stringify(statsState));
 
-	temp = temp.replace(`TEMPLATE_PIE_CACHE`, generatePie(proxyCacheHitArr));
-	temp = temp.replace(`TEMPLATE_PIE_VS`, generatePie(proxyVsRedirect));
-
-	temp = temp.replace(`TEMPLATE_UPTIME`, getDiffTime(startTime));
-	temp = temp.replace(`TEMPLATE_LAST_UPDATE`, getDiffTime(Math.max(...usersValues.map((x) => x.time))));
-
-	for (let k in requestCounts) {
-		temp = temp.replace(`TEMPLATE_COUNT_${k.toUpperCase()}`, requestCounts[k]);
-	}
+	temp = temp.replaceAll("{START_TIME}", startTime);
 
 	return c.html(temp);
 };

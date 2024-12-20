@@ -49,12 +49,16 @@ ipcRenderer.invoke("SHELTER_BUNDLE_FETCH").then((bundle) => {
 let branches = {};
 
 fetch("https://inject.shelter.uwu.network/sheltupdate_branches")
-	.then(r => r.json())
-	.then((branches_raw) =>
-			branches = Object.fromEntries(
-				branches_raw.map(branch => [branch.name, {...branch, name: branch.displayName, desc: branch.description}])
-			)
-		);
+	.then((r) => r.json())
+	.then(
+		(branches_raw) =>
+			(branches = Object.fromEntries(
+				branches_raw.map((branch) => [
+					branch.name,
+					{ ...branch, name: branch.displayName, desc: branch.description },
+				]),
+			)),
+	);
 
 const readBranches = () => ipcRenderer.invoke("SHELTER_BRANCH_GET");
 
