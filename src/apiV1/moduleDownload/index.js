@@ -8,6 +8,7 @@ import { getBranch } from "../../common/branchesLoader.js";
 import { requestCounts } from "../../common/state.js";
 import { log, withLogSection } from "../../common/logger.js";
 import { config } from "../../common/config.js";
+import {cacheBase} from "../../common/fsCache.js";
 
 export const handleModuleDownload = withLogSection("v1 download module", async (c) => {
 	const { branch, /*channel,*/ module, version } = c.req.param();
@@ -22,8 +23,8 @@ export const handleModuleDownload = withLogSection("v1 download module", async (
 
 	if (module === "discord_desktop_core") {
 		const cacheName = `${module}-${branch}-${version}`;
-		const cacheDir = path.resolve(`../cache/${cacheName}`);
-		const cacheFinalFile = `${cacheDir}/module.zip`;
+		const cacheDir = path.join(cacheBase, `v1-patch-scratch`, cacheName);
+		const cacheFinalFile = path.join(cacheDir, "module.zip");
 
 		if (existsSync(cacheFinalFile)) {
 			log("Served cached discord_desktop_core");
