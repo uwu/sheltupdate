@@ -28,6 +28,8 @@ const app = new Hono()
 	.route("/", apiV2)
 	.get("/", handleDashboard)
 	.get("/sheltupdate_branches", async (c) => {
+		// cors
+		c.header("Access-Control-Allow-Origin", "*");
 		return c.json(getSingleBranchMetas());
 	});
 

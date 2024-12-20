@@ -29,11 +29,9 @@ ipcRenderer.invoke("SHELTER_BUNDLE_FETCH").then((bundle) => {
 
 // everything below this comment is for the plugin selector UI exclusively
 
-// TODO: have some kind of api for fetching branch metadata etc from the server
-// for now i'm just hardcoding this, but building it in such a way that its easy to replace.
-// this is intended to be temporary.
-
-const branches = {
+// fetch branches from server, then create a structure like:
+/*
+ const branches = {
 	shelter: {
 		name: "shelter",
 		desc: "Injects shelter",
@@ -44,34 +42,19 @@ const branches = {
 		desc: "Injects Vencord; This is not an officially supported Vencord install method",
 		type: "mod",
 	},
-	betterdiscord: {
-		name: "BetterDiscord",
-		desc: "Injects BetterDiscord",
-		type: "mod",
-	},
+	// ...
+ }
+*/
 
-	reactdevtools: {
-		name: "React Developer Tools",
-		desc: "Adds the React Dev Tools to the web developer panel",
-		type: "tool",
-	},
+let branches = {};
 
-	spotify_embed_volume: {
-		name: "Spotify Embed Volume",
-		desc: "Adds a volume slider to Spotify embeds",
-		type: "tweak",
-	},
-	yt_ad_block: {
-		name: "YouTube Ad Block",
-		desc: "Removes ads in embeds and in the Watch Together activity",
-		type: "tweak",
-	},
-	yt_embed_fix: {
-		name: "YouTube Embed Fix",
-		desc: "Enables more videos to be viewable from within Discord (like UMG blocked ones)",
-		type: "tweak",
-	},
-};
+fetch("https://inject.shelter.uwu.network/sheltupdate_branches")
+	.then(r => r.json())
+	.then((branches_raw) =>
+			branches = Object.fromEntries(
+				branches_raw.map(branch => [branch.name, {...branch, name: branch.displayName, desc: branch.description}])
+			)
+		);
 
 const readBranches = () => ipcRenderer.invoke("SHELTER_BRANCH_GET");
 
