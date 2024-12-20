@@ -6,7 +6,7 @@ import {
 	lstatSync,
 	copyFileSync,
 	createWriteStream,
-	rmdirSync,
+	rmSync,
 } from "fs";
 
 import stream from "stream";
@@ -41,7 +41,7 @@ export default withLogSection("module patcher", async (c, cacheDir, cacheFinalFi
 
 	log("waiting on network...");
 
-	await new Promise((res) => t.on("finish", res));
+	await new Promise((res) => t.on("close", res));
 
 	log("copying files...");
 
@@ -88,7 +88,7 @@ export default withLogSection("module patcher", async (c, cacheDir, cacheFinalFi
 	outputStream.close();
 	outputStream.destroy();
 
-	rmdirSync(cacheExtractDir);
+	rmSync(cacheExtractDir, { recursive: true });
 
 	c.header("Content-Type", "application/zip");
 	return c.body(readFileSync(cacheFinalFile));
