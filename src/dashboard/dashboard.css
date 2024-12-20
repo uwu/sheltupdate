@@ -76,6 +76,19 @@ body {
 	justify-content: center;
 }
 
+#prop-grid {
+	display: grid;
+	place-items: center;
+	grid-template-columns: auto 1fr;
+	gap: 0;
+	flex: 1;
+}
+
+#prop-grid > p {
+	font-size: 0.875rem;
+	translate: 0 1.2rem;
+}
+
 .card-title {
 	font-size: 1rem;
 	position: absolute;
@@ -99,4 +112,8 @@ h1, h2 { font-weight: normal; }
 	#lower-flex { flex-direction: column; }
 
 	#install-btn { display: none; }
+}
+
+figure {
+	margin: 0;
 }

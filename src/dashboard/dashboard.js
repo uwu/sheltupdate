@@ -1,7 +1,7 @@
 // for some reason esm.sh needs bundle-deps for this.
 // oh well, plot is huge so this probably helps a lot.
 import * as Plot from "@observablehq/plot?bundle-deps";
-import { format, formatDuration, intervalToDuration } from "date-fns/?exports=format,formatDuration,intervalToDuration";
+import { format, formatDurationWithOptions, intervalToDuration } from "date-fns/fp?exports=format,formatDurationWithOptions,intervalToDuration";
 
 const since = (t) => intervalToDuration({ start: t, end: new Date() });
 
@@ -10,6 +10,12 @@ const cap = (s) =>
 		.split(" ")
 		.map((w) => w[0].toUpperCase() + w.slice(1))
 		.join(" ");
+
+const formatTime = format("h:mm:ss b");
+const formatDurDHM = formatDurationWithOptions({ format: ["days", "hours", "minutes"] });
+const formatDurAuto = formatDurationWithOptions({});
+
+const formatSince = (s) => formatDurDHM(since(s)) || formatDurAuto(since(s));
 
 const [
 	uptimeEl,
@@ -78,20 +84,20 @@ const statsState = {STATE}; /*{
 		v2_custom_module: 3,
 	},
 	proxyOrRedirect: {
-		proxied: 0,
-		redirected: 0,
+		proxied: 89,
+		redirected: 2,
 	},
 	proxyCacheHitRatio: {
-		hit: 0,
-		miss: 0,
+		hit: 90,
+		miss: 34,
 	},
 	v1ModuleCacheHitRatio: {
-		hit: 0,
-		miss: 0,
+		hit: 90,
+		miss: 2,
 	},
 	v2ManifestCacheHitRatio: {
-		hit: 0,
-		miss: 0,
+		hit: 90,
+		miss: 31,
 	},
 };*/
 
@@ -158,15 +164,15 @@ const userTimes = Object.values(statsState.uniqueUsers).map((u) => u.time);
 const lastUserTime = userTimes.reduce((a, b) => Math.max(a, b), 0); // who needs quickselect?
 
 const startTime = new Date({START_TIME} /*1734667290000*/);
-startTimeEl.textContent = format(startTime, "h:mm:ss b");
+startTimeEl.textContent = formatTime(startTime);
 
 const refreshTimes = () => {
-	uptimeEl.textContent = formatDuration(since(startTime), { format: ["days", "hours", "minutes"] });
+	uptimeEl.textContent = formatSince(startTime);
 
-	if (lastUserTime) lastModEl.textContent = formatDuration(since(lastUserTime), { format: ["hours", "minutes"] });
+	if (lastUserTime) lastModEl.textContent = formatSince(lastUserTime);
 };
 refreshTimes();
-setInterval(refreshTimes, 20_000);
+setInterval(refreshTimes, 1_000);
 
 const endpointsEntries = Object.entries(statsState.requestCounts).map(([name, hits]) => {
 	const ns = name.split("_");
@@ -231,6 +237,7 @@ platformsWrap.append(
 		marginTop: 0,
 		marginLeft: 35,
 		marginRight: 35,
+		height: 20,
 		label: null,
 		axis: false,
 		color: { legend: true, scheme: "dark2" },
@@ -243,6 +250,7 @@ channelsWrap.append(
 		marginTop: 0,
 		marginLeft: 35,
 		marginRight: 35,
+		height: 20,
 		label: null,
 		axis: false,
 		color: { legend: true, scheme: "dark2" },
@@ -255,6 +263,7 @@ hostVersWrap.append(
 		marginTop: 0,
 		marginLeft: 35,
 		marginRight: 35,
+		height: 20,
 		label: null,
 		axis: false,
 		color: { legend: true, scheme: "dark2" },
@@ -267,6 +276,7 @@ apiVersWrap.append(
 		marginTop: 0,
 		marginLeft: 35,
 		marginRight: 35,
+		height: 20,
 		label: null,
 		axis: false,
 		color: { legend: true, scheme: "dark2" },

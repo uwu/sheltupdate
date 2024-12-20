@@ -20,9 +20,9 @@ export default new Hono()
 	.get("/", (c) => c.html(template(html)))
 	.get("/dashboard.css", (c) => {
 		c.header("Content-Type", "text/css");
-		return c.text(template(css_));
+		return c.body(template(css_));
 	})
 	.get("/dashboard.js", (c) => {
 		c.header("Content-Type", "text/javascript");
-		return c.text(template(js__));
+		return c.body(template(js__));
 	});
