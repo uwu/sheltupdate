@@ -51,7 +51,7 @@ const getDiffTime = (orig) => {
 
 export const handleDashboard = (c) => {
 	let temp = indexTemplate.slice(); // fs.readFileSync('index.html', 'utf8'); //  //
-	temp = temp.replaceAll("{USER_COUNT}", Object.values(statsState.uniqueUsers));
+	temp = temp.replaceAll("{USER_COUNT}", Object.values(statsState.uniqueUsers).length);
 	temp = temp.replaceAll("{VERSION}", version);
 
 	temp = temp.replaceAll("{STATE}", JSON.stringify(statsState));
