@@ -254,18 +254,10 @@ const runBranchSetups = async () => {
 		}
 
 		// regenerate files and version
-		branches[b].files = glob.sync(`${cacheName}/*`);
+		const cacheGlob = `${cacheName}/**/*.*`;
+		branches[b].files = glob.sync(cacheGlob);
 
-		let fileHashes = [];
-
-		for (const f of glob.sync(`${cacheName}/**/*.*`)) {
-			const content = readFileSync(f);
-
-			const baseHash = sha256(content);
-
-			fileHashes.push(baseHash);
-		}
-
+		const fileHashes = branches[b].files.map((f) => sha256(readFileSync(f)));
 		branches[b].version = parseInt(
 			sha256(fileHashes.join(" ") + branches[b].patch + branches[b].preload).substring(0, 2),
 			16,
