@@ -1,3 +1,7 @@
+## r19
+ - Fix stats in dashboard
+ - Link changelog and branches in dashboard
+
 ## r18
 Improve shelter bundle fetching
 
