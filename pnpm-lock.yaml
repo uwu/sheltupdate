@@ -17,9 +17,6 @@ importers:
       archiver:
         specifier: ^5.0.2
         version: 5.3.2
-      dprint:
-        specifier: ^0.47.6
-        version: 0.47.6
       glob:
         specifier: ^7.1.6
         version: 7.2.3
@@ -32,6 +29,10 @@ importers:
       unzipper:
         specifier: ^0.10.11
         version: 0.10.14
+    devDependencies:
+      dprint:
+        specifier: ^0.47.6
+        version: 0.47.6
 
 packages:
 
