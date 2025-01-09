@@ -13,14 +13,14 @@ const hitRatio = ({ hit, miss }) => (hit || miss ? ((100 * hit) / (hit + miss)).
 
 const template = (temp) =>
 	temp
-		.replaceAll("{USER_COUNT}", Object.values(statsState.uniqueUsers).length)
-		.replaceAll("{VERSION}", version)
-		.replaceAll("{START_TIME}", startTime)
-		.replaceAll("{STATE}", JSON.stringify(statsState))
-		.replaceAll("{BRANCHES}", JSON.stringify(getSingleBranchMetas()))
-		.replaceAll("{CACHE_PROX}", hitRatio(statsState.proxyCacheHitRatio))
-		.replaceAll("{CACHE_V1}", hitRatio(statsState.v1ModuleCacheHitRatio))
-		.replaceAll("{CACHE_V2}", hitRatio(statsState.v2ManifestCacheHitRatio));
+		.replaceAll("__USER_COUNT__", Object.values(statsState.uniqueUsers).length)
+		.replaceAll("__VERSION__", version)
+		.replaceAll("__START_TIME__", startTime)
+		.replaceAll("__STATE__", JSON.stringify(statsState))
+		.replaceAll("__BRANCHES__", JSON.stringify(getSingleBranchMetas()))
+		.replaceAll("__CACHE_PROX__", hitRatio(statsState.proxyCacheHitRatio))
+		.replaceAll("__CACHE_V1__", hitRatio(statsState.v1ModuleCacheHitRatio))
+		.replaceAll("__CACHE_V2__", hitRatio(statsState.v2ManifestCacheHitRatio));
 
 export default new Hono()
 	.get("/", (c) => c.html(template(html)))

@@ -22,20 +22,9 @@ const formatDurAuto = formatDurationWithOptions({});
 
 const formatSince = (s) => formatDurDHM(since(s)) || formatDurAuto(since(s));
 
-const [
-	uptimeEl,
-	startTimeEl,
-	lastModEl,
-	endpointWrap,
-	branchesWrap,
-	channelsWrap,
-	platformsWrap,
-	hostVersWrap,
-	apiVersWrap,
-] = [
+const [uptimeEl, startTimeEl, endpointWrap, branchesWrap, channelsWrap, platformsWrap, hostVersWrap, apiVersWrap] = [
 	"stat-uptime",
 	"stat-start-time",
-	"stat-last-mod",
 	"endpoint-plot-wrap",
 	"branches-wrap",
 	"chans-wrap",
@@ -44,7 +33,7 @@ const [
 	"apiv-wrap",
 ].map(document.getElementById.bind(document));
 
-const statsState = { STATE }; /*{
+const statsState = __STATE__; /*{
 	uniqueUsers: {
 		a: {
 			platform: "linux",
@@ -106,7 +95,7 @@ const statsState = { STATE }; /*{
 	},
 };*/
 
-const branchMetadata = { BRANCHES }; /*[
+const branchMetadata = __BRANCHES__; /*[
 	{
 		version: 110,
 		type: "mod",
@@ -165,7 +154,7 @@ const branchMetadata = { BRANCHES }; /*[
 	},
 ];*/
 
-const startTime = new Date({ START_TIME } /*1734667290000*/);
+const startTime = new Date(__START_TIME__ /*1734667290000*/);
 startTimeEl.textContent = formatTime(startTime);
 
 const refreshTimes = () => {
