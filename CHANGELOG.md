@@ -1,3 +1,6 @@
+## r18
+Improve shelter bundle fetching
+
 ## r17
  - Make the new dashboard look nicer
  - Replace useless last module time with cache hit rates
