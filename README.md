@@ -16,9 +16,12 @@ Check the [shelter documentation](https://github.com/uwu/shelter/blob/main/READM
 
 The [uwu.network instance](https://inject.shelter.uwu.network) of sheltupdate hosts the branches exactly as found in this repository:
  - `shelter` - injects shelter
- - `vencord` - injects vencord
- - `betterdiscord` - injects BD
- - `reactdevtools` - adds react dev tools to your client
+ - `vencord` - injects Vencord
+ - `betterdiscord` - injects BetterDiscord
+ - `reactdevtools` - adds React Developer Tools to your client
+ - `spotify_embed_volume` - adds a volume slider to Spotify embeds
+ - `yt_ad_block` - removes ads in embeds and in the Watch Together activity
+ - `yt_embed_fix` - makes more videos viewable from within Discord (like UMG blocked ones)
 
 # Deploying
 1. Install SheltUpdate's dependencies with `npm install`
