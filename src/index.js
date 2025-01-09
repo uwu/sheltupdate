@@ -3,7 +3,7 @@ import { logger } from "hono/logger";
 import { createMiddleware } from "hono/factory";
 import { serve } from "@hono/node-server";
 
-import { config, version } from "./common/config.js";
+import { config, changelog, version } from "./common/config.js";
 import { getSingleBranchMetas } from "./common/branchesLoader.js";
 import { resetLogger } from "./common/logger.js";
 
@@ -31,6 +31,11 @@ const app = new Hono()
 		// cors
 		c.header("Access-Control-Allow-Origin", "*");
 		return c.json(getSingleBranchMetas());
+	})
+	.get("/sheltupdate_changelog", async (c) => {
+		// cors
+		c.header("Access-Control-Allow-Origin", "*");
+		return c.text(changelog);
 	});
 
 serve({

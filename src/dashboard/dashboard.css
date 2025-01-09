@@ -21,7 +21,7 @@ body {
 	margin: 0;
 }
 
-#install-btn {
+.header-buttons > * {
 	color: white;
 	font-size: 1.125rem;
 	text-decoration: none;
@@ -122,7 +122,7 @@ h1, h2 { font-weight: normal; }
 @media (max-width: 1024px) {
 	#lower-flex { flex-direction: column; }
 
-	#install-btn { display: none; }
+	.header-buttons { display: none; }
 }
 
 figure {
