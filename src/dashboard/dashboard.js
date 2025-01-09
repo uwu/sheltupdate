@@ -5,7 +5,7 @@ import * as Plot from "@observablehq/plot?bundle-deps&exports=plot,barX,text,gri
 import {
 	format,
 	formatDurationWithOptions,
-	intervalToDuration
+	intervalToDuration,
 } from "date-fns/fp?exports=format,formatDurationWithOptions,intervalToDuration";
 
 const since = (t) => intervalToDuration({ start: t, end: new Date() });
@@ -44,7 +44,7 @@ const [
 	"apiv-wrap",
 ].map(document.getElementById.bind(document));
 
-const statsState = {STATE}; /*{
+const statsState = { STATE }; /*{
 	uniqueUsers: {
 		a: {
 			platform: "linux",
@@ -106,7 +106,7 @@ const statsState = {STATE}; /*{
 	},
 };*/
 
-const branchMetadata = {BRANCHES}; /*[
+const branchMetadata = { BRANCHES }; /*[
 	{
 		version: 110,
 		type: "mod",
@@ -165,7 +165,7 @@ const branchMetadata = {BRANCHES}; /*[
 	},
 ];*/
 
-const startTime = new Date({START_TIME} /*1734667290000*/);
+const startTime = new Date({ START_TIME } /*1734667290000*/);
 startTimeEl.textContent = formatTime(startTime);
 
 const refreshTimes = () => {
