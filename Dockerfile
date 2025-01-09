@@ -1,5 +1,7 @@
 # using two containers means we don't have to upload a docker layer containing pnpm, so it should be smaller.
-FROM node:23-alpine AS pnpm-container
+
+# using node 18 here for arm/v7 compat (https://github.com/nodejs/docker-node/issues/1798)
+FROM node:18-alpine AS pnpm-container
 
 RUN npm i -g pnpm
 
