@@ -221,8 +221,9 @@ branchesWrap.append(
 	}),
 );
 
-const byKey = ([keyA], [keyB]) => (keyA < keyB ? -1 : keyA > keyB ? 1 : 0);
+const byValue = ([valueA], [valueB]) => (valueA > valueB ? -1 : valueA < valueB ? 1 : 0);
 
+const sortedPlatformCounts = Object.entries(platformCounts).sort(byValue);
 platformsWrap.append(
 	Plot.plot({
 		marginTop: 0,
@@ -231,11 +232,12 @@ platformsWrap.append(
 		height: 20,
 		label: null,
 		axis: false,
-		color: { legend: true, scheme: "dark2" },
-		marks: [Plot.barX(Object.entries(platformCounts).sort(byKey), { x: "1", fill: "0" }), Plot.gridX()],
+		color: { legend: true, scheme: "dark2", domain: sortedPlatformCounts.map(([k]) => k) },
+		marks: [Plot.barX(sortedPlatformCounts, { x: "1", fill: "0" })],
 	}),
 );
 
+const sortedChannelCounts = Object.entries(channelCounts).sort(byValue);
 channelsWrap.append(
 	Plot.plot({
 		marginTop: 0,
@@ -244,11 +246,12 @@ channelsWrap.append(
 		height: 20,
 		label: null,
 		axis: false,
-		color: { legend: true, scheme: "dark2" },
-		marks: [Plot.barX(Object.entries(channelCounts).sort(byKey), { x: "1", fill: "0" }), Plot.gridX()],
+		color: { legend: true, scheme: "dark2", domain: sortedChannelCounts.map(([k]) => k) },
+		marks: [Plot.barX(sortedChannelCounts, { x: "1", fill: "0" })],
 	}),
 );
 
+const sortedHostVerCounts = Object.entries(hostVerCounts).sort(byValue);
 hostVersWrap.append(
 	Plot.plot({
 		marginTop: 0,
@@ -257,11 +260,12 @@ hostVersWrap.append(
 		height: 20,
 		label: null,
 		axis: false,
-		color: { legend: true, scheme: "dark2" },
-		marks: [Plot.barX(Object.entries(hostVerCounts).sort(byKey), { x: "1", fill: "0" }), Plot.gridX()],
+		color: { legend: true, scheme: "dark2", domain: sortedHostVerCounts.map(([k]) => k) },
+		marks: [Plot.barX(sortedHostVerCounts, { x: "1", fill: "0" })],
 	}),
 );
 
+const sortedApiVerCounts = Object.entries(apiVerCounts).sort(byValue);
 apiVersWrap.append(
 	Plot.plot({
 		marginTop: 0,
@@ -270,7 +274,7 @@ apiVersWrap.append(
 		height: 20,
 		label: null,
 		axis: false,
-		color: { legend: true, scheme: "dark2" },
-		marks: [Plot.barX(Object.entries(apiVerCounts).sort(byKey), { x: "1", fill: "0" }), Plot.gridX()],
+		color: { legend: true, scheme: "dark2", domain: sortedApiVerCounts.map(([k]) => k) },
+		marks: [Plot.barX(sortedApiVerCounts, { x: "1", fill: "0" })],
 	}),
 );
