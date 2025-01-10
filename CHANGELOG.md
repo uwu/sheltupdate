@@ -1,3 +1,7 @@
+## r21
+ - Order charts by value instead of key
+ - Improve responsiveness in dashboard
+
 ## r20
  - Fix chart order in dashboard
  - Also show links on small devices
