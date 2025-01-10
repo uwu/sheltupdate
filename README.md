@@ -33,7 +33,7 @@ The required files to deploy are `src`, `node_modules`, `branches`, `config.json
 
 Run the container as so:
 ```sh
-docker run -v /path/to/your/config.json:/config.json -p 8080:8080 yellosink/sheltupdate
+docker run -v /path/to/your/config.json:/config.json -p 8080:8080 ghcr.io/uwu/sheltupdate
 ```
 
 # Usage
@@ -58,7 +58,7 @@ Set `UPDATE_ENDPOINT` and `NEW_UPDATE_ENDPOINT` in `settings.json` as follows:
 SheltUpdate also supports including multiple branches in updates by separating their names with a `+`, like `https://<instance URL>/branch1+branch2`.
 
 # Adding a branch
-SheltUpdate branches patch `discord_desktop_core` with files stored in `branches/<branch name>/`.
+SheltUpdate branches patch `discord_desktop_core` with files stored in `branches/<branch category>/<branch name>/`.
 
 Branches must have a `patch.js` file to handle their injection in their branch directory, which is prepended to Discord's base `index.js` of the module.
 
