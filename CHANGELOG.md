@@ -1,3 +1,7 @@
+## r20
+ - Fix chart order in dashboard
+ - Also show links on small devices
+
 ## r19
  - Fix stats in dashboard
  - Link changelog and branches in dashboard
