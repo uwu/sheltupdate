@@ -221,6 +221,8 @@ branchesWrap.append(
 	}),
 );
 
+const byKey = ([keyA], [keyB]) => (keyA < keyB ? -1 : keyA > keyB ? 1 : 0);
+
 platformsWrap.append(
 	Plot.plot({
 		marginTop: 0,
@@ -230,7 +232,7 @@ platformsWrap.append(
 		label: null,
 		axis: false,
 		color: { legend: true, scheme: "dark2" },
-		marks: [Plot.barX(Object.entries(platformCounts), { x: "1", fill: "0" }), Plot.gridX()],
+		marks: [Plot.barX(Object.entries(platformCounts).sort(byKey), { x: "1", fill: "0" }), Plot.gridX()],
 	}),
 );
 
@@ -243,7 +245,7 @@ channelsWrap.append(
 		label: null,
 		axis: false,
 		color: { legend: true, scheme: "dark2" },
-		marks: [Plot.barX(Object.entries(channelCounts), { x: "1", fill: "0" }), Plot.gridX()],
+		marks: [Plot.barX(Object.entries(channelCounts).sort(byKey), { x: "1", fill: "0" }), Plot.gridX()],
 	}),
 );
 
@@ -256,7 +258,7 @@ hostVersWrap.append(
 		label: null,
 		axis: false,
 		color: { legend: true, scheme: "dark2" },
-		marks: [Plot.barX(Object.entries(hostVerCounts), { x: "1", fill: "0" }), Plot.gridX()],
+		marks: [Plot.barX(Object.entries(hostVerCounts).sort(byKey), { x: "1", fill: "0" }), Plot.gridX()],
 	}),
 );
 
@@ -269,6 +271,6 @@ apiVersWrap.append(
 		label: null,
 		axis: false,
 		color: { legend: true, scheme: "dark2" },
-		marks: [Plot.barX(Object.entries(apiVerCounts), { x: "1", fill: "0" }), Plot.gridX()],
+		marks: [Plot.barX(Object.entries(apiVerCounts).sort(byKey), { x: "1", fill: "0" }), Plot.gridX()],
 	}),
 );
