@@ -99,5 +99,5 @@ The `vencord` branch is very very loosely based on the [Kernel vencord loader](h
 
 ![](https://github.com/catppuccin/catppuccin/raw/main/assets/footers/gray0_ctp_on_line.svg)
 
-sheltupdate is a passion project made with love by [Yellowsink](https://github.com/yellowsink)
-(and other uwu.network contributors).
+sheltupdate is a passion project made with love, primarily by [Hazel](https://github.com/yellowsink) and [Wiz](https://github.com/ioj4),
+with help from other uwu.network contributors.
