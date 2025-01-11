@@ -221,7 +221,7 @@ branchesWrap.append(
 	}),
 );
 
-const byValue = ([valueA], [valueB]) => (valueA > valueB ? -1 : valueA < valueB ? 1 : 0);
+const byValue = ([, valueA], [, valueB]) => (valueA > valueB ? -1 : valueA < valueB ? 1 : 0);
 
 const sortedPlatformCounts = Object.entries(platformCounts).sort(byValue);
 platformsWrap.append(
