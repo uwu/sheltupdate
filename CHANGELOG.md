@@ -1,3 +1,6 @@
+## r23
+Fix charts sorting in dashboard
+
 ## r22
  - Fix branchesLoader manifest not including subdirs (TY @marshift)
  - Block @sentry/electron requests
