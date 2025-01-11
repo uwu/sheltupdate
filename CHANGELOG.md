@@ -1,3 +1,7 @@
+## r22
+ - Fix branchesLoader manifest not including subdirs (TY @marshift)
+ - Block @sentry/electron requests
+
 ## r21
  - Order charts by value instead of key
  - Improve responsiveness in dashboard
