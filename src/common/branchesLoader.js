@@ -115,15 +115,7 @@ const init = withLogSection("branch finder", async () => {
 
 		// we will reset these anyway later for branches with setups,
 		// but for the rest of them, just populate it now.
-		let fileHashes = [];
-
-		for (const f of glob.sync(`${d}/**/*.*`)) {
-			const content = readFileSync(f);
-
-			const baseHash = sha256(content);
-
-			fileHashes.push(baseHash);
-		}
+		const fileHashes = glob.sync(`${d}/**/*.*`).map((f) => sha256(readFileSync(f)));
 
 		const version = parseInt(sha256(fileHashes.join(" ")).substring(0, 2), 16);
 
@@ -254,10 +246,9 @@ const runBranchSetups = async () => {
 		}
 
 		// regenerate files and version
-		const cacheGlob = `${cacheName}/**/*.*`;
-		branches[b].files = glob.sync(cacheGlob);
+		branches[b].files = glob.sync(`${cacheName}/*`);
 
-		const fileHashes = branches[b].files.map((f) => sha256(readFileSync(f)));
+		const fileHashes = glob.sync(`${cacheName}/**/*.*`).map((f) => sha256(readFileSync(f)));
 		branches[b].version = parseInt(
 			sha256(fileHashes.join(" ") + branches[b].patch + branches[b].preload).substring(0, 2),
 			16,
