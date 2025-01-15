@@ -29,9 +29,9 @@
 
 	const updateCurrent = () => SheltupdateNative.getCurrentBranches().then(setCurrentBranches);
 	updateCurrent().then(() => {
-		if (window.Vencord && !currentBranches.includes("vencord")) setVencordOtherwiseLoaded(true);
+		if (window.Vencord && !currentBranches().includes("vencord")) setVencordOtherwiseLoaded(true);
 
-		if (window.BdApi && !currentBranches.includes("betterdiscord")) setBdOtherwiseLoaded(true);
+		if (window.BdApi && !currentBranches().includes("betterdiscord")) setBdOtherwiseLoaded(true);
 	});
 
 	SheltupdateNative.getAllowedBranches().then((branches) => {
