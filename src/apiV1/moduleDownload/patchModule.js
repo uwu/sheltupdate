@@ -1,16 +1,7 @@
-import {
-	readFileSync,
-	writeFileSync,
-	mkdirSync,
-	readdirSync,
-	lstatSync,
-	copyFileSync,
-	createWriteStream,
-	rmSync,
-} from "fs";
+import { readFileSync, writeFileSync, cpSync, createWriteStream, rmSync } from "fs";
 
 import stream from "stream";
-import { join, basename } from "path";
+import { join } from "path";
 
 import unzipper from "unzipper";
 import archiver from "archiver";
@@ -45,27 +36,12 @@ export default withLogSection("module patcher", async (c, cacheDir, cacheFinalFi
 
 	log("copying files...");
 
+	for (const cacheDir of branch.cacheDirs) {
+		cpSync(cacheDir, cacheExtractDir, { recursive: true });
+	}
+
 	writeFileSync(join(cacheExtractDir, "index.js"), finalizeDesktopCoreIndex(branch.patch, !!branch.preload));
 	if (branch.preload) writeFileSync(join(cacheExtractDir, "preload.js"), finalizeDesktopCorePreload(branch.preload));
-
-	function copyFolderSync(from, to) {
-		mkdirSync(to);
-		readdirSync(from).forEach((element) => {
-			if (lstatSync(join(from, element)).isFile()) {
-				copyFileSync(join(from, element), join(to, element));
-			} else {
-				copyFolderSync(join(from, element), join(to, element));
-			}
-		});
-	}
-
-	for (let f of branch.files) {
-		if (lstatSync(f).isDirectory()) {
-			copyFolderSync(f, join(cacheExtractDir, basename(f)));
-		} else {
-			copyFileSync(f, join(cacheExtractDir, basename(f)));
-		}
-	}
 
 	log("creating module zip...");
 

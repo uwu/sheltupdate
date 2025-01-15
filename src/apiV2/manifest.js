@@ -1,5 +1,5 @@
 import basicProxy from "../common/proxy/index.js";
-import { createModule, patch } from "./patchModule.js";
+import { patch } from "./patchModule.js";
 import { config } from "../common/config.js";
 import { ensureBranchIsReady, getBranch } from "../common/branchesLoader.js";
 import { reportEndpoint, reportUniqueUser } from "../dashboard/reporting.js";
@@ -25,29 +25,8 @@ export const handleManifest = withLogSection("v2 manifest", async (c) => {
 
 	let json = await basicProxy(c, {}, undefined, base).then((r) => r.json());
 
-	const branchModules = branch.split("+").map((x) => `goose_${x}`);
-
-	json.required_modules = json.required_modules.concat(branchModules);
-
-	const currentHostVersion = json.modules["discord_desktop_core"].full.host_version;
-
-	for (let m of branchModules) {
-		const branchName = m.substring(6);
-
-		// make sure its ready!
-		await ensureBranchIsReady(branchName);
-
-		const branchObj = getBranch(branchName);
-		json.modules[m] = {
-			full: {
-				host_version: currentHostVersion,
-				module_version: branchObj.version,
-				package_sha256: await createModule(branchName, branchObj),
-				url: `${host}/custom_module/${m}/full.distro`,
-			},
-			deltas: [],
-		};
-	}
+	const branchNames = branch.split("+");
+	await Promise.all(branchNames.map((b) => ensureBranchIsReady(b)));
 
 	json.modules.discord_desktop_core.deltas = []; // Remove deltas
 

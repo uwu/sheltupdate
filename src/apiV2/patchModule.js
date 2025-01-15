@@ -1,10 +1,11 @@
 import { Readable } from "stream";
 import { createHash } from "crypto";
 
-import { mkdirSync, writeFileSync, readFileSync, readdirSync, lstatSync, copyFileSync, existsSync } from "fs";
-import { join, resolve, basename, relative } from "path";
+import { mkdirSync, writeFileSync, readFileSync, cpSync } from "fs";
+import { join, relative, win32, posix } from "path";
 
 import tar from "tar";
+import glob from "glob";
 
 import { brotliDecompressSync, brotliCompressSync, constants } from "zlib";
 import { ensureBranchIsReady, getBranch } from "../common/branchesLoader.js";
@@ -38,105 +39,6 @@ const getBufferFromStream = async (stream) => {
 
 // node uses quality level 11 by default which is INSANE
 const brotlify = (buf) => brotliCompressSync(buf, { params: { [constants.BROTLI_PARAM_QUALITY]: 9 } });
-
-// this is called by /manifest, and causes us to pre-emptively create and cache
-// module for single branches, and it returns the relevant sha256
-// these cached fake modules will later be used to construct the full patched discord_desktop_core.
-export const createModule = withLogSection("module patcher", async (branchName, branch) => {
-	const moduleName = `goose_${branchName}`;
-	const cacheName = getCacheName(moduleName, branch.version, "custom");
-
-	const cached = cache.created[cacheName];
-	if (cached) return cached.hash;
-
-	log(`creating custom module ${moduleName}`);
-
-	const eDir = join(cacheBase, cacheName, "extract");
-	const filesDir = join(eDir, "files");
-	if (!existsSync(filesDir)) {
-		mkdirSync(filesDir, { recursive: true });
-	}
-
-	let deltaManifest = {
-		manifest_version: 1,
-		files: {},
-	};
-
-	log(`copying branch files...`);
-
-	let files = [];
-
-	function copyFolderSync(from, to) {
-		mkdirSync(to);
-		readdirSync(from).forEach((element) => {
-			const outPath = resolve(join(to, element));
-			if (lstatSync(join(from, element)).isFile()) {
-				files.push(outPath);
-				copyFileSync(join(from, element), outPath);
-			} else {
-				copyFolderSync(join(from, element), outPath);
-			}
-		});
-	}
-
-	for (let f of branch.files) {
-		const outPath = join(filesDir, basename(f));
-		if (lstatSync(f).isDirectory()) {
-			copyFolderSync(f, outPath);
-		} else {
-			files.push(outPath);
-			copyFileSync(f, outPath);
-		}
-	}
-
-	const indexPath = join(filesDir, "index.js");
-	writeFileSync(indexPath, branch.patch);
-	files.push(indexPath);
-
-	if (branch.preload) {
-		const preloadPath = join(filesDir, "preload.js");
-		writeFileSync(preloadPath, branch.preload);
-		files.push(preloadPath);
-	}
-
-	for (let f of files) {
-		const key = relative(filesDir, f);
-
-		deltaManifest.files[key] = {
-			New: {
-				Sha256: sha256(readFileSync(f)),
-			},
-		};
-	}
-
-	writeFileSync(join(eDir, "delta_manifest.json"), JSON.stringify(deltaManifest));
-
-	log(`creating module tar...`);
-
-	const tarStream = tar.c(
-		{
-			cwd: eDir,
-		},
-		["delta_manifest.json", ...files.map((f) => relative(eDir, f))],
-	);
-
-	const tarBuffer = await getBufferFromStream(tarStream);
-
-	log(`compressing...`);
-
-	const final = brotlify(tarBuffer);
-
-	const finalHash = sha256(final);
-
-	cache.created[cacheName] = {
-		hash: finalHash,
-		final,
-	};
-
-	log(`finished creating custom module!`);
-
-	return finalHash;
-});
 
 export const patch = withLogSection("module patcher", async (m, branchName) => {
 	const cacheName = getCacheName("discord_desktop_core", m.module_version, branchName);
@@ -187,36 +89,20 @@ export const patch = withLogSection("module patcher", async (m, branchName) => {
 	let moddedPreload;
 	if (branch.preload) {
 		moddedPreload = finalizeDesktopCorePreload(branch.preload);
+		writeFileSync(join(filesDir, "preload.js"), moddedPreload);
 		deltaManifest.files["preload.js"] = { New: { Sha256: sha256(moddedPreload) } };
 	}
 
-	let files = [];
+	writeFileSync(join(filesDir, "index.js"), moddedIndex);
 
-	function copyFolderSync(from, to) {
-		mkdirSync(to);
-		readdirSync(from).forEach((element) => {
-			const outPath = resolve(join(to, element));
-			if (lstatSync(join(from, element)).isFile()) {
-				files.push(outPath);
-				copyFileSync(join(from, element), outPath);
-			} else {
-				copyFolderSync(join(from, element), outPath);
-			}
-		});
+	for (const cacheDir of branch.cacheDirs) {
+		cpSync(cacheDir, filesDir, { recursive: true });
 	}
 
-	for (let f of branch.files) {
-		const dest = join(filesDir, basename(f));
-		if (lstatSync(f).isDirectory()) {
-			copyFolderSync(f, dest);
-		} else {
-			files.push(dest);
-			copyFileSync(f, dest);
-		}
-	}
-
-	for (let f of files) {
-		const key = relative(filesDir, f);
+	const allFiles = glob.sync(`${filesDir}/**/*.*`);
+	for (const f of allFiles) {
+		// The updater always expects '/' as separator in delta_manifest.json (regardless of platform)
+		const key = relative(filesDir, f).replaceAll(win32.sep, posix.sep);
 
 		deltaManifest.files[key] = {
 			New: {
@@ -227,23 +113,13 @@ export const patch = withLogSection("module patcher", async (m, branchName) => {
 
 	writeFileSync(join(eDir, "delta_manifest.json"), JSON.stringify(deltaManifest));
 
-	writeFileSync(join(filesDir, "index.js"), moddedIndex);
-	if (moddedPreload) writeFileSync(join(filesDir, "preload.js"), moddedPreload);
-
 	log(`creating module tar...`);
 
 	const tarStream = tar.c(
 		{
 			cwd: eDir,
 		},
-		[
-			"delta_manifest.json",
-			join("files", "core.asar"),
-			join("files", "index.js"),
-			...(branch.preload ? [join("files", "preload.js")] : []),
-			join("files", "package.json"),
-			...files.map((f) => relative(eDir, f)),
-		],
+		["delta_manifest.json", ...allFiles.map((f) => relative(eDir, f))],
 	);
 
 	const tarBuffer = await getBufferFromStream(tarStream);
