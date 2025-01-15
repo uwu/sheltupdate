@@ -56,9 +56,9 @@ jobs:
          - name: Update on server
            uses: appleboy/ssh-action@master
            with:
-             host: ${{ secrets.DEPLOY_HOST }}
-             username: ${{ secrets.DEPLOY_USER }}
-             key: ${{ secrets.DEPLOY_PRIVKEY }}
-             # this relies on a specific custom update script that is installed on the
-             # server that currently hosts sheltupdate. Adjust as needed.
-             script: ~/update.sh sheltupdate
+              host: ${{ secrets.DEPLOY_HOST }}
+              username: ${{ secrets.DEPLOY_USER }}
+              key: ${{ secrets.DEPLOY_PRIVKEY }}
+              # this relies on a specific custom update script that is installed on the
+              # server that currently hosts sheltupdate. Adjust as needed.
+              script: ~/update.sh sheltupdate
