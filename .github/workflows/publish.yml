@@ -33,6 +33,7 @@ jobs:
               else
                 echo "Image with version (0.0.$VERSION) does not exist in the registry yet"
                 echo "Publishing a release and a dev image.."
+                echo "IS_RELEASE=true" >> $GITHUB_ENV
                 TAGS="${TAGS},\
                   ghcr.io/${{ github.repository }}:0.0.${{ env.VERSION }},\
                   ghcr.io/${{ github.repository }}:latest"
@@ -58,7 +59,8 @@ jobs:
               tags: ${{ env.TAGS }}
               platforms: linux/amd64,linux/arm64,linux/arm/v7
 
-         - name: Update on server
+         - name: Update release container on server
+           if: env.IS_RELEASE == 'true'
            uses: appleboy/ssh-action@master
            with:
               host: ${{ secrets.DEPLOY_HOST }}
@@ -67,3 +69,11 @@ jobs:
               # this relies on a specific custom update script that is installed on the
               # server that currently hosts sheltupdate. Adjust as needed.
               script: ~/update.sh sheltupdate
+
+         - name: Update staging container on server
+           uses: appleboy/ssh-action@master
+           with:
+              host: ${{ secrets.DEPLOY_HOST }}
+              username: ${{ secrets.DEPLOY_USER }}
+              key: ${{ secrets.DEPLOY_PRIVKEY }}
+              script: ~/update.sh sheltupdate-staging
