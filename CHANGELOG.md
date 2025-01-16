@@ -1,3 +1,8 @@
+## r24
+ - Fix branches with subdirs (Vencord)
+ - Fix solid error in client mods settings page
+ - Remove goose_modules
+
 ## r23
 Fix charts sorting in dashboard
 
