@@ -17,6 +17,7 @@ Check the [shelter documentation](https://github.com/uwu/shelter/blob/main/READM
 The [uwu.network instance](https://inject.shelter.uwu.network) of sheltupdate hosts the branches exactly as found in this repository:
  - `shelter` - injects shelter
  - `vencord` - injects Vencord
+ - `equicord` - injects Equicord
  - `betterdiscord` - injects BetterDiscord
  - `reactdevtools` - adds React Developer Tools to your client
  - `spotify_embed_volume` - adds a volume slider to Spotify embeds
@@ -51,7 +52,7 @@ Said directories are found below:
 Set `UPDATE_ENDPOINT` and `NEW_UPDATE_ENDPOINT` in `settings.json` as follows:
 
 ```json
-"UPDATE_ENDPOINT": "https://<instance URL>/branch"
+"UPDATE_ENDPOINT": "https://<instance URL>/branch",
 "NEW_UPDATE_ENDPOINT": "https://<instance URL>/branch/"
 ```
 

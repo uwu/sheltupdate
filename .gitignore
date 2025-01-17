@@ -1,4 +1,5 @@
 node_modules
+package-lock.json
 
 cache
 
@@ -7,6 +8,7 @@ cache
 /branches/mod/betterdiscord/betterdiscord.asar
 /branches/mod/kernel/kernel.asar
 /branches/mod/vencord/vencord-desktop
+/branches/mod/equicord/equicord-desktop
 
 *.crt
 *.key
