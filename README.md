@@ -22,6 +22,7 @@ The [uwu.network instance](https://inject.shelter.uwu.network) of sheltupdate ho
  - `spotify_embed_volume` - adds a volume slider to Spotify embeds
  - `yt_ad_block` - removes ads in embeds and in the Watch Together activity
  - `yt_embed_fix` - makes more videos viewable from within Discord (like UMG blocked ones)
+ - `windows_native_titlebar` - replaces Discord's custom titlebar with Windows' native one
 
 # Deploying
 1. Install SheltUpdate's dependencies with `npm install`
