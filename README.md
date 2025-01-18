@@ -22,7 +22,7 @@ The [uwu.network instance](https://inject.shelter.uwu.network) of sheltupdate ho
  - `spotify_embed_volume` - adds a volume slider to Spotify embeds
  - `yt_ad_block` - removes ads in embeds and in the Watch Together activity
  - `yt_embed_fix` - makes more videos viewable from within Discord (like UMG blocked ones)
- - `windows_native_titlebar` - replaces Discord's custom titlebar with Windows' native one
+ - `native_titlebar` - replaces Discord's custom titlebar with Windows' native one
 
 # Deploying
 1. Install SheltUpdate's dependencies with `npm install`
@@ -100,5 +100,5 @@ The `vencord` branch is very very loosely based on the [Kernel vencord loader](h
 
 ![](https://github.com/catppuccin/catppuccin/raw/main/assets/footers/gray0_ctp_on_line.svg)
 
-sheltupdate is a passion project made with love, primarily by [Hazel](https://github.com/yellowsink) and [Wiz](https://github.com/ioj4),
+sheltupdate is a passion project made with love, primarily by [Hazel](https://github.com/yellowsink) and [wiz](https://github.com/ioj4),
 with help from other uwu.network contributors.
