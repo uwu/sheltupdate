@@ -1,3 +1,6 @@
+## r25
+Add tweak for replacing Discord's titlebar with Windows' native one (TY @koffydrop)
+
 ## r24
  - Fix branches with subdirs (Vencord)
  - Fix solid error in client mods settings page
