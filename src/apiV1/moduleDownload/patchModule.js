@@ -7,9 +7,9 @@ import unzipper from "unzipper";
 import archiver from "archiver";
 
 import basicProxy from "../../common/proxy/index.js";
-import { ensureBranchIsReady, getBranch } from "../../common/branchesLoader.js";
-import { finalizeDesktopCoreIndex, finalizeDesktopCorePreload } from "../../common/desktopCoreTemplates.js";
+import { ensureBranchIsReady, getBranch, getSingleBranchMetas } from "../../common/branchesLoader.js";
 import { log, withLogSection } from "../../common/logger.js";
+import { dcMain, dcPreload } from "../../desktopCore/index.js";
 
 export default withLogSection("module patcher", async (c, cacheDir, cacheFinalFile) => {
 	const { branch: branch_, /*channel,*/ version } = c.req.param();
@@ -40,8 +40,9 @@ export default withLogSection("module patcher", async (c, cacheDir, cacheFinalFi
 		cpSync(cacheDir, cacheExtractDir, { recursive: true });
 	}
 
-	writeFileSync(join(cacheExtractDir, "index.js"), finalizeDesktopCoreIndex(branch.patch, !!branch.preload));
-	if (branch.preload) writeFileSync(join(cacheExtractDir, "preload.js"), finalizeDesktopCorePreload(branch.preload));
+	writeFileSync(join(cacheExtractDir, "index.js"), dcMain.replace("__BRANCHES_MAIN__", branch.patch));
+	writeFileSync(join(cacheExtractDir, "preload.js"), dcPreload.replace("__BRANCHES_PRELOAD__", branch.preload));
+	writeFileSync(join(cacheExtractDir, "branches.json"), JSON.stringify(getSingleBranchMetas(), null, 4));
 
 	log("creating module zip...");
 

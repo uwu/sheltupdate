@@ -8,11 +8,11 @@ import tar from "tar";
 import glob from "glob";
 
 import { brotliDecompressSync, brotliCompressSync, constants } from "zlib";
-import { ensureBranchIsReady, getBranch } from "../common/branchesLoader.js";
-import { finalizeDesktopCoreIndex, finalizeDesktopCorePreload } from "../common/desktopCoreTemplates.js";
+import { ensureBranchIsReady, getBranch, getSingleBranchMetas } from "../common/branchesLoader.js";
 import { log, withLogSection } from "../common/logger.js";
 import { cacheBase } from "../common/fsCache.js";
 import { reportV2Cached, reportV2Patched } from "../dashboard/reporting.js";
+import { dcMain, dcPreload } from "../desktopCore/index.js";
 
 const cache = {
 	patched: {},
@@ -83,17 +83,17 @@ export const patch = withLogSection("module patcher", async (m, branchName) => {
 
 	let deltaManifest = JSON.parse(readFileSync(join(eDir, "delta_manifest.json"), "utf8"));
 
-	const moddedIndex = finalizeDesktopCoreIndex(branch.patch, !!branch.preload);
-	deltaManifest.files["index.js"].New.Sha256 = sha256(moddedIndex);
-
-	let moddedPreload;
-	if (branch.preload) {
-		moddedPreload = finalizeDesktopCorePreload(branch.preload);
-		writeFileSync(join(filesDir, "preload.js"), moddedPreload);
-		deltaManifest.files["preload.js"] = { New: { Sha256: sha256(moddedPreload) } };
-	}
-
+	const moddedIndex = dcMain.replace("__BRANCHES_MAIN__", branch.patch);
 	writeFileSync(join(filesDir, "index.js"), moddedIndex);
+	deltaManifest.files["index.js"] = { New: { Sha256: sha256(moddedIndex) } };
+
+	const moddedPreload = dcPreload.replace("__BRANCHES_PRELOAD__", branch.preload);
+	writeFileSync(join(filesDir, "preload.js"), moddedPreload);
+	deltaManifest.files["preload.js"] = { New: { Sha256: sha256(moddedPreload) } };
+
+	const availableBranches = JSON.stringify(getSingleBranchMetas(), null, 4);
+	writeFileSync(join(filesDir, "branches.json"), availableBranches);
+	deltaManifest.files["branches.json"] = { New: { Sha256: sha256(availableBranches) } };
 
 	for (const cacheDir of branch.cacheDirs) {
 		cpSync(cacheDir, filesDir, { recursive: true });

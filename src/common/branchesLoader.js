@@ -7,6 +7,7 @@ import glob from "glob";
 import { config, srcDir } from "./config.js";
 import { log, withLogSection } from "./logger.js";
 import { cacheBase } from "./fsCache.js";
+import { dcVersion } from "../desktopCore/index.js";
 
 let branches = {};
 
@@ -76,7 +77,7 @@ const init = withLogSection("branch finder", async () => {
 		let files = glob.sync(`${d}/*`);
 
 		let patch = "";
-		let preload = undefined; // optional
+		let preload = ""; // optional
 		let displayName = name;
 		let description = "";
 		let hidden = false; // optional
@@ -86,10 +87,10 @@ const init = withLogSection("branch finder", async () => {
 			const filename = f.split("/").pop();
 
 			if (filename === "patch.js") {
-				patch = readFileSync(f, "utf8");
+				patch = `{\n${readFileSync(f, "utf8")}\n}\n`;
 				files.splice(i--, 1);
 			} else if (filename === "preload.js") {
-				preload = readFileSync(f, "utf8");
+				preload = `{\n${readFileSync(f, "utf8")}\n}\n`;
 				files.splice(i--, 1);
 			} else if (filename === "meta.js") {
 				const metaMod = await import(pathToFileURL(f));
@@ -118,7 +119,7 @@ const init = withLogSection("branch finder", async () => {
 		const allFiles = glob.sync(`${d}/**/*.*`);
 		const fileHashes = allFiles.map((f) => sha256(readFileSync(f)));
 
-		const version = parseInt(sha256(fileHashes.join(" ")).substring(0, 2), 16);
+		const version = parseInt(sha256(fileHashes.join(" ") + patch + preload + dcVersion).substring(0, 2), 16);
 		const internalFiles = ["patch.js", "preload.js", "meta.js"];
 
 		branches[name] = {
@@ -200,8 +201,8 @@ const init = withLogSection("branch finder", async () => {
 			get cacheDirs() {
 				return bs.flatMap((b) => b.cacheDirs);
 			},
-			patch: bs.map((x) => x.patch).reduce((x, a) => `${x}\n{\n${a}\n}`, ""),
-			preload: bs.map((x) => x.preload).reduce((x, a) => (!a ? x : `${x}\n{\n${a}\n}`), ""),
+			patch: bs.map((x) => x.patch).join("\n"),
+			preload: bs.map((x) => x.preload).join("\n"),
 			// cap the version well under u32::max or some rust code somewhere in the client dies
 			// this will be updated by setups later so have to make it lazy
 			get version() {
@@ -258,7 +259,7 @@ const runBranchSetups = async () => {
 
 		const fileHashes = allFiles.map((f) => sha256(readFileSync(f)));
 		branches[b].version = parseInt(
-			sha256(fileHashes.join(" ") + branches[b].patch + branches[b].preload).substring(0, 2),
+			sha256(fileHashes.join(" ") + branches[b].patch + branches[b].preload + dcVersion).substring(0, 2),
 			16,
 		);
 
