@@ -128,24 +128,44 @@ Module.prototype.require = function (path) {
 		settingsApi?.store; // OpenAsar
 
 	if (settingsApi) {
-		const rg1 = /^https:\/\/inject\.shelter\.uwu\.network\/([\w-+]+)$/;
-		const rg2 = /^https:\/\/inject\.shelter\.uwu\.network\/([\w-+]+)\/$/;
+		const rg = /^(https?:\/\/.+)\/([a-zA-Z0-9_+-]+)\/?$/;
+
+		const getHost = () => {
+			const ue1 = settingsApi.get("UPDATE_ENDPOINT");
+			const ue2 = settingsApi.get("NEW_UPDATE_ENDPOINT");
+
+			if (typeof ue1 === "string") {
+				const match = ue1.match(rg);
+				if (match?.[1]) {
+					return match[1];
+				}
+			}
+
+			if (typeof ue2 === "string") {
+				const match = ue2.match(rg);
+				if (match?.[1]) {
+					return match[1];
+				}
+			}
+		};
+
+		const host = getHost();
 
 		electron.ipcMain.handle("SHELTER_BRANCH_GET", () => {
 			const ue1 = settingsApi.get("UPDATE_ENDPOINT");
 			const ue2 = settingsApi.get("NEW_UPDATE_ENDPOINT");
 
 			if (typeof ue1 === "string") {
-				const match = ue1.match(rg1);
-				if (match?.[1]) {
-					return match[1].split("+");
+				const match = ue1.match(rg);
+				if (match?.[2]) {
+					return match[2].split("+");
 				}
 			}
 
 			if (typeof ue2 === "string") {
-				const match = ue2.match(rg2);
-				if (match?.[1]) {
-					return match[1].split("+");
+				const match = ue2.match(rg);
+				if (match?.[2]) {
+					return match[2].split("+");
 				}
 			}
 
@@ -154,8 +174,8 @@ Module.prototype.require = function (path) {
 
 		electron.ipcMain.handle("SHELTER_BRANCH_SET", (_, b) => {
 			if (b.length) {
-				settingsApi.set("UPDATE_ENDPOINT", `https://inject.shelter.uwu.network/${b.join("+")}`);
-				settingsApi.set("NEW_UPDATE_ENDPOINT", `https://inject.shelter.uwu.network/${b.join("+")}/`);
+				settingsApi.set("UPDATE_ENDPOINT", `${host}/${b.join("+")}`);
+				settingsApi.set("NEW_UPDATE_ENDPOINT", `${host}/${b.join("+")}/`);
 			} else {
 				settingsApi.set("UPDATE_ENDPOINT", undefined);
 				settingsApi.set("NEW_UPDATE_ENDPOINT", undefined);
