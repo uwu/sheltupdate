@@ -34,7 +34,7 @@
 		if (window.BdApi && !currentBranches().includes("betterdiscord")) setBdOtherwiseLoaded(true);
 	});
 
-	SheltupdateNative.getAllowedBranches().then((branches) => {
+	SheltupdateNative.getAvailableBranches().then((branches) => {
 		// group by type, conveniently "mod" is before "tool" alphabetically
 		const grouped = {};
 		for (const branchName in branches) {

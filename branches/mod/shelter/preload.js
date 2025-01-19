@@ -1,9 +1,9 @@
-const fss = require("fs");
+const fs = require("fs");
 const path = require("path");
 const { contextBridge, ipcRenderer, webFrame } = require("electron");
 
 // get selector UI content
-const selUiJs = fss.readFileSync(path.join(__dirname, "selector-ui.js"), "utf8");
+const selUiJs = fs.readFileSync(path.join(__dirname, "selector-ui.js"), "utf8");
 
 // build shelter injector plugins manifest
 const injPlugins = {
@@ -29,7 +29,7 @@ ipcRenderer.invoke("SHELTER_BUNDLE_FETCH").then((bundle) => {
 
 // everything below this comment is for the plugin selector UI exclusively
 
-// fetch branches from server, then create a structure like:
+// read branches and then create a structure like:
 /*
  const branches = {
 	shelter: {
@@ -46,26 +46,17 @@ ipcRenderer.invoke("SHELTER_BUNDLE_FETCH").then((bundle) => {
  }
 */
 
-let branches = {};
-
-fetch("https://inject.shelter.uwu.network/sheltupdate_branches")
-	.then((r) => r.json())
-	.then(
-		(branches_raw) =>
-			(branches = Object.fromEntries(
-				branches_raw.map((branch) => [
-					branch.name,
-					{ ...branch, name: branch.displayName, desc: branch.description },
-				]),
-			)),
-	);
+const branchesRaw = JSON.parse(fs.readFileSync(path.join(__dirname, "branches.json"), "utf8"));
+const branches = Object.fromEntries(
+	branchesRaw.map((branch) => [branch.name, { ...branch, name: branch.displayName, desc: branch.description }]),
+);
 
 const readBranches = () => ipcRenderer.invoke("SHELTER_BRANCH_GET");
 
 const setBranches = (branches) => ipcRenderer.invoke("SHELTER_BRANCH_SET", branches);
 
 contextBridge.exposeInMainWorld("SheltupdateNative", {
-	getAllowedBranches: () => Promise.resolve(branches),
+	getAvailableBranches: () => Promise.resolve(branches),
 	getCurrentBranches: readBranches,
 
 	setBranches: async (br) => {
