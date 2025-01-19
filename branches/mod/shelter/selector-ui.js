@@ -25,11 +25,15 @@
 	const [uninstallCache, setUninstallCache] = createSignal();
 
 	const [vencordOtherwiseLoaded, setVencordOtherwiseLoaded] = createSignal(false);
+	const [equicordOtherwiseLoaded, setEquicordOtherwiseLoaded] = createSignal(false);
 	const [bdOtherwiseLoaded, setBdOtherwiseLoaded] = createSignal(false);
 
 	const updateCurrent = () => SheltupdateNative.getCurrentBranches().then(setCurrentBranches);
 	updateCurrent().then(() => {
-		if (window.Vencord && !currentBranches().includes("vencord")) setVencordOtherwiseLoaded(true);
+		if (window.Vencord) {
+			if (!currentBranches().includes("vencord")) setVencordOtherwiseLoaded(true);
+			if (!currentBranches().includes("equicord")) setEquicordOtherwiseLoaded(true);
+		}
 
 		if (window.BdApi && !currentBranches().includes("betterdiscord")) setBdOtherwiseLoaded(true);
 	});
@@ -74,9 +78,11 @@
 				? "You need shelter to have access to this menu. Try uninstalling sheltupdate."
 				: props.name === "vencord" && vencordOtherwiseLoaded()
 					? "Vencord is currently loaded by some other mechanism."
-					: props.name === "betterdiscord" && bdOtherwiseLoaded()
-						? "BetterDiscord is currently loaded by some other mechanism."
-						: undefined;
+					: props.name === "equicord" && equicordOtherwiseLoaded()
+						? "Equicord is currently loaded by some other mechanism, or Vencord is loaded."
+						: props.name === "betterdiscord" && bdOtherwiseLoaded()
+							? "BetterDiscord is currently loaded by some other mechanism."
+							: undefined;
 
 		return html`
 			<${SwitchItem}
