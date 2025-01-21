@@ -1,3 +1,8 @@
+## r26
+ - Add branch selector UI compatibility for self hosted instances
+ - Bundle info about sheltupdate branches into desktop_core
+ - Fix first launch failing when an update has occured
+
 ## r25
 Add tweak for replacing Discord's titlebar with Windows' native one (TY @koffydrop)
 
