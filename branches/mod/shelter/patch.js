@@ -173,6 +173,7 @@ Module.prototype.require = function (path) {
 		});
 
 		electron.ipcMain.handle("SHELTER_BRANCH_SET", (_, b) => {
+			if (b.includes("equicord")) b = b.filter(x => x !== "vencord"); // remove vencord if equicord is selected; just here for safety reasons
 			if (b.length) {
 				settingsApi.set("UPDATE_ENDPOINT", `${host}/${b.join("+")}`);
 				settingsApi.set("NEW_UPDATE_ENDPOINT", `${host}/${b.join("+")}/`);
