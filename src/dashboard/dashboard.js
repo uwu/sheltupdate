@@ -6,7 +6,7 @@ import {
 	format,
 	formatDurationWithOptions,
 	intervalToDuration,
-} from "date-fns/fp?exports=format,formatDurationWithOptions,intervalToDuration";
+} from "date-fns/fp?bundle-deps&exports=format,formatDurationWithOptions,intervalToDuration";
 
 const since = (t) => intervalToDuration({ start: t, end: new Date() });
 
