@@ -1,3 +1,6 @@
+## r27
+Improve dashboard load time
+
 ## r26
  - Add branch selector UI compatibility for self hosted instances
  - Bundle info about sheltupdate branches into desktop_core
