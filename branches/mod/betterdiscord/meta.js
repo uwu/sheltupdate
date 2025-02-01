@@ -6,6 +6,7 @@ import { Writable } from "stream";
 
 export const name = "BetterDiscord";
 export const description = "Injects BetterDiscord";
+export const incompatibilities = ["vencord", "native_titlebar"];
 
 export async function setup(target, log) {
 	log("Downloading latest asar...");

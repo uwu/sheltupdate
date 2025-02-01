@@ -49,12 +49,12 @@
 	});
 
 	const prettyModNames = (branches) => {
-		const modNames = [
-			"shelter",
-			...branches()
-				.filter((b) => b !== "shelter")
-				.map((b) => branchMetaRaw()[b].name),
-		];
+		const modNames = [...branches.filter((b) => b !== "shelter").map((b) => branchMetaRaw()[b].name)];
+
+		// make sure that shelter always comes first
+		if (branches.includes("shelter")) {
+			modNames.unshift("shelter");
+		}
 
 		if (modNames.length === 1) return modNames[0];
 		if (modNames.length === 2) return modNames.join(" and ");
@@ -69,14 +69,17 @@
 
 	function BranchEntry(props /*: { name, data, value, onChange } */) {
 		// note: if shelter is disabled (i.e. you uninstalled sheltupdate), allow switching back on
-		const disabled = () =>
-			props.name === "shelter" && props.value
-				? "You need shelter to have access to this menu. Try uninstalling sheltupdate."
-				: props.name === "vencord" && vencordOtherwiseLoaded()
-					? "Vencord is currently loaded by some other mechanism."
-					: props.name === "betterdiscord" && bdOtherwiseLoaded()
-						? "BetterDiscord is currently loaded by some other mechanism."
-						: undefined;
+		const disabled = () => {
+			if (props.name === "shelter" && props.value) {
+				return "You need shelter to have access to this menu. Try uninstalling sheltupdate.";
+			}
+			if (props.name === "vencord" && vencordOtherwiseLoaded()) {
+				return "Vencord is currently loaded by some other mechanism.";
+			}
+			if (props.name === "betterdiscord" && bdOtherwiseLoaded()) {
+				return "BetterDiscord is currently loaded by some other mechanism.";
+			}
+		};
 
 		return html`
 			<${SwitchItem}
@@ -114,7 +117,7 @@
 			  <${Header} tag=${HeaderTags.H1} style="margin-bottom: 1rem">Client Mod Settings<//>
 
 				<${Text}>
-					Your installation of ${() => prettyModNames(currentBranches)} is being managed by
+					Your installation of ${() => prettyModNames(currentBranches())} is being managed by
 					<${Space} />
 					<${LinkButton} href="https://github.com/uwu/sheltupdate">sheltupdate<//>.
 					You can change the mods you are loading below.
@@ -134,8 +137,19 @@
 							value=${() => pendingBranches().has(branchName)}
 							onChange=${(e) => {
 								const pb = pendingBranches();
-								if (e) pb.add(branchName);
-								else pb.delete(branchName);
+								if (e) {
+									const foundIncompatibilities = branchData.incompatibilities.filter((i) => pb.has(i));
+									if (foundIncompatibilities.length > 0) {
+										showToast({
+											title: `${branchData.displayName} is not compatible with ${prettyModNames(foundIncompatibilities)}`,
+											duration: 3000,
+										});
+										foundIncompatibilities.forEach((b) => pb.delete(b));
+									}
+									pb.add(branchName);
+								} else {
+									pb.delete(branchName);
+								}
 								// reactivity ugh
 								setPendingBranches(new Set(pb));
 							}}
@@ -204,7 +218,7 @@
 				<${Text}>
 					Change your mind? Until you restart Discord, you can retrieve your installation of
 					<${Space} />
-					${() => prettyModNames(uninstallCache)}
+					${() => prettyModNames(uninstallCache())}
 					<${Space} />
 					exactly as it was before.
 				<//>

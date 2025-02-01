@@ -5,6 +5,7 @@ import { Writable } from "stream";
 
 export const name = "Vencord";
 export const description = "Injects Vencord; This is not an officially supported Vencord install method";
+export const incompatibilities = ["betterdiscord"];
 
 export async function setup(target, log) {
 	const releaseUrl = "https://github.com/Vendicated/Vencord/releases/download/devbuild/";

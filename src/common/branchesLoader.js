@@ -43,6 +43,7 @@ export const getSingleBranchMetas = () => {
 		name: n,
 		displayName: b.displayName,
 		description: b.description,
+		incompatibilities: b.incompatibilities,
 		hidden: b.hidden,
 	}));
 };
@@ -77,9 +78,10 @@ const init = withLogSection("branch finder", async () => {
 		let files = glob.sync(`${d}/*`);
 
 		let patch = "";
-		let preload = ""; // optional
+		let preload = "";
 		let displayName = name;
 		let description = "";
+		let incompatibilities = []; // optional
 		let hidden = false; // optional
 		let setup = undefined; // optional
 		for (let i = 0; i < files.length; i++) {
@@ -96,6 +98,7 @@ const init = withLogSection("branch finder", async () => {
 				const metaMod = await import(pathToFileURL(f));
 				displayName = metaMod.name;
 				description = metaMod.description;
+				incompatibilities = metaMod.incompatibilities ?? [];
 				hidden = !!metaMod.hidden;
 				setup = metaMod.setup;
 				files.splice(i--, 1);
@@ -131,6 +134,7 @@ const init = withLogSection("branch finder", async () => {
 			type,
 			displayName,
 			description,
+			incompatibilities,
 			hidden,
 			setup,
 		};
