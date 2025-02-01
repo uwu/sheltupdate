@@ -1,3 +1,6 @@
+## r28
+Disallow incompatible branch combinations in the client mods tab
+
 ## r27
 Improve dashboard load time
 
