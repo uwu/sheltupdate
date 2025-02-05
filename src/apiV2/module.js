@@ -12,5 +12,6 @@ export const handleModule = withLogSection("v2 download module", (c) => {
 
 	reportEndpoint("v2_module");
 
+	c.header("Content-Type", "application/octet-stream");
 	return c.body(getFinal(c.req));
 });
