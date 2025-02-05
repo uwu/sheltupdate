@@ -1,4 +1,4 @@
-import { getCustomFinal, getFinal } from "./patchModule.js";
+import { getFinal } from "./patchModule.js";
 import { reportEndpoint } from "../dashboard/reporting.js";
 import { getBranch } from "../common/branchesLoader.js";
 import { log, withLogSection } from "../common/logger.js";
@@ -14,9 +14,3 @@ export const handleModule = withLogSection("v2 download module", (c) => {
 
 	return c.body(getFinal(c.req));
 });
-
-export const handleCustomModule = (c) => {
-	reportEndpoint("v2_custom_module");
-
-	return c.body(getCustomFinal(c.req));
-};

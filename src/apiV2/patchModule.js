@@ -140,17 +140,6 @@ export const patch = withLogSection("module patcher", async (m, branchName) => {
 	return finalHash;
 });
 
-export const getCustomFinal = (req) => {
-	const moduleName = req.param("moduleName");
-	const cached = cache.created[getCacheName(moduleName, getBranch(moduleName.substring(6)).version, "custom")];
-
-	if (!cached) {
-		return;
-	}
-
-	return cached.final;
-};
-
 export const getFinal = withLogSection("module patcher", (req) => {
 	const moduleName = req.param("moduleName");
 	const moduleVersion = req.param("moduleVersion");

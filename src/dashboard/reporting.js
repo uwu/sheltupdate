@@ -11,7 +11,6 @@ export let statsState = {
 		v1_module_download: 0,
 		v2_manifest: 0,
 		v2_module: 0,
-		v2_custom_module: 0,
 	},
 	proxyOrRedirect: {
 		proxied: 0,

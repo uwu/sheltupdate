@@ -75,7 +75,6 @@ const statsState = __STATE__; /*{
 		v1_module_download: 345,
 		v2_manifest: 45,
 		v2_module: 56,
-		v2_custom_module: 3,
 	},
 	proxyOrRedirect: {
 		proxied: 89,
