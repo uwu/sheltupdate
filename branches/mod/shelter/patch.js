@@ -200,25 +200,23 @@ Module.prototype.require = function (path) {
 // #endregion
 
 // #region Patch BrowserWindow
-const ProxiedBrowserWindow = new Proxy(electron.BrowserWindow, {
-	construct(target, args) {
-		const window = new target(...args);
-		const originalLoadURL = window.loadURL;
-		window.loadURL = async function (url) {
+class PatchedBrowserWindow extends electron.BrowserWindow {
+	constructor(options) {
+		super(options);
+		const originalLoadURL = this.loadURL;
+		this.loadURL = async function (url) {
 			if (url.includes("discord.com/app")) {
 				await fetchRemoteBundleIfNeeded();
 			}
 			return await originalLoadURL.apply(this, arguments);
 		};
-
-		return window;
-	},
-});
+	}
+}
 
 const electronPath = require.resolve("electron");
 delete require.cache[electronPath].exports;
 require.cache[electronPath].exports = {
 	...electron,
-	BrowserWindow: ProxiedBrowserWindow,
+	BrowserWindow: PatchedBrowserWindow,
 };
 // #endregion

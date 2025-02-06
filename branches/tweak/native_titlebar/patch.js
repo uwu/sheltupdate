@@ -1,14 +1,13 @@
 const electron = require("electron");
 
-const ProxiedBrowserWindow = new Proxy(electron.BrowserWindow, {
-	construct(target, args) {
-		const options = args[0];
+class PatchedBrowserWindow extends electron.BrowserWindow {
+	constructor(options) {
 		delete options.frame;
-		const window = new target(options);
+		super(options);
 
 		// Account for popout windows
-		const origSetWOH = window.webContents.setWindowOpenHandler;
-		window.webContents.setWindowOpenHandler = function () {
+		const origSetWOH = this.webContents.setWindowOpenHandler;
+		this.webContents.setWindowOpenHandler = function () {
 			const origHandler = arguments[0];
 			arguments[0] = function () {
 				const details = origHandler.apply(this, arguments);
@@ -20,10 +19,8 @@ const ProxiedBrowserWindow = new Proxy(electron.BrowserWindow, {
 			};
 			return origSetWOH.apply(this, arguments);
 		};
-
-		return window;
-	},
-});
+	}
+}
 
 electron.app.on("browser-window-created", (_, win) => {
 	// Deleting options.frame in popouts makes their menu bar visible again, so we need to hide it.
@@ -37,5 +34,5 @@ const electronPath = require.resolve("electron");
 delete require.cache[electronPath].exports;
 require.cache[electronPath].exports = {
 	...electron,
-	BrowserWindow: ProxiedBrowserWindow,
+	BrowserWindow: PatchedBrowserWindow,
 };

@@ -77,9 +77,8 @@ function run() {
 		event.returnValue = event.sender.sheltupdateOriginalPreload;
 	});
 
-	const ProxiedBrowserWindow = new Proxy(electron.BrowserWindow, {
-		construct(target, args) {
-			const options = args[0];
+	class PatchedBrowserWindow extends electron.BrowserWindow {
+		constructor(options) {
 			let originalPreload;
 
 			if (options.webPreferences?.preload && options.title) {
@@ -89,17 +88,16 @@ function run() {
 				options.webPreferences.preload = join(__dirname, "preload.js");
 			}
 
-			const window = new target(options);
-			window.webContents.sheltupdateOriginalPreload = originalPreload;
-			return window;
-		},
-	});
+			super(options);
+			this.webContents.sheltupdateOriginalPreload = originalPreload;
+		}
+	}
 
 	const electronPath = require.resolve("electron");
 	delete require.cache[electronPath].exports;
 	require.cache[electronPath].exports = {
 		...electron,
-		BrowserWindow: ProxiedBrowserWindow,
+		BrowserWindow: PatchedBrowserWindow,
 	};
 
 	// START BRANCHES MAIN
