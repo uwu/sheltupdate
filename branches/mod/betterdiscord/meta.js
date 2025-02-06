@@ -23,20 +23,5 @@ export async function setup(target, log) {
 	await rm(asarPath, { force: true });
 	await fileRes.body.pipeTo(Writable.toWeb(createWriteStream(asarPath)));
 
-	log("Patching out platform checks...");
-
-	// patch out platform check; extract everything
-	const exPath = join(target, "ex");
-	extractAll(asarPath, exPath);
-	const istr = await readFile(join(target, "ex/injector.js"), "utf8");
-
-	const patched = istr.replaceAll(/"win32"==process.platform|"darwin"==process.platform/g, "false");
-
-	await writeFile(join(target, "ex/injector.js"), patched);
-
-	await createPackage(exPath, asarPath);
-
-	rmSync(exPath, { recursive: true });
-
 	log("Done!");
 }
