@@ -100,6 +100,5 @@ function run() {
 		BrowserWindow: PatchedBrowserWindow,
 	};
 
-	// START BRANCHES MAIN
-	__BRANCHES_MAIN__;
+	// __BRANCHES_MAIN__
 }

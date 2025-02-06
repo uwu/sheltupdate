@@ -89,10 +89,12 @@ const init = withLogSection("branch finder", async () => {
 			const filename = f.split("/").pop();
 
 			if (filename === "patch.js") {
-				patch = `{\n${readFileSync(f, "utf8")}\n}\n`;
+				const patchSrc = readFileSync(f, "utf8").split("\n").join("\n\t\t");
+				patch = `// Branch: ${displayName}\n\ttry {\n\t\t${patchSrc}\n\t} catch(e) { console.error("[sheltupdate] Main error (${displayName}):", e) }\n`;
 				files.splice(i--, 1);
 			} else if (filename === "preload.js") {
-				preload = `{\n${readFileSync(f, "utf8")}\n}\n`;
+				const preloadSrc = readFileSync(f, "utf8").split("\n").join("\n\t");
+				preload = `// Branch: ${displayName}\ntry {\n\t${preloadSrc}\n} catch(e) { console.error("[sheltupdate] Preload error (${displayName}):", e) }\n`;
 				files.splice(i--, 1);
 			} else if (filename === "meta.js") {
 				const metaMod = await import(pathToFileURL(f));
@@ -205,8 +207,14 @@ const init = withLogSection("branch finder", async () => {
 			get cacheDirs() {
 				return bs.flatMap((b) => b.cacheDirs);
 			},
-			patch: bs.map((x) => x.patch).join("\n"),
-			preload: bs.map((x) => x.preload).join("\n"),
+			patch: bs
+				.map((x) => x.patch)
+				.filter((p) => p)
+				.join("\n\t"),
+			preload: bs
+				.map((x) => x.preload)
+				.filter((p) => p)
+				.join("\n"),
 			// cap the version well under u32::max or some rust code somewhere in the client dies
 			// this will be updated by setups later so have to make it lazy
 			get version() {

@@ -83,11 +83,11 @@ export const patch = withLogSection("module patcher", async (m, branchName) => {
 
 	let deltaManifest = JSON.parse(readFileSync(join(eDir, "delta_manifest.json"), "utf8"));
 
-	const moddedIndex = dcMain.replace("__BRANCHES_MAIN__", branch.patch);
+	const moddedIndex = dcMain.replace("// __BRANCHES_MAIN__", branch.patch);
 	writeFileSync(join(filesDir, "index.js"), moddedIndex);
 	deltaManifest.files["index.js"] = { New: { Sha256: sha256(moddedIndex) } };
 
-	const moddedPreload = dcPreload.replace("__BRANCHES_PRELOAD__", branch.preload);
+	const moddedPreload = dcPreload.replace("// __BRANCHES_PRELOAD__", branch.preload);
 	writeFileSync(join(filesDir, "preload.js"), moddedPreload);
 	deltaManifest.files["preload.js"] = { New: { Sha256: sha256(moddedPreload) } };
 

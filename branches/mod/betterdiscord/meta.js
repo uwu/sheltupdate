@@ -1,7 +1,6 @@
-import { rm, readFile, writeFile } from "fs/promises";
-import { createWriteStream, rmSync } from "fs";
+import { rm } from "fs/promises";
+import { createWriteStream } from "fs";
 import { join } from "path";
-import { createPackage, extractAll } from "@electron/asar";
 import { Writable } from "stream";
 
 export const name = "BetterDiscord";

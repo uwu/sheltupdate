@@ -40,8 +40,8 @@ export default withLogSection("module patcher", async (c, cacheDir, cacheFinalFi
 		cpSync(cacheDir, cacheExtractDir, { recursive: true });
 	}
 
-	writeFileSync(join(cacheExtractDir, "index.js"), dcMain.replace("__BRANCHES_MAIN__", branch.patch));
-	writeFileSync(join(cacheExtractDir, "preload.js"), dcPreload.replace("__BRANCHES_PRELOAD__", branch.preload));
+	writeFileSync(join(cacheExtractDir, "index.js"), dcMain.replace("// __BRANCHES_MAIN__", branch.patch));
+	writeFileSync(join(cacheExtractDir, "preload.js"), dcPreload.replace("// __BRANCHES_PRELOAD__", branch.preload));
 	writeFileSync(join(cacheExtractDir, "branches.json"), JSON.stringify(getSingleBranchMetas(), null, 4));
 
 	log("creating module zip...");
