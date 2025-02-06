@@ -77,7 +77,7 @@ const init = withLogSection("branch finder", async () => {
 
 		let files = glob.sync(`${d}/*`);
 
-		let patch = "";
+		let main = "";
 		let preload = "";
 		let displayName = name;
 		let description = "";
@@ -88,13 +88,13 @@ const init = withLogSection("branch finder", async () => {
 			const f = files[i];
 			const filename = f.split("/").pop();
 
-			if (filename === "patch.js") {
-				const patchSrc = readFileSync(f, "utf8").split("\n").join("\n\t\t");
-				patch = `// Branch: ${displayName}\n\ttry {\n\t\t${patchSrc}\n\t} catch(e) { console.error("[sheltupdate] Main error (${displayName}):", e) }\n`;
+			if (filename === "main.js") {
+				const mainSrc = readFileSync(f, "utf8").split("\n").join("\n\t\t");
+				main = `// Branch: ${name}\n\ttry {\n\t\t${mainSrc}\n\t} catch(e) { console.error("[sheltupdate] Main error (${name}):", e) }\n`;
 				files.splice(i--, 1);
 			} else if (filename === "preload.js") {
 				const preloadSrc = readFileSync(f, "utf8").split("\n").join("\n\t");
-				preload = `// Branch: ${displayName}\ntry {\n\t${preloadSrc}\n} catch(e) { console.error("[sheltupdate] Preload error (${displayName}):", e) }\n`;
+				preload = `// Branch: ${name}\ntry {\n\t${preloadSrc}\n} catch(e) { console.error("[sheltupdate] Preload error (${name}):", e) }\n`;
 				files.splice(i--, 1);
 			} else if (filename === "meta.js") {
 				const metaMod = await import(pathToFileURL(f));
@@ -124,13 +124,13 @@ const init = withLogSection("branch finder", async () => {
 		const allFiles = glob.sync(`${d}/**/*.*`);
 		const fileHashes = allFiles.map((f) => sha256(readFileSync(f)));
 
-		const version = parseInt(sha256(fileHashes.join(" ") + patch + preload + dcVersion).substring(0, 2), 16);
-		const internalFiles = ["patch.js", "preload.js", "meta.js"];
+		const version = parseInt(sha256(fileHashes.join(" ") + main + preload + dcVersion).substring(0, 2), 16);
+		const internalFiles = ["main.js", "preload.js", "meta.js"];
 
 		branches[name] = {
 			files: allFiles.filter((f) => !internalFiles.includes(basename(f))),
 			cacheDirs: [cacheDir],
-			patch,
+			main,
 			preload,
 			version,
 			type,
@@ -207,8 +207,8 @@ const init = withLogSection("branch finder", async () => {
 			get cacheDirs() {
 				return bs.flatMap((b) => b.cacheDirs);
 			},
-			patch: bs
-				.map((x) => x.patch)
+			main: bs
+				.map((x) => x.main)
 				.filter((p) => p)
 				.join("\n\t"),
 			preload: bs
@@ -271,7 +271,7 @@ const runBranchSetups = async () => {
 
 		const fileHashes = allFiles.map((f) => sha256(readFileSync(f)));
 		branches[b].version = parseInt(
-			sha256(fileHashes.join(" ") + branches[b].patch + branches[b].preload + dcVersion).substring(0, 2),
+			sha256(fileHashes.join(" ") + branches[b].main + branches[b].preload + dcVersion).substring(0, 2),
 			16,
 		);
 

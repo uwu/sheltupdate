@@ -61,7 +61,7 @@ SheltUpdate also supports including multiple branches in updates by separating t
 # Adding a branch
 SheltUpdate branches patch `discord_desktop_core` with files stored in `branches/<branch category>/<branch name>/`.
 
-Branches must have a `patch.js` file to handle their injection in their branch directory, which is prepended to Discord's base `index.js` of the module.
+Branches must have a `main.js` file to handle their injection in their branch directory, which is prepended to Discord's base `index.js` of the module.
 
 They must have a `meta.js` file that exports a `name` and `description`, and can optionally export a `setup` function,
 which may be asynchronous and will be periodically run. Use this to download other branch files you need.
@@ -76,7 +76,7 @@ sheltupdate will not automatically pick up and inject anything into the renderer
 in your preload.
 
 ```javascript
-// patch.js
+// main.js
 require('mod.js')
 ```
 
