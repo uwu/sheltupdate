@@ -1,3 +1,8 @@
+## r29
+ - Fix "MissingContentLength" error when being hosted behind Cloudflare proxy
+ - Correctly indent branch code in index.js and preload.js
+ - Catch errors thrown by branches
+
 ## r28
 Disallow incompatible branch combinations in the client mods tab
 
