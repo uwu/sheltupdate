@@ -77,7 +77,7 @@ function run() {
 		event.returnValue = event.sender.sheltupdateOriginalPreload;
 	});
 
-	class PatchedBrowserWindow extends electron.BrowserWindow {
+	class BrowserWindow extends electron.BrowserWindow {
 		constructor(options) {
 			let originalPreload;
 
@@ -97,7 +97,7 @@ function run() {
 	delete require.cache[electronPath].exports;
 	require.cache[electronPath].exports = {
 		...electron,
-		BrowserWindow: PatchedBrowserWindow,
+		BrowserWindow,
 	};
 
 	// __BRANCHES_MAIN__

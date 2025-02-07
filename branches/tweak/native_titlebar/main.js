@@ -1,6 +1,6 @@
 const electron = require("electron");
 
-class PatchedBrowserWindow extends electron.BrowserWindow {
+class BrowserWindow extends electron.BrowserWindow {
 	constructor(options) {
 		delete options.frame;
 		super(options);
@@ -34,5 +34,5 @@ const electronPath = require.resolve("electron");
 delete require.cache[electronPath].exports;
 require.cache[electronPath].exports = {
 	...electron,
-	BrowserWindow: PatchedBrowserWindow,
+	BrowserWindow,
 };

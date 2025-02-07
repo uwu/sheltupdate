@@ -200,7 +200,7 @@ Module.prototype.require = function (path) {
 // #endregion
 
 // #region Patch BrowserWindow
-class PatchedBrowserWindow extends electron.BrowserWindow {
+class BrowserWindow extends electron.BrowserWindow {
 	constructor(options) {
 		super(options);
 		const originalLoadURL = this.loadURL;
@@ -217,6 +217,6 @@ const electronPath = require.resolve("electron");
 delete require.cache[electronPath].exports;
 require.cache[electronPath].exports = {
 	...electron,
-	BrowserWindow: PatchedBrowserWindow,
+	BrowserWindow,
 };
 // #endregion
