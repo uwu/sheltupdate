@@ -1,3 +1,6 @@
+## r30
+Fix mainScreen.getMainWindowId() returning null
+
 ## r29
  - Fix "MissingContentLength" error when being hosted behind Cloudflare proxy
  - Correctly indent branch code in index.js and preload.js
