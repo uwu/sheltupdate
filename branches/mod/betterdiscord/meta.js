@@ -4,8 +4,8 @@ import { join } from "path";
 import { Writable } from "stream";
 
 export const name = "BetterDiscord";
-export const description = "Injects BetterDiscord";
-export const incompatibilities = ["vencord", "native_titlebar"];
+export const description = "Injects BetterDiscord; This is not an officially supported BetterDiscord install method";
+export const incompatibilities = ["vencord", "moonlight", "native_titlebar"];
 
 export async function setup(target, log) {
 	log("Downloading latest asar...");
