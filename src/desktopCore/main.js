@@ -11,17 +11,41 @@ if (parentDirName.startsWith("discord_desktop_core-")) {
 	const latestModule = getLatestDesktopCoreModule();
 	const currentModule = __dirname;
 	if (currentModule !== latestModule) {
+		// The current module is out of date so load the correct one
+		// and re-export it's exports
 		proxyExports = require(join(latestModule, "index.js"));
 	}
 }
 
+// If this is the latest module
 if (proxyExports === undefined) {
-	try {
-		run();
-	} catch (e) {
-		console.error("[sheltupdate] Error during setup", e);
-	}
-	proxyExports = require("./core.asar");
+	let resolveBranchesLoaded;
+	const branchesLoaded = new Promise((res) => {
+		resolveBranchesLoaded = res;
+	});
+
+	proxyExports = new Proxy(
+		{},
+		{
+			get(target, prop) {
+				// At the time of writing all core.asar exports are sync functions without
+				// return values allowing us to just run them later (after our async setup)
+				return function () {
+					const origThis = this;
+					const origArgs = arguments;
+					console.log("[sheltupdate] Delaying function call:", prop);
+					branchesLoaded.then((originalExports) => {
+						console.log("[sheltupdate] Calling original function:", prop);
+						originalExports[prop].apply(origThis, origArgs);
+					});
+				};
+			},
+		},
+	);
+
+	setup()
+		.catch((e) => console.error("[sheltupdate] Error during setup", e))
+		.finally(() => resolveBranchesLoaded(require("./core.asar")));
 }
 
 module.exports = proxyExports;
@@ -42,7 +66,7 @@ function getLatestDesktopCoreModule() {
 	return join(modulesDir, latestDir, "discord_desktop_core");
 }
 
-function run() {
+async function setup() {
 	const electron = require("electron");
 	const stream = require("stream");
 
@@ -50,7 +74,7 @@ function run() {
 	// We create stubs for electron.net.request to make Sentry think that the requests succeeded.
 	// Because making them error leads to Sentry adding them to a queue on disk. Meaning that if
 	// the user were to uninstall sheltupdate, all the requests would still be sent subsequently.
-	// see https://github.com/getsentry/sentry-electron/blob/3e4e10525b5fb24ffa98b211b91393f81e3555be/src/main/transports/electron-net.ts#L64
+	// See https://github.com/getsentry/sentry-electron/blob/3e4e10525b5fb24ffa98b211b91393f81e3555be/src/main/transports/electron-net.ts#L64
 	// and https://github.com/getsentry/sentry-electron/blob/3e4e10525b5fb24ffa98b211b91393f81e3555be/src/main/transports/offline-store.ts#L52
 
 	class RequestStub extends stream.Writable {
