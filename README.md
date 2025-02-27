@@ -34,8 +34,23 @@ The required files to deploy are `src`, `node_modules`, `branches`, `config.json
 
 Run the container as so:
 ```sh
-docker run -v /path/to/your/config.json:/config.json -p 8080:8080 ghcr.io/uwu/sheltupdate
+docker run -v /path/to/your/config.json:/config.json --tmpfs /tmp -p 8080:8080 ghcr.io/uwu/sheltupdate
 ```
+
+The `--tmpfs` flag is available only on Linux hosts, and omitting it will not break sheltupdate, but will cause the
+sheltupdate cache to be left on your system, inflating disk use over time.
+
+In a docker compose file, you specify this with:
+```yml
+services:
+  sheltupdate:
+    # rest of entry omitted here
+    tmpfs:
+     - /tmp
+```
+
+This step prevents the sheltupdate cache hitting the disk in practice, and therefore no resource leaks will happen when
+the container is restarted without being torn down and restored fresh.
 
 # Usage
 Discord fetches the update API URL from a `settings.json` file stored in various directories depending on your operating system.
