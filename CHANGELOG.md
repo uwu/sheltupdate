@@ -1,3 +1,9 @@
+## r31
+ - Add Moonlight
+ - Remove Kernel
+ - Allow selecting incompatible branches in the client mods tab
+ - Add support for async branch main scripts
+
 ## r30
 Fix mainScreen.getMainWindowId() returning null
 
