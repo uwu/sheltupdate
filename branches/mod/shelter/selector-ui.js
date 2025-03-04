@@ -1,9 +1,27 @@
 (() => {
 	const {
 		plugins: { removePlugin },
-		solid: { createSignal },
+		solid: { createSignal, onCleanup },
 		solidH: { html },
-		ui: { Text, LinkButton, Divider, Button, ButtonColors, showToast, Header, HeaderTags, SwitchItem, Space },
+		ui: {
+			Text,
+			LinkButton,
+			Divider,
+			Button,
+			ButtonColors,
+			ButtonLooks,
+			ButtonSizes,
+			showToast,
+			Header,
+			HeaderTags,
+			SwitchItem,
+			Space,
+			openModal,
+			ModalRoot,
+			ModalHeader,
+			ModalBody,
+			ModalFooter,
+		},
 	} = shelter;
 
 	const {
@@ -135,16 +153,20 @@
 							name=${() => branchName}
 							data=${() => branchData}
 							value=${() => pendingBranches().has(branchName)}
-							onChange=${(e) => {
+							onChange=${async (e) => {
 								const pb = pendingBranches();
 								if (e) {
 									const foundIncompatibilities = branchData.incompatibilities.filter((i) => pb.has(i));
 									if (foundIncompatibilities.length > 0) {
-										showToast({
-											title: `${branchData.displayName} is not compatible with ${prettyModNames(foundIncompatibilities)}`,
-											duration: 3000,
-										});
-										foundIncompatibilities.forEach((b) => pb.delete(b));
+										const res = await openIncompatibilityModal(
+											branchData.displayName,
+											foundIncompatibilities,
+										);
+										if (res === "disableOthers") {
+											foundIncompatibilities.forEach((b) => pb.delete(b));
+										} else if (res === "cancel") {
+											return;
+										}
 									}
 									pb.add(branchName);
 								} else {
@@ -241,5 +263,62 @@
 				<//>
 			</div>
 		`;
+	}
+
+	async function openIncompatibilityModal(branchName, incompatibleBranches) {
+		return new Promise((resolve) => {
+			openModal(({ close }) => {
+				onCleanup(() => resolve("cancel"));
+				const incompatibleBranchNames = prettyModNames(incompatibleBranches);
+				return html`
+					<${ModalRoot}>
+						<${ModalHeader} close=${(e) => close()}>
+							Things might break!
+						<//>
+						<${ModalBody}>
+							${branchName} may not work properly alongside ${incompatibleBranchNames}.<br />
+							Do you want to disable ${incompatibleBranchNames}?
+						<//>
+						<${ModalFooter}>
+							<div style="display: flex; justify-content: flex-end; gap: .5rem;">
+								<${Button}
+									look=${ButtonLooks.LINK}
+									size=${ButtonSizes.MEDIUM}
+									grow
+									onClick=${(e) => {
+										resolve("cancel");
+										close();
+									}}
+								>
+									Cancel
+								<//>
+								<${Button}
+									color=${ButtonColors.GREEN}
+									size=${ButtonSizes.MEDIUM}
+									grow
+									onClick=${(e) => {
+										resolve("disableOthers");
+										close();
+									}}
+								>
+									Disable ${incompatibleBranches.length > 1 ? "them" : "it"}
+								<//>
+								<${Button}
+									color=${ButtonColors.RED}
+									size=${ButtonSizes.MEDIUM}
+									grow
+									onClick=${(e) => {
+										resolve("proceed");
+										close();
+									}}
+								>
+									Proceed anyways
+								<//>
+							</div>
+						<//>
+					<//>
+				`;
+			});
+		});
 	}
 })();
