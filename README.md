@@ -18,6 +18,7 @@ The [uwu.network instance](https://inject.shelter.uwu.network) of sheltupdate ho
  - `shelter` - injects shelter
  - `vencord` - injects Vencord
  - `betterdiscord` - injects BetterDiscord
+ - `moonlight` - injects Moonlight
  - `reactdevtools` - adds React Developer Tools to your client
  - `spotify_embed_volume` - adds a volume slider to Spotify embeds
  - `yt_ad_block` - removes ads in embeds and in the Watch Together activity
