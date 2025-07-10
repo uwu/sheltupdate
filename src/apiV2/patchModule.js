@@ -1,7 +1,7 @@
 import { Readable } from "stream";
 import { createHash } from "crypto";
 
-import { mkdirSync, writeFileSync, readFileSync, cpSync } from "fs";
+import { mkdirSync, writeFileSync, readFileSync, cpSync, rmSync } from "fs";
 import { join, relative, win32, posix } from "path";
 
 import tar from "tar";
@@ -14,10 +14,10 @@ import { cacheBase } from "../common/fsCache.js";
 import { reportV2Cached, reportV2Patched } from "../dashboard/reporting.js";
 import { dcMain, dcPreload } from "../desktopCore/index.js";
 
-const cache = {
-	patched: {},
-	created: {},
-};
+const cache = {};
+
+// patched hash -> original hash
+const cacheDigests = new Map();
 
 const sha256 = (data) => createHash("sha256").update(data).digest("hex");
 
@@ -43,10 +43,19 @@ const brotlify = (buf) => brotliCompressSync(buf, { params: { [constants.BROTLI_
 export const patch = withLogSection("module patcher", async (m, branchName) => {
 	const cacheName = getCacheName("discord_desktop_core", m.module_version, branchName);
 
-	const cached = cache.patched[cacheName];
+	const cached = cache[cacheName];
 	if (cached) {
-		reportV2Cached();
-		return cached.hash;
+		const expectedSource = cacheDigests.get(cached.hash);
+
+		if (expectedSource && expectedSource == m.package_sha256) {
+			reportV2Cached();
+			return cached.hash;
+		}
+		else {
+			// evict cache
+			cacheDigests.delete(cached.hash);
+			delete cache[cacheName];
+		}
 	}
 	reportV2Patched();
 
@@ -130,10 +139,15 @@ export const patch = withLogSection("module patcher", async (m, branchName) => {
 
 	const finalHash = sha256(final);
 
-	cache.patched[cacheName] = {
+	cache[cacheName] = {
 		hash: finalHash,
 		final,
 	};
+
+	// for detecting staleness later
+	cacheDigests.set(finalHash, m.package_sha256);
+
+	rmSync(eDir, { force: true, recursive: true });
 
 	log("finished patching module!");
 
@@ -144,7 +158,7 @@ export const getFinal = withLogSection("module patcher", (req) => {
 	const moduleName = req.param("moduleName");
 	const moduleVersion = req.param("moduleVersion");
 	const branchName = req.param("branch");
-	const cached = cache.patched[getCacheName(moduleName, moduleVersion, branchName)];
+	const cached = cache[getCacheName(moduleName, moduleVersion, branchName)];
 
 	log("serve final module", /*cache,*/ getCacheName(moduleName, moduleVersion, branchName));
 

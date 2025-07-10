@@ -12,6 +12,12 @@ export const handleModule = withLogSection("v2 download module", (c) => {
 
 	reportEndpoint("v2_module");
 
+	const buf = getFinal(c.req);
+
 	c.header("Content-Type", "application/octet-stream");
-	return c.body(getFinal(c.req));
+	// hono annoyingly does not send content length by default, and dicor no likey that
+	// https://github.com/honojs/hono/commit/501854f
+	c.header("Content-Length", buf.byteLength);
+
+	return c.body(buf);
 });
