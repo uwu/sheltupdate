@@ -21,7 +21,14 @@ export const handleManifest = withLogSection("v2 manifest", async (c) => {
 
 	reportEndpoint("v2_manifest");
 
-	reportUniqueUser(originatingIp(c), c.req.query("platform"), "unknown", c.req.query("channel"), branch, 2);
+	reportUniqueUser(
+		originatingIp(c),
+		c.req.query("platform"),
+		`${c.req.query("platform")} ${c.req.query("platform_version")}`,
+		c.req.query("channel"),
+		branch,
+		2
+	);
 
 	let json = await basicProxy(c, {}, undefined, base).then((r) => r.json());
 

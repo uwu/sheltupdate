@@ -174,7 +174,7 @@ const hostVerCounts = {};
 const apiVerCounts = {};
 const channelCounts = {};
 for (const user of Object.values(statsState.uniqueUsers)) {
-	const host = user.host_version === "unknown" ? "Unknown Host" : "Host " + user.host_version;
+	const host = user.host_version === "unknown" ? "Unknown" : user.host_version;
 
 	for (const br of user.branch.split("+")) {
 		const brPretty = branchMetadata.find((b) => b.name === br)?.displayName ?? br;
