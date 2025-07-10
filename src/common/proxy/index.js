@@ -6,17 +6,33 @@ import { log, withLogSection } from "../logger.js";
 
 export const getProxyURL = (url) => `/${url.split("/").slice(2).join("/")}`;
 
-export default withLogSection("proxy", async (context, options = {}, rpl = undefined, base = config.apiBases.v1) => {
-	const req = context.req;
-	const rUrl = req.url.replace(/.*:\/\/[^/]*/, "");
+function performUrlReplacement(ctxturl, options, rpl, base) {
+	const rUrl = ctxturl.replace(/.*:\/\/[^/]*/, "");
 
 	let url = rpl !== undefined ? rUrl.replace(rpl[0], rpl[1]) : rUrl;
-	url = getProxyURL(url);
+	url = base + getProxyURL(url);
+
+	log("options:", options, "replacement:", rpl, "target:", url);
+
+	return url;
+}
+
+export const getEtag = withLogSection("etag check", async (ctxturl, options = {}, rpl = undefined, base = config.apiBases.v1) => {
+	const url = performUrlReplacement(ctxturl, options, rpl, base);
+
+	const resp = await fetch(url, {
+		method: "HEAD",
+		...options
+	});
+
+	return resp.headers.get("ETag");
+});
+
+export default withLogSection("proxy", async (context, options = {}, rpl = undefined, base = config.apiBases.v1) => {
+	const url = performUrlReplacement(context.req.url, options, rpl, base);
 
 	const cacheUrl = url.replace(/&_=[0-9]+$/, "");
 	const cached = Cache.get(cacheUrl);
-
-	log("options:", options, "replacement:", rpl, `target: ${base}${url}`);
 
 	const now = Date.now();
 
@@ -34,7 +50,7 @@ export default withLogSection("proxy", async (context, options = {}, rpl = undef
 
 	log("not cached");
 
-	const proxRaw = await fetch(`${base}${url}`, {
+	const proxRaw = await fetch(url, {
 		headers: { "User-Agent": config.proxy.useragent },
 		...options,
 	});

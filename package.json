@@ -20,5 +20,6 @@
 	"devDependencies": {
 		"dprint": "^0.47.6"
 	},
-	"type": "module"
+	"type": "module",
+	"packageManager": "pnpm@8.12.1+sha1.aa961ffce9b6eaa56307d9b5ff7e984f25b7eb58"
 }
