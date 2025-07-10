@@ -1,3 +1,7 @@
+## r32
+ - Add cache (in)validation to help prevent breakages (issue #6)
+ - Reduce the amount of unnecessary detritus left in the v2 cache
+
 ## r31
  - Add Moonlight
  - Remove Kernel
