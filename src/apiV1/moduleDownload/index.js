@@ -6,7 +6,7 @@ import basicRedirect from "../../common/redirect.js";
 import patch from "./patchModule.js";
 import { getBranch } from "../../common/branchesLoader.js";
 import { reportEndpoint, reportV1Cached, reportV1Patched } from "../../dashboard/reporting.js";
-import { log, withLogSection } from "../../common/logger.js";
+import { log, withLogSection, logSection } from "../../common/logger.js";
 import { cacheBase } from "../../common/fsCache.js";
 import { getEtag } from "../../common/proxy/index.js";
 
