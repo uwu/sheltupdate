@@ -15,11 +15,11 @@
 const CONFIG = {
 	"localhost": [
 		{ name: "🇨🇭 CH (Primary)", url: "https://ch.shelter.uwu.network", primary: true },
-		{ name: "🇬🇧 GB (Fallback)", url: "https://inject.shelter.uwu.network" },
+		{ name: "🇬🇧 GB (Fallback)", url: "https://gb.shelter.uwu.network" },
 	],
 	"staging.shelter.uwu.network": [
 		{ name: "🇨🇭 CH (Primary)", url: "https://staging.ch.shelter.uwu.network", primary: true },
-		{ name: "🇬🇧 GB (Fallback)", url: "https://staging.shelter.uwu.network" },
+		{ name: "🇬🇧 GB (Fallback)", url: "https://staging.gb.shelter.uwu.network" },
 	],
 };
 
@@ -80,7 +80,7 @@ export default {
 
 			let resp;
 			try {
-				resp = await fetch(new URL(url.pathname, o.url).href, {
+				resp = await fetch(new URL(url.pathname + url.search, o.url).href, {
 					headers: {
 						...Object.fromEntries(request.headers.entries()),
 						"X-Shup-HA-Env": url.hostname,
@@ -101,8 +101,25 @@ export default {
 		}
 
 		// none of our origins are ok!
-		// TODO
-		return new Response("501 Not Implemented: all nodes are down", { status: 501 })
+		let proxyPath = "https://discord.com/api/";
+		if (url.pathname.includes("/distributions/") || url.pathname.includes("/distro/app/"))
+			proxyPath += "updates/";
+
+		const res = await fetch(new URL(url.pathname.slice(2 + url.pathname.split("/")[1].length) + url.search, proxyPath).href, {
+			method: request.method,
+			body: request.body,
+			headers: request.headers
+		});
+		const newHeads = new Headers(res.headers);
+		newHeads.delete("Content-Encoding");
+		newHeads.set("X-Shup-HA-Env", url.hostname);
+		newHeads.set("X-Shup-HA-Node", "DISCORD_FALLBACK");
+		return new Response(res.body, {
+			status: res.status,
+			headers: newHeads,
+			encodeBody: "manual",
+			webSocket: res.webSocket,
+		});
 	},
 
 	async scheduled(controller, env, ctx) {
