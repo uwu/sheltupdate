@@ -9,7 +9,14 @@
 	"compatibility_date": "2025-08-02",
 	"observability": {
 		"enabled": true
-	}
+	},
+
+	"triggers": {
+		"crons": [
+			"*/5 * * * *"
+		]
+	},
+
 	/**
 	 * Smart Placement
 	 * Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
@@ -33,15 +40,14 @@
 	 * https://developers.cloudflare.com/workers/configuration/secrets/
 	 */
 
-	/**
-	 * Static Assets
-	 * https://developers.cloudflare.com/workers/static-assets/binding/
-	 */
-	// "assets": { "directory": "./public/", "binding": "ASSETS" },
-
-	/**
-	 * Service Bindings (communicate between multiple Workers)
-	 * https://developers.cloudflare.com/workers/wrangler/configuration/#service-bindings
-	 */
-	// "services": [{ "binding": "MY_SERVICE", "service": "my-service" }]
+	"kv_namespaces": [
+		{
+			"binding": "origin_status",
+			"id": "49d74594f97144a6bccf4f3c7b18621b"
+		},
+		{
+			"binding": "incidents",
+			"id": "cdba8c4682f44d01914eee894f8e5788"
+		}
+	]
 }
