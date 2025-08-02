@@ -50,8 +50,7 @@ export const patch = withLogSection("module patcher", async (m, branchName) => {
 		if (expectedSource && expectedSource == m.package_sha256) {
 			reportV2Cached();
 			return cached.hash;
-		}
-		else {
+		} else {
 			// evict cache
 			cacheDigests.delete(cached.hash);
 			delete cache[cacheName];

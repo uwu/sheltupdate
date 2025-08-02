@@ -17,16 +17,19 @@ function performUrlReplacement(ctxturl, options, rpl, base) {
 	return url;
 }
 
-export const getEtag = withLogSection("etag check", async (ctxturl, options = {}, rpl = undefined, base = config.apiBases.v1) => {
-	const url = performUrlReplacement(ctxturl, options, rpl, base);
+export const getEtag = withLogSection(
+	"etag check",
+	async (ctxturl, options = {}, rpl = undefined, base = config.apiBases.v1) => {
+		const url = performUrlReplacement(ctxturl, options, rpl, base);
 
-	const resp = await fetch(url, {
-		method: "HEAD",
-		...options
-	});
+		const resp = await fetch(url, {
+			method: "HEAD",
+			...options,
+		});
 
-	return resp.headers.get("ETag");
-});
+		return resp.headers.get("ETag");
+	},
+);
 
 export default withLogSection("proxy", async (context, options = {}, rpl = undefined, base = config.apiBases.v1) => {
 	const url = performUrlReplacement(context.req.url, options, rpl, base);

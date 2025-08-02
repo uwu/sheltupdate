@@ -27,7 +27,7 @@ export const handleManifest = withLogSection("v2 manifest", async (c) => {
 		`${c.req.query("platform")} ${c.req.query("platform_version")}`,
 		c.req.query("channel"),
 		branch,
-		2
+		2,
 	);
 
 	let json = await basicProxy(c, {}, undefined, base).then((r) => r.json());
