@@ -30,6 +30,11 @@ function parseConfig(configStr: string): Config {
 	return cfg;
 }
 
+function stripUnicode(unicodeStr: string) {
+	// remove the flags from node names to serve
+	return [...unicodeStr].filter(c => c.charCodeAt(0) <= 127).join("")
+}
+
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
 
@@ -66,7 +71,7 @@ export default {
 				headers: {
 					...Object.fromEntries(resp.headers.entries()),
 					"X-Shup-HA-Env": url.hostname,
-					"X-Shup-HA-Node": origin.url.split("://")[1],
+					"X-Shup-HA-Node": stripUnicode(origin.name).trim(),
 				},
 				webSocket: resp.webSocket,
 			});
