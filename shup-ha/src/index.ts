@@ -119,6 +119,30 @@ export default {
 			});
 		}
 
+		async function injectDashCss(origResp: Response) {
+			const real = await origResp.text();
+
+			// thanks microsoft, i love you too.
+
+			const fontFaceDecl = `
+@font-face {
+	font-family: "Twemoji Flags";
+	unicode-range: U+1F1E6-1F1FF, U+1F3F4, U+E0062-E0063, U+E0065, U+E0067, U+E006C, U+E006E, U+E0073-E0074, U+E0077, U+E007F;
+	src: url('http://esm.sh/country-flag-emoji-polyfill/dist/TwemojiCountryFlags.woff2') format('woff2');
+	font-display: swap;
+}
+
+`;
+
+			const new_ = fontFaceDecl + real.replace("font-family:", `font-family:"Twemoji Flags",`);
+
+			return new Response(new_, {
+				status: origResp.status,
+				headers: origResp.headers,
+				webSocket: origResp.webSocket,
+			});
+		}
+
 		// get proxyin!
 		for (const o of origins) {
 			const status = await getStatus(o.url);
@@ -138,6 +162,9 @@ export default {
 					// dashboard
 					if (url.pathname === "/")
 						return addNodeHeader(await injectDashboard(resp), o);
+
+					if (url.pathname === "/dashboard.css")
+						return addNodeHeader(await injectDashCss(resp), o);
 
 					return addNodeHeader(resp, o); // :)
 				}
