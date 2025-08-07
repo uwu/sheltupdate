@@ -88,7 +88,7 @@ export default {
 				const status = await getStatus(o.url);
 				statuses.push([
 					o.name,
-					status ? (status.down ? "Down" : hitFirstYet ? "Ready" : "Up") : "Unknown",
+					status ? (status.down ? "Down" : hitFirstYet ? "Standby" : "Live") : "Unknown",
 					status ? (status.down ? "#d22d39" : "#1b9e77") : "#666666",
 				]);
 
@@ -106,7 +106,7 @@ export default {
 						</div>
 					`).join("")}
 				</div>
-				<p class="sub" style="margin-top: .5rem">All statistics above this box are counting only for the node currently serving you ("Up")</p>
+				<p class="sub" style="margin-top: .5rem">All statistics above this box are counting only for the node currently serving you ("Live")</p>
 			<div>
 			`;
 
