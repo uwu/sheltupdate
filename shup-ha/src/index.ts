@@ -1,63 +1,117 @@
-// make this all configurable via env somehow!
-const CONFIG = {
-	"inject.shelter.uwu.network": [
-		{ name: "🇨🇭 CH (Primary)", url: "https://ch.shelter.uwu.network", primary: true },
-		{ name: "🇬🇧 GB (Fallback)", url: "https://gb.shelter.uwu.network" },
-	],
-	"staging.shelter.uwu.network": [
-		{ name: "🇨🇭 CH (Primary)", url: "https://staging.ch.shelter.uwu.network", primary: true },
-		{ name: "🇬🇧 GB (Fallback)", url: "https://staging.gb.shelter.uwu.network" },
-	],
+
+type Origin = {
+	name: string;
+	url: string;
 };
 
-// Omit here just forces TS to collapse down the union into a single object type
-type Origin = Omit<typeof CONFIG[keyof typeof CONFIG][number], never>;
+type Config = Record<string, Origin[]>;
 
 // key is hostname concated with origin url
-type OriginStatus = { down: boolean; when: string; };
+type OriginStatus = { down: boolean; when: string };
+
+// the config is passed in via a cf secret. turn it into a useful object here
+// config example:
+// "inject.uwu.network; CH, https://ch.shup.net; IT, https://it.shup.net ~ staging.shup.net; CH, https://shup.net"
+function parseConfig(configStr: string): Config {
+	const cfg: Config = {};
+
+	for (const env of configStr.split("~").map((e) => e.trim())) {
+		// parse out env name
+		const env_name = env.split(":")[0];
+		const nodes_cfg = env.slice(env_name.length + 1);
+
+		const nodes = nodes_cfg.split(";").map((node) => node.split(",").map((s) => s.trim()));
+
+		cfg[env_name] = [];
+
+		for (const [name, url] of nodes) cfg[env_name].push({ name, url });
+	}
+
+	return cfg;
+}
 
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
 
+		const CONFIG = parseConfig(env.SHUP_CFG);
+
 		const url = new URL(request.url);
 
 		if (!(url.hostname in CONFIG))
-			return new Response(`404 Not Found. This sheltupdate HA instance is not configured to handle requests for ${url.hostname}.`, { status: 404 });
+			return new Response(
+				`404 Not Found. This sheltupdate HA instance is not configured to handle requests for ${url.hostname}.`,
+				{ status: 404 }
+			);
 
 		const origins = CONFIG[url.hostname as keyof typeof CONFIG];
 
 		const getStatus = async (originUrl: string) =>
-			await env.origin_status.get(url.hostname + originUrl, "json") as OriginStatus;
+			(await env.origin_status.get(url.hostname + originUrl, "json")) as OriginStatus;
 
 		async function reportNodeDown(origin: Origin) {
-			await env.origin_status.put(url.hostname + origin.url, JSON.stringify({
-				down: true,
-				when: new Date().toISOString()
-			} satisfies OriginStatus));
+			await env.origin_status.put(
+				url.hostname + origin.url,
+				JSON.stringify({
+					down: true,
+					when: new Date().toISOString(),
+				} satisfies OriginStatus)
+			);
 
 			// TODO: send webhook
 		}
 
-		const addNodeHeader = (resp: Response, origin: Origin) => new Response(resp.body, {
-			status: resp.status,
-			headers: {
-				...Object.fromEntries(resp.headers.entries()),
-				"X-Shup-HA-Env": url.hostname,
-				"X-Shup-HA-Node": origin.url.split("://")[1],
-			},
-			webSocket: resp.webSocket
-		})
+		const addNodeHeader = (resp: Response, origin: Origin) =>
+			new Response(resp.body, {
+				status: resp.status,
+				headers: {
+					...Object.fromEntries(resp.headers.entries()),
+					"X-Shup-HA-Env": url.hostname,
+					"X-Shup-HA-Node": origin.url.split("://")[1],
+				},
+				webSocket: resp.webSocket,
+			});
 
-		// check if we're serving the dashboard
-		if (url.pathname == "/") {
-			let resp = 'Dashboard TODO! Statuses:';
+
+		async function injectDashboard(origResp: Response) {
+			const realHtml = await origResp.text();
+
+			const statuses: [string, string, string][] = [];
+
+			let hitFirstYet = false;
 
 			for (const o of origins) {
 				const status = await getStatus(o.url);
-				resp += `\n${o.name}: ${status ? (status.down ? "Down" : "Up") : "Unknown"}`;
+				statuses.push([
+					o.name,
+					status ? (status.down ? "Down" : hitFirstYet ? "Ready" : "Up") : "Unknown",
+					status ? (status.down ? "#d22d39" : "#1b9e77") : "#666666",
+				]);
+
+				if (status?.down === false) hitFirstYet = true;
 			}
 
-			return new Response(resp);
+			const toInject = `
+			<div style="margin-top: 1.25rem;" class="stats-card">
+				<h2 class="card-title">Nodes Status</h2>
+				<div style="display: flex; flex-flow: row wrap; gap: 0.5rem 1rem; justify-content: space-evenly;width: 100%;">
+					${statuses.map(([name, statusName, statusCol]) => `
+						<div>
+							<div style="display: inline-block; height: 0.8em; width: 0.8em; border-radius: 99999px; background: ${statusCol}"></div>
+							<span>${name}: ${statusName}</span>
+						</div>
+					`).join("")}
+				</div>
+				<p class="sub" style="margin-top: .5rem">All statistics above this box are counting only for the node currently serving you ("Up")</p>
+			<div>
+			`;
+
+			const newHtml = realHtml.replace("</body>", toInject + "</body>");
+
+			return new Response(newHtml, {
+				status: origResp.status,
+				headers: origResp.headers,
+				webSocket: origResp.webSocket,
+			});
 		}
 
 		// get proxyin!
@@ -75,8 +129,13 @@ export default {
 					method: request.method,
 				});
 
-				if (resp.ok)
+				if (resp.ok) {
+					// dashboard
+					if (url.pathname === "/")
+						return addNodeHeader(await injectDashboard(resp), o);
+
 					return addNodeHeader(resp, o); // :)
+				}
 			} catch {}
 
 			// something went wrong!
@@ -89,14 +148,16 @@ export default {
 
 		// none of our origins are ok!
 		let proxyPath = "https://discord.com/api/";
-		if (url.pathname.includes("/distributions/") || url.pathname.includes("/distro/app/"))
-			proxyPath += "updates/";
+		if (url.pathname.includes("/distributions/") || url.pathname.includes("/distro/app/")) proxyPath += "updates/";
 
-		const res = await fetch(new URL(url.pathname.slice(2 + url.pathname.split("/")[1].length) + url.search, proxyPath).href, {
-			method: request.method,
-			body: request.body,
-			headers: request.headers
-		});
+		const res = await fetch(
+			new URL(url.pathname.slice(2 + url.pathname.split("/")[1].length) + url.search, proxyPath).href,
+			{
+				method: request.method,
+				body: request.body,
+				headers: request.headers,
+			}
+		);
 		const newHeads = new Headers(res.headers);
 		newHeads.delete("Content-Encoding");
 		newHeads.set("X-Shup-HA-Env", url.hostname);
@@ -110,19 +171,27 @@ export default {
 	},
 
 	async scheduled(controller, env, ctx) {
+
+		const CONFIG = parseConfig(env.SHUP_CFG);
+
 		// check all servers to see if they're okay
 		for (const environment in CONFIG)
 			for (const origin of CONFIG[environment as keyof typeof CONFIG])
-				ctx.waitUntil((async () => {
-					let resp;
-					try {
-						resp = await fetch(origin.url, { method: "HEAD" });
-					} catch {}
+				ctx.waitUntil(
+					(async () => {
+						let resp;
+						try {
+							resp = await fetch(origin.url, { method: "HEAD" });
+						} catch {}
 
-					await env.origin_status.put(environment + origin.url, JSON.stringify({
-						down: !resp || (500 <= resp.status && resp.status <= 599),
-						when: new Date().toISOString()
-					} satisfies OriginStatus));
-				})());
+						await env.origin_status.put(
+							environment + origin.url,
+							JSON.stringify({
+								down: !resp || (500 <= resp.status && resp.status <= 599),
+								when: new Date().toISOString(),
+							} satisfies OriginStatus)
+						);
+					})()
+				);
 	},
 } satisfies ExportedHandler<Env>;

@@ -34,20 +34,26 @@
 	 * Environment Variables
 	 * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
 	 */
-	// "vars": { "MY_VARIABLE": "production_value" },
 	/**
 	 * Note: Use secrets to store sensitive data.
 	 * https://developers.cloudflare.com/workers/configuration/secrets/
 	 */
 
+
+	 // origin statuses need to be fast to access cause of latency so they live in KV
 	"kv_namespaces": [
 		{
 			"binding": "origin_status",
 			"id": "49d74594f97144a6bccf4f3c7b18621b"
-		},
+		}
+	],
+
+	// incidents need to not be duplicated so must live in D1
+	"d1_databases": [
 		{
-			"binding": "incidents",
-			"id": "cdba8c4682f44d01914eee894f8e5788"
+			"binding": "incidents_db",
+			"database_id": "0fe5d021-9382-488c-989e-dfdd754db20f",
+			"database_name": "shup_ha_incidents"
 		}
 	]
 }
