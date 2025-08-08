@@ -67,7 +67,7 @@ async function reportNodeHealth(up: boolean, env: Env, envName: string, origins:
 	// check if this node status is already recorded in D1
 	const lastIncident = await env.incidents_db.prepare(`
 			SELECT * FROM incidents
-			WHERE env = '?' AND message IS NULL
+			WHERE env = ? AND message IS NULL
 			ORDER BY timestamp DESC
 			LIMIT 1
 		`)
