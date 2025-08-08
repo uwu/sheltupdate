@@ -3,8 +3,6 @@
 // :)
 // there is no migration have fun
 
-import { createD1SqlTag } from "d1-sql-tag";
-
 type Origin = {
 	name: string;
 	url: string;
@@ -58,16 +56,15 @@ async function reportNodeHealth(up: boolean, env: Env, envName: string, origins:
 		} satisfies OriginStatus)
 	);
 
-	const sql = createD1SqlTag(env.incidents_db);
-
 	// check if this node status is already recorded in D1
-	const lastIncident = (await sql`
+	const lastIncident = await env.incidents_db.prepare(`
 			SELECT * FROM incidents
-			WHERE env = '${envName}' AND message IS NULL
+			WHERE env = '?' AND message IS NULL
 			ORDER BY timestamp DESC
 			LIMIT 1
-		`.all<Incident>())
-		.results[0]; // i miss my .first<Incident>()
+		`)
+		.bind(envName)
+		.first<Incident>();
 
 	if (lastIncident && lastIncident.allNodes.split(";").includes(origin.url)) {
 		// if we are listed in the last status as the same status as us, then we have nothing new to report.
@@ -101,10 +98,12 @@ async function reportNodeHealth(up: boolean, env: Env, envName: string, origins:
 	// insert incident report into the database
 	// message is null because that field is exclusivley for manually added outages
 	// in which case, nodesUp and allNodes will be null instead
-	await sql`
+	await env.incidents_db.prepare(`
 		INSERT INTO incidents (timestamp, env, nodesUp, allNodes, message)
-		VALUES (unixepoch(), ${envName}, ${newNodesUp}, ${newAllNodes}, NULL)
-	`.run();
+		VALUES (unixepoch(), ?1, ?2, ?3, NULL)
+	`)
+		.bind(envName, newNodesUp, newAllNodes)
+		.run();
 
 
 	const msg = up

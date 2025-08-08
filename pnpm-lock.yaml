@@ -35,10 +35,6 @@ importers:
         version: 0.47.6
 
   shup-ha:
-    dependencies:
-      d1-sql-tag:
-        specifier: ^0.5.0
-        version: 0.5.0
     devDependencies:
       typescript:
         specifier: ^5.5.2
@@ -113,10 +109,6 @@ packages:
     requiresBuild: true
     dev: true
     optional: true
-
-  /@cloudflare/workers-types@4.20250807.0:
-    resolution: {integrity: sha512-Zbrz9egAfwmlkUaZ1tQ+19pt5eomCJ57mAviT1HCsvnSFP1MoffMbYiU/xUomuekHtx0aVO4EacZwchCgjSvmw==}
-    dev: false
 
   /@cspotcode/source-map-support@0.8.1:
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
@@ -879,12 +871,6 @@ packages:
     dependencies:
       crc-32: 1.2.2
       readable-stream: 3.6.2
-    dev: false
-
-  /d1-sql-tag@0.5.0:
-    resolution: {integrity: sha512-BwXqNuwK+pa4D1F8fInO3d5+IFpPGAQou1Kb4RmP0V03narAe8eCw8Cs09jt4HHnjSL4IW33z7ZLr9bwk0CfFg==}
-    dependencies:
-      '@cloudflare/workers-types': 4.20250807.0
     dev: false
 
   /defu@6.1.4:
