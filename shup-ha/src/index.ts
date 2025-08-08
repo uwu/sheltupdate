@@ -124,12 +124,15 @@ async function reportNodeHealth(up: boolean, env: Env, envName: string, origins:
 
 	await fetch(env.WEBHOOK, {
 		method: "POST",
+		headers: {
+			"Content-Type": "application/json"
+		},
 		body: JSON.stringify({
 			username: "sheltupdate status",
 			content: `${msg}
- - environment: \`${envName}\`
- - node: ${origin.name}
- - ${healthyNodesMsg}`,
+   \- environment: \`${envName}\`
+   \- node: ${origin.name}
+   \- ${healthyNodesMsg}`,
 		})
 	});
 }
