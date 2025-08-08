@@ -1,3 +1,9 @@
+// D1 database schema:
+// CREATE TABLE incidents (timestamp INTEGER, env TEXT, nodesUp TEXT, allNodes TEXT, message TEXT, PRIMARY KEY (timestamp, env))
+// :)
+// there is no migration have fun
+
+import { createD1SqlTag } from "d1-sql-tag";
 
 type Origin = {
 	name: string;
@@ -8,6 +14,14 @@ type Config = Record<string, Origin[]>;
 
 // key is hostname concated with origin url
 type OriginStatus = { down: boolean; when: string };
+
+type Incident = {
+	timestamp: number,
+	env: string,
+	nodesUp: string,
+	allNodes: string,
+	message: string
+};
 
 // the config is passed in via a cf secret. turn it into a useful object here
 // config example:
@@ -35,6 +49,84 @@ function stripUnicode(unicodeStr: string) {
 	return [...unicodeStr].filter(c => c.charCodeAt(0) <= 127).join("")
 }
 
+async function reportNodeHealth(up: boolean, env: Env, envName: string, origins: Origin[], origin: Origin) {
+	await env.origin_status.put(
+		envName + origin.url,
+		JSON.stringify({
+			down: true,
+			when: new Date().toISOString(),
+		} satisfies OriginStatus)
+	);
+
+	if (up === true) return; // TODO: not finished implementing this yet
+
+	const sql = createD1SqlTag(env.incidents_db);
+
+	// check if this node status is already recorded in D1
+	const lastIncident = (await sql`
+			SELECT * FROM incidents
+			WHERE env = '${envName}' AND message IS NULL
+			ORDER BY timestamp DESC
+			LIMIT 1
+		`.all<Incident>())
+		.results[0]; // i miss my .first<Incident>()
+
+	// the last incident knew we exist but did not include us as being up
+	// so this report is a duplicate
+	if (lastIncident
+			&& lastIncident.allNodes.split(";").includes(origin.url)
+			&& !lastIncident.nodesUp.split(";").includes(origin.url)
+		)
+		return;
+
+	// we have a node down that wasn't known about! add it!
+
+	// collect node statuses
+	const allNodes = origins.map((o) => o.url);
+
+	// { [origin]: isUp }
+	const nodeStatuses = Object.fromEntries(
+		await Promise.all(
+			origins.map(async (o) => [
+				o.url,
+				((await env.origin_status.get(envName + o.url, "json")) as OriginStatus)?.down === false,
+			])
+		)
+	);
+
+	// caching is a thing that exists, funny eventual consistency
+	nodeStatuses[origin.url] = true;
+
+	const nodesUp = Object.entries(nodeStatuses)
+		.filter(([_, up]) => up)
+		.map(([url]) => url);
+
+	allNodes.sort();
+	nodesUp.sort();
+	const dbAllNodes = allNodes.join(";");
+	const dbNodesUp = nodesUp.join(";");
+
+	// insert incident report into the database
+	// message is null because that field is exclusivley for manually added outages
+	// in which case, nodesUp and allNodes will be null instead
+	await sql`
+		INSERT INTO incidents (timestamp, env, nodesUp, allNodes, message)
+		VALUES (unixepoch(), ${envName}, ${dbNodesUp}, ${dbAllNodes}, NULL)
+	`.run();
+
+
+	await fetch(env.WEBHOOK, {
+		method: "POST",
+		body: JSON.stringify({
+			content: `sheltupdate origin node reported down
+ - environment: \`${envName}\`
+ - node: ${origin.name}
+ - healthy nodes left: ${nodesUp.length} / ${allNodes.length}`,
+			username: "sheltupdate status"
+		})
+	});
+}
+
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
 
@@ -52,18 +144,6 @@ export default {
 
 		const getStatus = async (originUrl: string) =>
 			(await env.origin_status.get(url.hostname + originUrl, "json")) as OriginStatus;
-
-		async function reportNodeDown(origin: Origin) {
-			await env.origin_status.put(
-				url.hostname + origin.url,
-				JSON.stringify({
-					down: true,
-					when: new Date().toISOString(),
-				} satisfies OriginStatus)
-			);
-
-			// TODO: send webhook
-		}
 
 		const addNodeHeader = (resp: Response, origin: Origin) =>
 			new Response(resp.body, {
@@ -172,7 +252,9 @@ export default {
 
 			// something went wrong!
 			const considerNodeFailed = !resp || (500 <= resp.status && resp.status <= 599);
-			if (considerNodeFailed) await reportNodeDown(o);
+
+			if (considerNodeFailed)
+				await reportNodeHealth(false, env, url.hostname, origins, o);
 
 			// the user might just be stupid and have hit a 404 or something
 			if (resp && !considerNodeFailed) return addNodeHeader(resp, o);
@@ -208,7 +290,7 @@ export default {
 
 		// check all servers to see if they're okay
 		for (const environment in CONFIG)
-			for (const origin of CONFIG[environment as keyof typeof CONFIG])
+			for (const origin of CONFIG[environment])
 				ctx.waitUntil(
 					(async () => {
 						let resp;
@@ -216,13 +298,18 @@ export default {
 							resp = await fetch(origin.url, { method: "HEAD" });
 						} catch {}
 
+						const nodeIsDown = !resp || (500 <= resp.status && resp.status <= 599);
+
 						await env.origin_status.put(
 							environment + origin.url,
 							JSON.stringify({
-								down: !resp || (500 <= resp.status && resp.status <= 599),
+								down: nodeIsDown,
 								when: new Date().toISOString(),
 							} satisfies OriginStatus)
 						);
+
+						if (nodeIsDown)
+							await reportNodeHealth(false, env, environment, CONFIG[environment], origin);
 					})()
 				);
 	},
