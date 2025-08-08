@@ -48,13 +48,21 @@ function stripUnicode(unicodeStr: string) {
 }
 
 async function reportNodeHealth(up: boolean, env: Env, envName: string, origins: Origin[], origin: Origin) {
-	await env.origin_status.put(
-		envName + origin.url,
-		JSON.stringify({
-			down: !up,
-			when: new Date().toISOString(),
-		} satisfies OriginStatus)
-	);
+
+	// we have a very limited number of kv put()s so we need to be frugal with them :/
+	// we really want to ALWAYS put our status but its only crucial for nodes that are down soooo
+
+	const shouldPut = !up ||
+		(await env.origin_status.get<OriginStatus>(envName + origin.url, "json"))?.down !== false;
+
+	if (shouldPut)
+		await env.origin_status.put(
+			envName + origin.url,
+			JSON.stringify({
+				down: !up,
+				when: new Date().toISOString(),
+			} satisfies OriginStatus)
+		);
 
 	// check if this node status is already recorded in D1
 	const lastIncident = await env.incidents_db.prepare(`
@@ -142,7 +150,7 @@ export default {
 		const origins = CONFIG[url.hostname as keyof typeof CONFIG];
 
 		const getStatus = async (originUrl: string) =>
-			(await env.origin_status.get(url.hostname + originUrl, "json")) as OriginStatus;
+			await env.origin_status.get<OriginStatus>(url.hostname + originUrl, "json");
 
 		const addNodeHeader = (resp: Response, origin: Origin) =>
 			new Response(resp.body, {
