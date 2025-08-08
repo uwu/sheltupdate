@@ -1,5 +1,5 @@
 // D1 database schema:
-// CREATE TABLE incidents (timestamp INTEGER, env TEXT, nodesUp TEXT, allNodes TEXT, message TEXT, PRIMARY KEY (timestamp, env))
+// CREATE TABLE incidents (timestamp REAL, env TEXT, nodesUp TEXT, allNodes TEXT, message TEXT, PRIMARY KEY (timestamp, env))
 // :)
 // there is no migration have fun
 
@@ -108,7 +108,7 @@ async function reportNodeHealth(up: boolean, env: Env, envName: string, origins:
 	// in which case, nodesUp and allNodes will be null instead
 	await env.incidents_db.prepare(`
 		INSERT INTO incidents (timestamp, env, nodesUp, allNodes, message)
-		VALUES (unixepoch(), ?1, ?2, ?3, NULL)
+		VALUES (unixepoch('subsec'), ?1, ?2, ?3, NULL)
 	`)
 		.bind(envName, newNodesUp, newAllNodes)
 		.run();
