@@ -53,12 +53,10 @@ async function reportNodeHealth(up: boolean, env: Env, envName: string, origins:
 	await env.origin_status.put(
 		envName + origin.url,
 		JSON.stringify({
-			down: true,
+			down: !up,
 			when: new Date().toISOString(),
 		} satisfies OriginStatus)
 	);
-
-	if (up === true) return; // TODO: not finished implementing this yet
 
 	const sql = createD1SqlTag(env.incidents_db);
 
@@ -71,58 +69,60 @@ async function reportNodeHealth(up: boolean, env: Env, envName: string, origins:
 		`.all<Incident>())
 		.results[0]; // i miss my .first<Incident>()
 
-	// the last incident knew we exist but did not include us as being up
-	// so this report is a duplicate
-	if (lastIncident
-			&& lastIncident.allNodes.split(";").includes(origin.url)
-			&& !lastIncident.nodesUp.split(";").includes(origin.url)
-		)
-		return;
+	if (lastIncident && lastIncident.allNodes.split(";").includes(origin.url)) {
+		// if we are listed in the last status as the same status as us, then we have nothing new to report.
 
-	// we have a node down that wasn't known about! add it!
+		const weWerePreviouslyUp = lastIncident.nodesUp.split(";").includes(origin.url);
 
-	// collect node statuses
-	const allNodes = origins.map((o) => o.url);
+		if (up === weWerePreviouslyUp)
+			return;
+	}
 
-	// { [origin]: isUp }
-	const nodeStatuses = Object.fromEntries(
-		await Promise.all(
-			origins.map(async (o) => [
-				o.url,
-				((await env.origin_status.get(envName + o.url, "json")) as OriginStatus)?.down === false,
-			])
-		)
-	);
+	// update database values
+	const lastAllNodes = lastIncident?.allNodes.split(";") ?? [];
 
-	// caching is a thing that exists, funny eventual consistency
-	nodeStatuses[origin.url] = true;
+	if (!lastAllNodes.includes(origin.url))
+		lastAllNodes.push(origin.url);
 
-	const nodesUp = Object.entries(nodeStatuses)
-		.filter(([_, up]) => up)
-		.map(([url]) => url);
+	const newAllNodes = lastAllNodes.sort().join(";");
 
-	allNodes.sort();
-	nodesUp.sort();
-	const dbAllNodes = allNodes.join(";");
-	const dbNodesUp = nodesUp.join(";");
+	// [] feels like a bad default but idfk what else to do
+	const lastNodesUpSet = new Set(lastIncident?.nodesUp.split(";") ?? []);
+
+	if (lastNodesUpSet.has(origin.url) !== up) {
+		if (up)
+			lastNodesUpSet.add(origin.url);
+		else
+			lastNodesUpSet.delete(origin.url);
+	}
+
+	const newNodesUp = [...lastNodesUpSet].sort().join(";");
 
 	// insert incident report into the database
 	// message is null because that field is exclusivley for manually added outages
 	// in which case, nodesUp and allNodes will be null instead
 	await sql`
 		INSERT INTO incidents (timestamp, env, nodesUp, allNodes, message)
-		VALUES (unixepoch(), ${envName}, ${dbNodesUp}, ${dbAllNodes}, NULL)
+		VALUES (unixepoch(), ${envName}, ${newNodesUp}, ${newAllNodes}, NULL)
 	`.run();
 
+
+	const msg = up
+		? `sheltupdate origin node back up`
+		: `sheltupdate origin node reported down`;
+
+	const healthyNodesMsg = newNodesUp.length === newAllNodes.length
+		? `all nodes are healthy`
+		: `healthy nodes left: ${newNodesUp.length} / ${newAllNodes.length}`;
 
 	await fetch(env.WEBHOOK, {
 		method: "POST",
 		body: JSON.stringify({
-			content: `sheltupdate origin node reported down
+			username: "sheltupdate status",
+			content: `${msg}
  - environment: \`${envName}\`
  - node: ${origin.name}
- - healthy nodes left: ${nodesUp.length} / ${allNodes.length}`,
-			username: "sheltupdate status"
+ - ${healthyNodesMsg}`,
 		})
 	});
 }
@@ -239,12 +239,15 @@ export default {
 				});
 
 				if (resp.ok) {
-					// dashboard
-					if (url.pathname === "/")
-						return addNodeHeader(await injectDashboard(resp), o);
+					// we dont want a slow D1 query in the code path for successful requests, so we dont `await` this.
+					// after about 60 seconds, once KV caches invalidate, the nodes that are failed will be completely skipped,
+					// so those are less of a concern for actually awaiting
+					ctx.waitUntil(reportNodeHealth(true, env, url.hostname, origins, o));
 
-					if (url.pathname === "/dashboard.css")
-						return addNodeHeader(await injectDashCss(resp), o);
+					// dashboard
+					if (url.pathname === "/") return addNodeHeader(await injectDashboard(resp), o);
+
+					if (url.pathname === "/dashboard.css") return addNodeHeader(await injectDashCss(resp), o);
 
 					return addNodeHeader(resp, o); // :)
 				}
@@ -308,8 +311,8 @@ export default {
 							} satisfies OriginStatus)
 						);
 
-						if (nodeIsDown)
-							await reportNodeHealth(false, env, environment, CONFIG[environment], origin);
+
+						await reportNodeHealth(!nodeIsDown, env, environment, CONFIG[environment], origin);
 					})()
 				);
 	},
