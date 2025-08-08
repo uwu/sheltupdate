@@ -298,6 +298,13 @@ export default {
 
 		const CONFIG = parseConfig(env.SHUP_CFG);
 
+		// queue of database changes.
+		// parallelizing status checks is cool but parallelizing db ops like this is not.
+		let dbQueue: (() => Promise<void>)[] = [];
+
+		let dbQueueHasAnyResFn: () => void;
+		let dbQueueHasAnyPromise = new Promise<void>(res => dbQueueHasAnyResFn = res);
+
 		// check all servers to see if they're okay
 		for (const environment in CONFIG)
 			for (const origin of CONFIG[environment])
@@ -318,9 +325,13 @@ export default {
 							} satisfies OriginStatus)
 						);
 
-
-						await reportNodeHealth(!nodeIsDown, env, environment, CONFIG[environment], origin);
+						dbQueue.push(() => reportNodeHealth(!nodeIsDown, env, environment, CONFIG[environment], origin));
+						dbQueueHasAnyResFn!();
 					})()
 				);
+
+		// now, run the db operations
+		await dbQueueHasAnyPromise;
+		for (const op of dbQueue) await op();
 	},
 } satisfies ExportedHandler<Env>;
