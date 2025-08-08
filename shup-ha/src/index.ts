@@ -261,10 +261,14 @@ export default {
 
 					return addNodeHeader(resp, o); // :)
 				}
-			} catch {}
+			} catch (e) {
+				console.error("fetch error:", e);
+			}
 
 			// something went wrong!
 			const considerNodeFailed = !resp || (500 <= resp.status && resp.status <= 599);
+
+			console.log("request failed,", considerNodeFailed ? "rolling over" : "returning error", url.hostname, o.name, { status: resp?.status, headers: resp && Object.fromEntries(resp.headers.entries()) });
 
 			if (considerNodeFailed)
 				await reportNodeHealth(false, env, url.hostname, origins, o);
@@ -311,13 +315,7 @@ export default {
 
 				const nodeIsDown = !resp || (500 <= resp.status && resp.status <= 599);
 
-				await env.origin_status.put(
-					environment + origin.url,
-					JSON.stringify({
-						down: nodeIsDown,
-						when: new Date().toISOString(),
-					} satisfies OriginStatus)
-				);
+				console.log("scheduled origin check: ", environment, origin, nodeIsDown, { status: resp?.status, headers: resp && Object.fromEntries(resp.headers.entries()) })
 
 				await reportNodeHealth(!nodeIsDown, env, environment, CONFIG[environment], origin);
 			}
