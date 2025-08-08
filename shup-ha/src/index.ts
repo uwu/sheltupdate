@@ -120,7 +120,7 @@ async function reportNodeHealth(up: boolean, env: Env, envName: string, origins:
 
 	const healthyNodesMsg = newNodesUp.length === newAllNodes.length
 		? `all nodes are healthy`
-		: `healthy nodes left: ${newNodesUp.length} / ${newAllNodes.length}`;
+		: `healthy nodes left: ${lastNodesUpSet.size} / ${lastAllNodes.length}`;
 
 	await fetch(env.WEBHOOK, {
 		method: "POST",
@@ -130,9 +130,9 @@ async function reportNodeHealth(up: boolean, env: Env, envName: string, origins:
 		body: JSON.stringify({
 			username: "sheltupdate status",
 			content: `${msg}
-   \- environment: \`${envName}\`
-   \- node: ${origin.name}
-   \- ${healthyNodesMsg}`,
+   \\- environment: \`${envName}\`
+   \\- node: ${origin.name}
+   \\- ${healthyNodesMsg}`,
 		})
 	});
 }
