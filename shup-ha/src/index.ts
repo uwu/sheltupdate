@@ -85,6 +85,7 @@ async function reportNodeHealth(up: boolean, env: Env, envName: string, origins:
 
 	// update database values
 	const lastAllNodes = lastIncident?.allNodes.split(";") ?? [];
+	if (lastIncident?.allNodes === "") lastAllNodes.pop(); // "" parses to [""] annoyingly
 
 	if (!lastAllNodes.includes(origin.url))
 		lastAllNodes.push(origin.url);
@@ -93,6 +94,7 @@ async function reportNodeHealth(up: boolean, env: Env, envName: string, origins:
 
 	// [] feels like a bad default but idfk what else to do
 	const lastNodesUpSet = new Set(lastIncident?.nodesUp.split(";") ?? []);
+	if (lastIncident?.nodesUp === "") lastNodesUpSet.clear(); // "" still parses to [""]
 
 	if (lastNodesUpSet.has(origin.url) !== up) {
 		if (up)
