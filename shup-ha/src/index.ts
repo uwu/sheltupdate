@@ -167,6 +167,7 @@ export default {
 				status: resp.status,
 				headers: {
 					...Object.fromEntries(resp.headers.entries()),
+					"Cache-Control": "no-store",
 					"X-Shup-HA-Env": url.hostname,
 					"X-Shup-HA-Node": stripUnicode(origin.name).trim(),
 				},
@@ -253,6 +254,7 @@ export default {
 						"X-Shup-HA-Env": url.hostname,
 					},
 					method: request.method,
+					cache: "no-store"
 				});
 
 				if (resp.ok) {
