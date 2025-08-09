@@ -139,6 +139,23 @@ async function reportNodeHealth(up: boolean, env: Env, envName: string, origins:
 	});
 }
 
+// used by the scheduled worker, and fired off when a request fails to double-check this outcome.
+async function checkAndReportHealth(env: Env, environment: string, CONFIG: Config, origin: Origin) {
+	let resp;
+	try {
+		resp = await fetch(origin.url, { method: "HEAD" });
+	} catch {}
+
+	const nodeIsDown = !resp || (500 <= resp.status && resp.status <= 599);
+
+	console.log("scheduled origin check: ", environment, origin, nodeIsDown, {
+		status: resp?.status,
+		headers: resp && Object.fromEntries(resp.headers.entries()),
+	});
+
+	await reportNodeHealth(!nodeIsDown, env, environment, CONFIG[environment], origin);
+}
+
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
 
@@ -261,7 +278,7 @@ export default {
 					// we dont want a slow D1 query in the code path for successful requests, so we dont `await` this.
 					// after about 60 seconds, once KV caches invalidate, the nodes that are failed will be completely skipped,
 					// so those are less of a concern for actually awaiting
-					ctx.waitUntil(reportNodeHealth(true, env, url.hostname, origins, o));
+					ctx.waitUntil(checkAndReportHealth(env, url.hostname, CONFIG, o));
 
 					// dashboard
 					if (url.pathname === "/") return addNodeHeader(await injectDashboard(resp), o);
@@ -316,17 +333,7 @@ export default {
 
 		// check all servers to see if they're okay
 		for (const environment in CONFIG)
-			for (const origin of CONFIG[environment]) {
-				let resp;
-				try {
-					resp = await fetch(origin.url, { method: "HEAD" });
-				} catch {}
-
-				const nodeIsDown = !resp || (500 <= resp.status && resp.status <= 599);
-
-				console.log("scheduled origin check: ", environment, origin, nodeIsDown, { status: resp?.status, headers: resp && Object.fromEntries(resp.headers.entries()) })
-
-				await reportNodeHealth(!nodeIsDown, env, environment, CONFIG[environment], origin);
-			}
+			for (const origin of CONFIG[environment])
+				await checkAndReportHealth(env, environment, CONFIG, origin);
 	},
 } satisfies ExportedHandler<Env>;
