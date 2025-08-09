@@ -144,6 +144,11 @@ export default {
 
 		const url = new URL(request.url);
 
+		// we had this actually cause a 4 min outage in staging cause someone requested //cdn.js which somehow returns 530
+		// from every node and rolled us all the way down to discord api
+		if (url.pathname.startsWith("//"))
+			return new Response("418 I'm a Teapot. Sincerely, Fuck Off.", { status: 418 })
+
 		if (!(url.hostname in CONFIG))
 			return new Response(
 				`404 Not Found. This sheltupdate HA instance is not configured to handle requests for ${url.hostname}.`,
