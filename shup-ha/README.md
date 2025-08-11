@@ -8,4 +8,4 @@ will not work, but it is preferable over serving nothing (Discord will just not 
 
 It pushes webhooks when any downtime events occur.
 
-todo: webhooks
+todo: incidents page, improve webhooks
