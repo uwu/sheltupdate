@@ -1,0 +1,59 @@
+/**
+ * For more details on how to configure Wrangler, refer to:
+ * https://developers.cloudflare.com/workers/wrangler/configuration/
+ */
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "shup-ha",
+	"main": "src/index.ts",
+	"compatibility_date": "2025-08-02",
+	"observability": {
+		"enabled": true
+	},
+
+	"triggers": {
+		"crons": [
+			"*/5 * * * *"
+		]
+	},
+
+	/**
+	 * Smart Placement
+	 * Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
+	 */
+	// "placement": { "mode": "smart" },
+
+	/**
+	 * Bindings
+	 * Bindings allow your Worker to interact with resources on the Cloudflare Developer Platform, including
+	 * databases, object storage, AI inference, real-time communication and more.
+	 * https://developers.cloudflare.com/workers/runtime-apis/bindings/
+	 */
+
+	/**
+	 * Environment Variables
+	 * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
+	 */
+	/**
+	 * Note: Use secrets to store sensitive data.
+	 * https://developers.cloudflare.com/workers/configuration/secrets/
+	 */
+
+
+	 // origin statuses need to be fast to access cause of latency so they live in KV
+	"kv_namespaces": [
+		{
+			"binding": "origin_status",
+			"id": "49d74594f97144a6bccf4f3c7b18621b"
+		}
+	],
+
+	// incidents need to not be duplicated so must live in D1
+	"d1_databases": [
+		{
+			"binding": "incidents_db",
+			"database_id": "0fe5d021-9382-488c-989e-dfdd754db20f",
+			"database_name": "shup_ha_incidents"
+		}
+	]
+}

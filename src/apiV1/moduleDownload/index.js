@@ -40,7 +40,9 @@ export const handleModuleDownload = withLogSection("v1 download module", async (
 				c.header("Content-Type", "application/zip");
 				return c.body(readFileSync(cacheFinalFile));
 			} else {
-				logSection("etag check", () => log("etag mismatch, expecting", cacheEtags.get(cacheFinalFile, "but got", etag)));
+				logSection("etag check", () =>
+					log("etag mismatch, expecting", cacheEtags.get(cacheFinalFile, "but got", etag)),
+				);
 
 				cacheEtags.delete(cacheFinalFile);
 				// delete cache and fall through to patch
