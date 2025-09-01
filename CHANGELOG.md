@@ -1,3 +1,6 @@
+## r35
+ - Only cache successful responses
+
 ## r34
  - Fix yt_ad_block and disable yt_embed_fix (for now)
 

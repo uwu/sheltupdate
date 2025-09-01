@@ -58,17 +58,18 @@ export default withLogSection("proxy", async (context, options = {}, rpl = undef
 		...options,
 	});
 
-	log("waiting on network...");
+	log(`got response: ${proxRaw.status}`);
 
 	const prox = await ReusableResponse.create(proxRaw);
 	prox.headers.delete("Content-Encoding");
 
-	Cache.set(cacheUrl, {
-		resp: prox,
-
-		cachedOn: now,
-		lastUsed: now,
-	});
+	if (proxRaw.ok) {
+		Cache.set(cacheUrl, {
+			resp: prox,
+			cachedOn: now,
+			lastUsed: now,
+		});
+	}
 
 	log("proxy finished");
 
