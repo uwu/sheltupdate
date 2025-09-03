@@ -4,6 +4,7 @@
 	"stats": true,
 	"setupIntervalHours": 3,
 	"tracing": {
+		"service": "sheltupdate",
 		"log": true,
 		"otlpEndpoint": "http://localhost:4318/v1/traces",
 		"otlpType": "protobuf"

@@ -25,6 +25,7 @@ export const config = Object.freeze({
 	stats: rawCfg?.stats ?? true,
 	setupIntervalHours: rawCfg?.setupIntervalHours ?? 3,
 	tracing: {
+		service: rawCfg?.tracing?.service ?? "sheltupdate",
 		log: rawCfg?.tracing?.log ?? true,
 		otlpEndpoint: rawCfg?.tracing?.otlpEndpoint,
 		otlpType: rawCfg?.tracing?.otlpType ?? "protobuf", // "protobuf" | "json" | "grpc"

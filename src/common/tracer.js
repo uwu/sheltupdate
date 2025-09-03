@@ -13,7 +13,7 @@ const exporter = new {
 }[config.tracing.otlpType]({ url: config.tracing.otlpEndpoint });
 
 const sdk = new NodeSDK({
-	serviceName: "sheltupdate",
+	serviceName: config.tracing.service,
 	traceExporter: config.tracing.log ? new ShupLoggerSpanExporter(exporter) : exporter,
 	instrumentations: [],
 });

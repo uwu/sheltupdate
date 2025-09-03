@@ -1,3 +1,6 @@
+## r37
+ - make tracing service name configurable
+
 ## r36
  - switch from logging to tracing
 
