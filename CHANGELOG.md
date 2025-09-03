@@ -1,3 +1,6 @@
+## r36
+ - switch from logging to tracing
+
 ## r35
  - Only cache successful responses
 

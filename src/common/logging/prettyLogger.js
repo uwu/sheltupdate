@@ -19,7 +19,7 @@ export function resetLogger() {
 	cols = [];
 }
 
-function startLogSection(name) {
+export function startLogSection(name) {
 	indent += INDENT_CHUNK;
 	sections.push(name);
 
@@ -32,11 +32,12 @@ function startLogSection(name) {
 	}
 }
 
-function logEndSection() {
+export function logEndSection() {
 	sections.pop();
 	cols.pop();
 	indent = indent.slice(INDENT_CHUNK.length);
 }
+/*
 
 export const withLogSection =
 	(name, fn) =>
@@ -68,3 +69,4 @@ export function logSection(name, fn, ...args) {
 		throw e;
 	}
 }
+*/

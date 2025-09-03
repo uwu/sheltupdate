@@ -1,8 +1,9 @@
 import { config } from "../config.js";
+import { withSection } from "../tracer.js";
 
 const cacheStore = {};
 
-const cacheCleaner = () => {
+const cacheCleaner = withSection("proxy cache cleaner", () => {
 	for (let k in cacheStore) {
 		const v = cacheStore[k];
 
@@ -11,7 +12,7 @@ const cacheCleaner = () => {
 			delete cacheStore[k];
 		}
 	}
-};
+});
 
 export const get = (key) => cacheStore[key];
 export const set = (key, value) => {

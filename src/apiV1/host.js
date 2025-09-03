@@ -1,9 +1,9 @@
 import { getBranch } from "../common/branchesLoader.js";
 import { reportEndpoint } from "../dashboard/reporting.js";
 import basicProxy from "../common/proxy/index.js";
-import { log, withLogSection } from "../common/logger.js";
+import { populateReqAttrs, withSection } from "../common/tracer.js";
 
-export const handleNonSquirrel = withLogSection("v1 host linux", async (c) => {
+export const handleNonSquirrel = withSection("v1 host linux", async (span, c) => {
 	// Non-Squirrel (Linux)
 	if (!getBranch(c.req.param("branch"))) {
 		return c.notFound("Invalid sheltupdate branch");
@@ -11,12 +11,12 @@ export const handleNonSquirrel = withLogSection("v1 host linux", async (c) => {
 
 	reportEndpoint("v1_host_notsquirrel");
 
-	log(JSON.stringify(c.req.param()), JSON.stringify(c.req.query()));
+	populateReqAttrs(span, c);
 
 	return basicProxy(c);
 });
 
-export const handleSquirrel = withLogSection("v1 host squirrel", async (c) => {
+export const handleSquirrel = withSection("v1 host squirrel", async (span, c) => {
 	// Squirrel (non-Linux)
 	if (!getBranch(c.req.param("branch"))) {
 		return c.notFound("Invalid sheltupdate branch");
@@ -24,7 +24,7 @@ export const handleSquirrel = withLogSection("v1 host squirrel", async (c) => {
 
 	reportEndpoint("v1_host_squirrel");
 
-	log(JSON.stringify(c.req.param()), JSON.stringify(c.req.query()));
+	populateReqAttrs(span, c);
 
 	return basicProxy(c);
 });

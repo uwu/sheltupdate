@@ -3,6 +3,11 @@
 	"host": "https://inject.shelter.uwu.network",
 	"stats": true,
 	"setupIntervalHours": 3,
+	"tracing": {
+		"log": true,
+		"otlpEndpoint": "http://localhost:4318/v1/traces",
+		"otlpType": "protobuf"
+	},
 	"proxy": {
 		"cache": {
 			"lastUsedRemoveHours": 1,

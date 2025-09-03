@@ -24,6 +24,11 @@ export const config = Object.freeze({
 	host: rawCfg?.host || `http://localhost:${rawCfg?.port || 8080}`,
 	stats: rawCfg?.stats ?? true,
 	setupIntervalHours: rawCfg?.setupIntervalHours ?? 3,
+	tracing: {
+		log: rawCfg?.tracing?.log ?? true,
+		otlpEndpoint: rawCfg?.tracing?.otlpEndpoint,
+		otlpType: rawCfg?.tracing?.otlpType ?? "protobuf", // "protobuf" | "json" | "grpc"
+	},
 	proxy: {
 		cache: {
 			lastUsedRemoveHours: rawCfg?.proxy?.cache?.lastUsedRemoveHours ?? 1,

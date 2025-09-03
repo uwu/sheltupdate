@@ -4,20 +4,20 @@ import { config } from "../common/config.js";
 import { ensureBranchIsReady, getBranch } from "../common/branchesLoader.js";
 import { reportEndpoint, reportUniqueUser } from "../dashboard/reporting.js";
 import originatingIp from "../common/originatingIp.js";
-import { log, withLogSection } from "../common/logger.js";
+import { populateReqAttrs, withSection } from "../common/tracer.js";
 
 const base = config.apiBases.v2;
 const host = config.host;
 
 // https://discord.com/api/updates/distributions/app/manifests/latest?channel=canary&platform=win&arch=x86
 
-export const handleManifest = withLogSection("v2 manifest", async (c) => {
+export const handleManifest = withSection("v2 manifest", async (span, c) => {
 	const branch = c.req.param("branch");
 	if (!getBranch(branch)) {
 		return c.notFound("Invalid sheltupdate branch");
 	}
 
-	log(JSON.stringify(c.req.param()), JSON.stringify(c.req.query()));
+	populateReqAttrs(span, c);
 
 	reportEndpoint("v2_manifest");
 

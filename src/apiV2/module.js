@@ -1,14 +1,14 @@
 import { getFinal } from "./patchModule.js";
 import { reportEndpoint } from "../dashboard/reporting.js";
 import { getBranch } from "../common/branchesLoader.js";
-import { log, withLogSection } from "../common/logger.js";
+import { populateReqAttrs, withSection } from "../common/tracer.js";
 
-export const handleModule = withLogSection("v2 download module", (c) => {
+export const handleModule = withSection("v2 download module", (span, c) => {
 	if (!getBranch(c.req.param("branch"))) {
 		return c.notFound("Invalid sheltupdate branch");
 	}
 
-	log(JSON.stringify(c.req.param()), JSON.stringify(c.req.query()));
+	populateReqAttrs(span, c);
 
 	reportEndpoint("v2_module");
 

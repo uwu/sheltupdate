@@ -1,11 +1,11 @@
 import { Hono } from "hono";
-import { logger } from "hono/logger";
+import { otel } from "@hono/otel";
 import { createMiddleware } from "hono/factory";
 import { serve } from "@hono/node-server";
 
 import { config, changelog, version } from "./common/config.js";
 import { getSingleBranchMetas } from "./common/branchesLoader.js";
-import { resetLogger } from "./common/logger.js";
+import "./common/tracer.js";
 
 // API handlers
 import apiV1 from "./apiV1/index.js";
@@ -16,12 +16,11 @@ import dashboard from "./dashboard/index.js";
 import "./webhook.js";
 
 const app = new Hono()
-	.use(logger())
+	.use(otel())
 	.use(
 		createMiddleware(async (c, next) => {
 			await next();
 			c.header("Server", `sheltupdate/r${version}`);
-			resetLogger();
 		}),
 	)
 	.route("/", apiV1)

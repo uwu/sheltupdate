@@ -2,9 +2,9 @@ import basicProxy from "../common/proxy/index.js";
 import { ensureBranchIsReady, getBranch } from "../common/branchesLoader.js";
 import { reportEndpoint, reportUniqueUser } from "../dashboard/reporting.js";
 import originatingIp from "../common/originatingIp.js";
-import { log, withLogSection } from "../common/logger.js";
+import { populateReqAttrs, withSection } from "../common/tracer.js";
 
-export const handleModules = withLogSection("v1 module update check", async (c) => {
+export const handleModules = withSection("v1 module update check", async (span, c) => {
 	const { branch, channel } = c.req.param();
 	const { platform, host_version } = c.req.query();
 
@@ -17,7 +17,7 @@ export const handleModules = withLogSection("v1 module update check", async (c) 
 
 	reportEndpoint("v1_modules");
 
-	log(JSON.stringify(c.req.param()), JSON.stringify(c.req.query()));
+	populateReqAttrs(span, c);
 
 	if (platform === "linux" || platform === "win" || platform === "osx")
 		reportUniqueUser(originatingIp(c), platform, `${platform} ${host_version}`, channel, branch, 1);

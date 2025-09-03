@@ -2,25 +2,29 @@ import * as Cache from "./cache.js";
 import { config } from "../config.js";
 import { reportProxyHit, reportProxyMiss } from "../../dashboard/reporting.js";
 import ReusableResponse from "../reusableResponse.js";
-import { log, withLogSection } from "../logger.js";
+import { withSection } from "../tracer.js";
 
 export const getProxyURL = (url) => `/${url.split("/").slice(2).join("/")}`;
 
-function performUrlReplacement(ctxturl, options, rpl, base) {
+function performUrlReplacement(span, ctxturl, options, rpl, base) {
 	const rUrl = ctxturl.replace(/.*:\/\/[^/]*/, "");
 
 	let url = rpl !== undefined ? rUrl.replace(rpl[0], rpl[1]) : rUrl;
 	url = base + getProxyURL(url);
 
-	log("options:", options, "replacement:", rpl, "target:", url);
+	span.setAttributes({
+		"proxy.options": JSON.stringify(options),
+		"proxy.replacement": rpl,
+		"proxy.target": url,
+	});
 
 	return url;
 }
 
-export const getEtag = withLogSection(
+export const getEtag = withSection(
 	"etag check",
-	async (ctxturl, options = {}, rpl = undefined, base = config.apiBases.v1) => {
-		const url = performUrlReplacement(ctxturl, options, rpl, base);
+	async (span, ctxtUrl, options = {}, rpl = undefined, base = config.apiBases.v1) => {
+		const url = performUrlReplacement(span, ctxtUrl, options, rpl, base);
 
 		const resp = await fetch(url, {
 			method: "HEAD",
@@ -31,8 +35,8 @@ export const getEtag = withLogSection(
 	},
 );
 
-export default withLogSection("proxy", async (context, options = {}, rpl = undefined, base = config.apiBases.v1) => {
-	const url = performUrlReplacement(context.req.url, options, rpl, base);
+export default withSection("proxy", async (span, context, options = {}, rpl = undefined, base = config.apiBases.v1) => {
+	const url = performUrlReplacement(span, context.req.url, options, rpl, base);
 
 	const cacheUrl = url.replace(/&_=[0-9]+$/, "");
 	const cached = Cache.get(cacheUrl);
@@ -40,7 +44,7 @@ export default withLogSection("proxy", async (context, options = {}, rpl = undef
 	const now = Date.now();
 
 	if (cached && (now - cached.cachedOn) / 1000 / 60 < config.proxy.cache.maxMinutesToUseCached) {
-		log("cached");
+		span.setAttribute("proxy.cache_hit", true);
 
 		cached.lastUsed = now;
 
@@ -51,14 +55,14 @@ export default withLogSection("proxy", async (context, options = {}, rpl = undef
 
 	reportProxyMiss();
 
-	log("not cached");
+	span.setAttribute("proxy.cache_hit", false);
 
 	const proxRaw = await fetch(url, {
 		headers: { "User-Agent": config.proxy.useragent },
 		...options,
 	});
 
-	log(`got response: ${proxRaw.status}`);
+	span.addEvent(`got response: ${proxRaw.status}`);
 
 	const prox = await ReusableResponse.create(proxRaw);
 	prox.headers.delete("Content-Encoding");
@@ -70,8 +74,6 @@ export default withLogSection("proxy", async (context, options = {}, rpl = undef
 			lastUsed: now,
 		});
 	}
-
-	log("proxy finished");
 
 	// I do not know why hono/undici will not accept my ReusableResponse as is.
 	return prox.toRealRes();
