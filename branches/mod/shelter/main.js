@@ -149,7 +149,26 @@ Module.prototype.require = function (path) {
 			}
 		};
 
-		const host = getHost();
+		electron.ipcMain.handle("SHELTER_HOST_GET", getHost);
+
+		electron.ipcMain.handle("SHELTER_HOST_SET", (_, h) => {
+			const ue1 = settingsApi.get("UPDATE_ENDPOINT");
+			const ue2 = settingsApi.get("NEW_UPDATE_ENDPOINT");
+
+			if (typeof ue1 === "string") {
+				const match = ue1.match(rg);
+				if (match?.[2]) {
+					settingsApi.set("UPDATE_ENDPOINT", `${h}/${match[2]}`);
+				}
+			}
+
+			if (typeof ue2 === "string") {
+				const match = ue2.match(rg);
+				if (match?.[2]) {
+					settingsApi.set("NEW_UPDATE_ENDPOINT", `${h}/${match[2]}`);
+				}
+			}
+		});
 
 		electron.ipcMain.handle("SHELTER_BRANCH_GET", () => {
 			const ue1 = settingsApi.get("UPDATE_ENDPOINT");
@@ -173,6 +192,8 @@ Module.prototype.require = function (path) {
 		});
 
 		electron.ipcMain.handle("SHELTER_BRANCH_SET", (_, b) => {
+			const host = getHost();
+
 			if (b.length) {
 				settingsApi.set("UPDATE_ENDPOINT", `${host}/${b.join("+")}`);
 				settingsApi.set("NEW_UPDATE_ENDPOINT", `${host}/${b.join("+")}/`);

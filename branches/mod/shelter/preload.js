@@ -83,6 +83,27 @@ contextBridge.exposeInMainWorld("SheltupdateNative", {
 		await setBranches(br);
 	},
 
+	getCurrentHost: () => ipcRenderer.invoke("SHELTER_HOST_GET"),
+
+	setCurrentHost: async (host) => {
+		// run validation again to be safe! don't rely on the UI
+		// again, this is security critical!
+		let url;
+		try { url = new URL(host); }
+		catch {}
+
+		if (!url || typeof host !== "string" || url.pathname !== "/" || host.endsWith("/") || (url.protocol !== "http:" && url.protocol !== "https:"))
+			throw new Error("[sheltupdate] invalid host passed to setCurrentHost");
+
+		const res = await ipcRenderer.invoke(
+			"SHELTER_BRANCHCHANGE_SECURITY_DIALOG",
+			`Confirm you want to change sheltupdate instance to ${host}?`,
+		);
+		if (res.response === 0) throw new Error("[sheltupdate] User declined security check");
+
+		await ipcRenderer.invoke("SHELTER_HOST_SET", host);
+	},
+
 	// this is a goofy function to have to write
 	uninstall: async () => {
 		// once again get user permission

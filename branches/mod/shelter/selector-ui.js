@@ -1,16 +1,18 @@
 (() => {
 	const {
 		plugins: { removePlugin },
-		solid: { createSignal, onCleanup },
+		solid: { createSignal, createMemo, onCleanup, untrack },
 		solidH: { html },
 		ui: {
 			Text,
+			TextTags,
 			LinkButton,
 			Divider,
 			Button,
 			ButtonColors,
 			ButtonLooks,
 			ButtonSizes,
+			TextBox,
 			showToast,
 			Header,
 			HeaderTags,
@@ -21,6 +23,8 @@
 			ModalHeader,
 			ModalBody,
 			ModalFooter,
+			ModalConfirmFooter,
+			ModalSizes,
 		},
 	} = shelter;
 
@@ -39,13 +43,18 @@
 	const [branchMetaGrouped, setBranchMetaGrouped] = createSignal();
 	const [currentBranches, setCurrentBranches] = createSignal();
 
+	const [currentHost, setCurrentHost] = createSignal();
+
 	// just because i don't trust myself, keep a copy of the branch before uninstalling sheltupdate.
 	const [uninstallCache, setUninstallCache] = createSignal();
 
 	const [vencordOtherwiseLoaded, setVencordOtherwiseLoaded] = createSignal(false);
 	const [bdOtherwiseLoaded, setBdOtherwiseLoaded] = createSignal(false);
 
-	const updateCurrent = () => SheltupdateNative.getCurrentBranches().then(setCurrentBranches);
+	const updateCurrent = () => Promise.all([
+		SheltupdateNative.getCurrentBranches().then(setCurrentBranches),
+		SheltupdateNative.getCurrentHost().then(setCurrentHost),
+	]);
 	updateCurrent().then(() => {
 		if (window.Vencord && !currentBranches().includes("vencord") && !currentBranches().includes("equicord"))
 			setVencordOtherwiseLoaded(true);
@@ -224,6 +233,8 @@
 					  Uninstall shelter
 				  <//>
 			  </div>
+
+			  <${InstanceName} />
 			`;
 		};
 	}
@@ -263,6 +274,31 @@
 					Revert uninstall
 				<//>
 			</div>
+		`;
+	}
+
+	function InstanceName() {
+		return html`
+			<span>
+				<${Text} tag=${TextTags.textSM}>
+					sheltupdate instance: ${currentHost}
+				<//>
+				<${Button}
+					grow
+					color=${ButtonColors.SECONDARY}
+					size=${ButtonSizes.TINY}
+					style=${{ display: "inline-block", "margin-left": ".5rem" }}
+					onClick=${(e) => openHostChangeModal().then((v) =>
+						SheltupdateNative.setCurrentHost(v).then(updateCurrent, (err) => {
+							updateCurrent();
+							showToast({
+								title: "Failed to change host!",
+								content: err?.message ?? err,
+								duration: 3000,
+							})
+						}))}
+				>Change</Button>
+			</span>
 		`;
 	}
 
@@ -321,5 +357,80 @@
 				`;
 			});
 		});
+	}
+
+	async function openHostChangeModal() {
+		return new Promise((res, rej) =>
+			openModal(({close}) => {
+				onCleanup(rej);
+
+				const [newHost, setNewHost] = createSignal(untrack(currentHost));
+
+				const validationIssue = createMemo(() => {
+					// must be a URL
+					let url;
+					try {
+						url = new URL(newHost());
+					} catch {
+						return "Not a valid URL";
+					}
+
+					// must not have a trailing path, else branch setting logic would break
+					if (url.pathname !== "/")
+						return "Hosts must not have a path";
+
+					// don't have a trailing /
+					if (newHost().endsWith("/"))
+						return "Hosts must not have a trailing /";
+
+					// openasar does not support http
+					if (url.protocol !== "https:") {
+						if (url.protocol === "http:") {
+							if (window.openasar)
+								return "OpenAsar does not work with insecure hosts"
+						}
+						else return "Hosts must be http: or https:";
+					}
+				});
+
+				return html`
+				<${ModalRoot} size=${ModalSizes.MEDIUM}>
+					<${ModalHeader} close=${close}>Change sheltupdate instance<//>
+					<${ModalBody}>
+						<p><${Text}>
+							You can host your own instance of sheltupdate, instead of using uwu.network's official instance,
+							and switch to using it here.
+						<//></p>
+						<p><${Text}>
+							We suggest using the official instance as it is always up-to-date,
+							runs unmodified official sheltupdate code, and has high reliability.
+							We run a
+							<${Space} />
+							<${LinkButton} onClick=${(e) => setNewHost("https://inject.shelter.uwu.network")}>stable instance<//>
+							<${Space} />
+							and a
+							<${Space} />
+							<${LinkButton} onClick=${(e) => setNewHost("https://staging.shelter.uwu.network")}>staging instance<//>.
+						<//></p>
+						<p><${Text}>
+							If someone has told you to change this, be sure you trust them, as the server that you specify here
+							can deliver code to you that will be run when you open Discord, with full access to your computer.
+						<//></p>
+						<${Divider} />
+
+						<${TextBox}
+							value=${newHost}
+							onInput=${(v) => setNewHost(v)}
+							style=${() => validationIssue() ? {border: "1px solid var(--input-border-critical)"} : {}}
+						/>
+						<${Text} tag=${TextTags.textSM} style=${{color: "var(--text-critical)"}}>
+							${validationIssue}
+						<//>
+					<//>
+					<${ModalConfirmFooter} close=${() => close} disabled=${validationIssue} onConfirm=${() => res(newHost())} />
+				<//>
+			`;
+			})
+		);
 	}
 })();
