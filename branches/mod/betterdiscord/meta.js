@@ -5,7 +5,7 @@ import { Writable } from "stream";
 
 export const name = "BetterDiscord";
 export const description = "Injects BetterDiscord; This is not an officially supported BetterDiscord install method";
-export const incompatibilities = ["vencord", "moonlight"];
+export const incompatibilities = ["vencord", "equicord", "moonlight"];
 
 export async function setup(target, log) {
 	log("Downloading latest asar...");

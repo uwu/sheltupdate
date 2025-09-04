@@ -17,6 +17,7 @@ Check the [shelter documentation](https://github.com/uwu/shelter/blob/main/READM
 The [uwu.network instance](https://inject.shelter.uwu.network) of sheltupdate hosts the branches exactly as found in this repository:
  - `shelter` - injects shelter
  - `vencord` - injects Vencord
+ - `equicord` - injects Equicord
  - `betterdiscord` - injects BetterDiscord
  - `moonlight` - injects Moonlight
  - `reactdevtools` - adds React Developer Tools to your client

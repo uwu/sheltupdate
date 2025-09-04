@@ -5,7 +5,7 @@ import tar from "tar";
 
 export const name = "Moonlight";
 export const description = "Injects moonlight; This is not an officially supported moonlight install method";
-export const incompatibilities = ["vencord", "betterdiscord"];
+export const incompatibilities = ["vencord", "equicord", "betterdiscord"];
 
 export async function setup(target, log) {
 	log("Downloading latest bundle...");

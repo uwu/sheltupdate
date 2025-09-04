@@ -1,3 +1,7 @@
+## pending
+ - add Equicord
+ - factor sheltupdate revision into module versions
+
 ## r37
  - make tracing service name configurable
 

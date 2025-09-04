@@ -4,7 +4,7 @@ import { pathToFileURL } from "url";
 import { createHash } from "crypto";
 
 import glob from "glob";
-import { config, srcDir } from "./config.js";
+import { config, srcDir, version as shupVersion } from "./config.js";
 import { cacheBase } from "./fsCache.js";
 import { dcVersion } from "../desktopCore/index.js";
 import { withSection, section } from "./tracer.js";
@@ -125,7 +125,9 @@ const init = withSection("branch finder", async (span) => {
 			const allFiles = glob.sync(`${d}/**/*.*`);
 			const fileHashes = allFiles.map((f) => sha256(readFileSync(f)));
 
-			const version = parseInt(sha256(fileHashes.join(" ") + main + preload + dcVersion).substring(0, 2), 16);
+			// the list of branches is sent along with the module and accounting for that is difficult so
+			// just factor the sheltupdate release number into the version and leave it at that.
+			const version = parseInt(sha256(fileHashes.join(" ") + main + preload + dcVersion + shupVersion).substring(0, 2), 16);
 			const internalFiles = ["main.js", "preload.js", "meta.js"];
 
 			branches[name] = {
