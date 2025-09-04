@@ -8,7 +8,7 @@ export const startTime = Date.now();
 
 export const changelog = readFileSync(resolve(srcDir, "../CHANGELOG.md"), "utf8");
 
-export const version = changelog.match(/(?<=^## r)\d+/)[0];
+export const version = changelog.match(/(?<=^## r)\d+/m)[0];
 
 if (!version) throw new Error("Version number not found, changelog is missing or has invalid format.");
 
