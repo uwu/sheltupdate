@@ -1,3 +1,6 @@
+## r39
+ - Fix moonlight branch fetching wrong asset
+
 ## r38
  - add Equicord
  - factor sheltupdate revision into module versions
