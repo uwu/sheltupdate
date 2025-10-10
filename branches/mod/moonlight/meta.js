@@ -12,7 +12,7 @@ export async function setup(target, log) {
 
 	const url = await fetch("https://api.github.com/repos/moonlight-mod/moonlight/releases/latest")
 		.then((r) => r.json())
-		.then((j) => j.assets.find((a) => a.browser_download_url?.includes(".tar.gz")).browser_download_url);
+		.then((j) => j.assets.find((a) => a.name === "dist.tar.gz").browser_download_url);
 
 	const moonlightPath = join(target, "moonlight");
 	const fileRes = await fetch(url);
