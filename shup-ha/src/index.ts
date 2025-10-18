@@ -271,10 +271,22 @@ export default {
 						"X-Shup-HA-Env": url.hostname,
 					},
 					method: request.method,
+					redirect: "manual",
 					cache: "no-store"
 				});
+				let redirected = resp.status >= 300 && resp.status <= 399;
 
-				if (resp.ok) {
+				if (redirected) {
+					const location = resp.headers.get("location");
+					if (!location) throw new Error("received redirect without location");
+
+					const url = new URL(location);
+					if (url.hostname !== "discord.com") {
+						throw new Error(`node returned unexpected redirect, origin: ${o.name}, redirect: ${location}`);
+					}
+				}
+
+				if (redirected || resp.ok) {
 					// we dont want a slow D1 query in the code path for successful requests, so we dont `await` this.
 					// after about 60 seconds, once KV caches invalidate, the nodes that are failed will be completely skipped,
 					// so those are less of a concern for actually awaiting
@@ -282,13 +294,13 @@ export default {
 
 					// dashboard
 					if (url.pathname === "/") return addNodeHeader(await injectDashboard(resp), o);
-
 					if (url.pathname === "/dashboard.css") return addNodeHeader(await injectDashCss(resp), o);
 
 					return addNodeHeader(resp, o); // :)
 				}
 			} catch (e) {
 				console.error("fetch error:", e);
+				resp = undefined; // make sure node is marked as failed
 			}
 
 			// something went wrong!
@@ -306,25 +318,7 @@ export default {
 		// none of our origins are ok!
 		let proxyPath = "https://discord.com/api/";
 		if (url.pathname.includes("/distributions/") || url.pathname.includes("/distro/app/")) proxyPath += "updates/";
-
-		const res = await fetch(
-			new URL(url.pathname.slice(2 + url.pathname.split("/")[1].length) + url.search, proxyPath).href,
-			{
-				method: request.method,
-				body: request.body,
-				headers: request.headers,
-			}
-		);
-		const newHeads = new Headers(res.headers);
-		newHeads.delete("Content-Encoding");
-		newHeads.set("X-Shup-HA-Env", url.hostname);
-		newHeads.set("X-Shup-HA-Node", "DISCORD_FALLBACK");
-		return new Response(res.body, {
-			status: res.status,
-			headers: newHeads,
-			encodeBody: "manual",
-			webSocket: res.webSocket,
-		});
+		return Response.redirect(new URL(url.pathname.slice(2 + url.pathname.split("/")[1].length) + url.search, proxyPath).href, 307);
 	},
 
 	async scheduled(controller, env, ctx) {
