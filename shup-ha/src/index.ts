@@ -222,7 +222,7 @@ export default {
 					status ? (status.down ? "#d22d39" : "#1b9e77") : "#666666",
 				]);
 
-				if (status?.down === false) hitFirstYet = true;
+				if (status?.down !== OriginStatusType.DOWN) hitFirstYet = true;
 			}
 
 			const toInject = `
@@ -276,7 +276,7 @@ export default {
 		// get proxyin!
 		for (const o of origins) {
 			const status = await getStatus(o.url);
-			if (status && status.down) continue;
+			if (status && status.down !== OriginStatusType.DOWN) continue;
 
 			let resp;
 			try {
