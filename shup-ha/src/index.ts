@@ -276,7 +276,7 @@ export default {
 		// get proxyin!
 		for (const o of origins) {
 			const status = await getStatus(o.url);
-			if (status && status.down !== OriginStatusType.DOWN) continue;
+			if (status && status.down === OriginStatusType.DOWN) continue;
 
 			let resp;
 			try {
