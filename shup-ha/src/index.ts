@@ -105,10 +105,7 @@ async function reportNodeHealth(up: boolean, env: Env, envName: string, origins:
 	const lastAllNodes = lastIncident?.allNodes.split(";") ?? [];
 	if (lastIncident?.allNodes === "") lastAllNodes.pop(); // "" parses to [""] annoyingly
 
-	if (!lastAllNodes.includes(origin.url))
-		lastAllNodes.push(origin.url);
-
-	const newAllNodes = lastAllNodes.sort().join(";");
+	const allNodes = origins.map(o => o.url).sort().join(";")
 
 	// [] feels like a bad default but idfk what else to do
 	const lastNodesUpSet = new Set(lastIncident?.nodesUp.split(";") ?? []);
@@ -130,7 +127,7 @@ async function reportNodeHealth(up: boolean, env: Env, envName: string, origins:
 		INSERT INTO incidents (timestamp, env, nodesUp, allNodes, message)
 		VALUES (unixepoch('subsec'), ?1, ?2, ?3, NULL)
 	`)
-		.bind(envName, newNodesUp, newAllNodes)
+		.bind(envName, newNodesUp, allNodes)
 		.run();
 
 
@@ -138,9 +135,9 @@ async function reportNodeHealth(up: boolean, env: Env, envName: string, origins:
 		? `sheltupdate origin node back up`
 		: `sheltupdate origin node reported down`;
 
-	const healthyNodesMsg = newNodesUp.length === newAllNodes.length
+	const healthyNodesMsg = newNodesUp.length === allNodes.length
 		? `all nodes are healthy`
-		: `healthy nodes left: ${lastNodesUpSet.size} / ${lastAllNodes.length}`;
+		: `healthy nodes left: ${newNodesUp.length} / ${allNodes.length}`;
 
 	await fetch(env.WEBHOOK, {
 		method: "POST",
