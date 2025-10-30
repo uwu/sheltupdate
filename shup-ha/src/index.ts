@@ -10,8 +10,14 @@ type Origin = {
 
 type Config = Record<string, Origin[]>;
 
+enum OriginStatusType {
+	UP = 0, // down: false
+	DOWN = 1, // down: true
+	GRACE // secret third thing
+}
+
 // key is hostname concated with origin url
-type OriginStatus = { down: boolean; when: string };
+type OriginStatus = { down: OriginStatusType; when: string };
 
 type Incident = {
 	timestamp: number,
@@ -49,20 +55,32 @@ function stripUnicode(unicodeStr: string) {
 
 async function reportNodeHealth(up: boolean, env: Env, envName: string, origins: Origin[], origin: Origin) {
 
-	// we have a very limited number of kv put()s so we need to be frugal with them :/
-	// we really want to ALWAYS put our status but its only crucial for nodes that are down soooo
+	let existingStatus = (await env.origin_status.get<OriginStatus>(envName + origin.url, "json"))?.down;
+	// `+` here converts any stored legacy `boolean`s correctly into `OriginStatusType`s
+	existingStatus = existingStatus ? +existingStatus : undefined;
 
-	const shouldPut = !up ||
-		(await env.origin_status.get<OriginStatus>(envName + origin.url, "json"))?.down !== false;
+	// we have a very limited number of kv put()s so we need to be frugal with them
+	// put only if we have a non-up status stored, and the node is going down
+	const shouldPut = !up || existingStatus !== OriginStatusType.UP;
+
+	const newStatusType = up ? OriginStatusType.UP : {
+		[OriginStatusType.UP]: OriginStatusType.GRACE,
+		[OriginStatusType.GRACE]: OriginStatusType.DOWN,
+		[OriginStatusType.DOWN]: OriginStatusType.DOWN,
+	}[existingStatus ?? OriginStatusType.UP];
 
 	if (shouldPut)
 		await env.origin_status.put(
 			envName + origin.url,
 			JSON.stringify({
-				down: !up,
+				down: newStatusType,
 				when: new Date().toISOString(),
 			} satisfies OriginStatus)
 		);
+
+	// don't log in the database the first time we encounter
+	// a downtime, as often cloudflare blinks and a service goes for just one second or so
+	if (newStatusType === OriginStatusType.GRACE) return;
 
 	// check if this node status is already recorded in D1
 	const lastIncident = await env.incidents_db.prepare(`
