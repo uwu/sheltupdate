@@ -3,10 +3,10 @@
 
   "manifest_version": 3,
   "name": "React Developer Tools",
-  "description": "Adds React debugging tools to the Chrome Developer Tools.\n\nCreated from revision c7c68ef842 on 10/15/2024.",
-  "version": "6.0.1",
-  "version_name": "6.0.1 (10/15/2024)",
-  "minimum_chrome_version": "102",
+  "description": "Adds React debugging tools to the Chrome Developer Tools.\n\nCreated from revision 3cde211b0c on 10/20/2025.",
+  "version": "7.0.1",
+  "version_name": "7.0.1 (10/20/2025)",
+  "minimum_chrome_version": "114",
   "icons": {
     "16": "icons/16-production.png",
     "32": "icons/32-production.png",
@@ -46,6 +46,9 @@
     "scripting",
     "storage",
     "tabs"
+  ],
+  "optional_permissions": [
+    "clipboardWrite"
   ],
   "host_permissions": [
     "<all_urls>"
