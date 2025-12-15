@@ -1,3 +1,6 @@
+## r40
+ - Update React Devtools (6.0.1 -> 7.0.1)
+
 ## r39
  - Fix moonlight branch fetching wrong asset
 
