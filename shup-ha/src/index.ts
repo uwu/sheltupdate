@@ -105,11 +105,15 @@ async function reportNodeHealth(up: boolean, env: Env, envName: string, origins:
 	const lastAllNodes = lastIncident?.allNodes.split(";") ?? [];
 	if (lastIncident?.allNodes === "") lastAllNodes.pop(); // "" parses to [""] annoyingly
 
-	const allNodes = origins.map(o => o.url).sort().join(";")
+	const allNodesArr = origins.map(o => o.url).sort();
+	const allNodes = allNodesArr.join(";");
+	const allNodesSet = new Set(allNodesArr);
 
 	// [] feels like a bad default but idfk what else to do
 	const lastNodesUpSet = new Set(lastIncident?.nodesUp.split(";") ?? []);
 	if (lastIncident?.nodesUp === "") lastNodesUpSet.clear(); // "" still parses to [""]
+	for (const node of lastNodesUpSet)
+		if (!allNodesSet.has(node)) lastNodesUpSet.delete(node);
 
 	if (lastNodesUpSet.has(origin.url) !== up) {
 		if (up)
@@ -118,7 +122,8 @@ async function reportNodeHealth(up: boolean, env: Env, envName: string, origins:
 			lastNodesUpSet.delete(origin.url);
 	}
 
-	const newNodesUp = [...lastNodesUpSet].sort().join(";");
+	const newNodesUpArr = [...lastNodesUpSet].filter((node) => allNodesSet.has(node)).sort();
+	const newNodesUp = newNodesUpArr.join(";");
 
 	// insert incident report into the database
 	// message is null because that field is exclusivley for manually added outages
@@ -135,9 +140,9 @@ async function reportNodeHealth(up: boolean, env: Env, envName: string, origins:
 		? `sheltupdate origin node back up`
 		: `sheltupdate origin node reported down`;
 
-	const healthyNodesMsg = newNodesUp.length === allNodes.length
+	const healthyNodesMsg = newNodesUpArr.length === allNodesArr.length
 		? `all nodes are healthy`
-		: `healthy nodes left: ${newNodesUp.length} / ${allNodes.length}`;
+		: `healthy nodes left: ${newNodesUpArr.length} / ${allNodesArr.length}`;
 
 	await fetch(env.WEBHOOK, {
 		method: "POST",
@@ -173,7 +178,6 @@ async function checkAndReportHealth(env: Env, environment: string, CONFIG: Confi
 
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
-
 		const CONFIG = parseConfig(env.SHUP_CFG);
 
 		const url = new URL(request.url);
