@@ -327,8 +327,8 @@ export default {
 
 			console.log("request failed,", considerNodeFailed ? "rolling over" : "returning error", url.hostname, o.name, { status: resp?.status, headers: resp && Object.fromEntries(resp.headers.entries()) });
 
-			if (considerNodeFailed)
-				await reportNodeHealth(false, env, url.hostname, origins, o);
+			//if (considerNodeFailed)
+			//	await reportNodeHealth(false, env, url.hostname, origins, o);
 
 			// the user might just be stupid and have hit a 404 or something
 			if (resp && !considerNodeFailed) return addNodeHeader(resp, o);
