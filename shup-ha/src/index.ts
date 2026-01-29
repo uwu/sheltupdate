@@ -309,7 +309,7 @@ export default {
 					// we dont want a slow D1 query in the code path for successful requests, so we dont `await` this.
 					// after about 60 seconds, once KV caches invalidate, the nodes that are failed will be completely skipped,
 					// so those are less of a concern for actually awaiting
-					ctx.waitUntil(checkAndReportHealth(env, url.hostname, CONFIG, o));
+					//ctx.waitUntil(checkAndReportHealth(env, url.hostname, CONFIG, o));
 
 					// dashboard
 					if (url.pathname === "/") return addNodeHeader(await injectDashboard(resp), o);
@@ -327,8 +327,8 @@ export default {
 
 			console.log("request failed,", considerNodeFailed ? "rolling over" : "returning error", url.hostname, o.name, { status: resp?.status, headers: resp && Object.fromEntries(resp.headers.entries()) });
 
-			//if (considerNodeFailed)
-			//	await reportNodeHealth(false, env, url.hostname, origins, o);
+			if (considerNodeFailed)
+				await reportNodeHealth(false, env, url.hostname, origins, o);
 
 			// the user might just be stupid and have hit a 404 or something
 			if (resp && !considerNodeFailed) return addNodeHeader(resp, o);
