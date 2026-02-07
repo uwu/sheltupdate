@@ -12,9 +12,7 @@
 	},
 
 	"triggers": {
-		"crons": [
-			"*/5 * * * *"
-		]
+		"crons": ["*/5 * * * *"]
 	},
 
 	/**
@@ -39,8 +37,7 @@
 	 * https://developers.cloudflare.com/workers/configuration/secrets/
 	 */
 
-
-	 // origin statuses need to be fast to access cause of latency so they live in KV
+	// origin statuses need to be fast to access cause of latency so they live in KV
 	"kv_namespaces": [
 		{
 			"binding": "origin_status",

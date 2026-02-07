@@ -89,10 +89,17 @@ contextBridge.exposeInMainWorld("SheltupdateNative", {
 		// run validation again to be safe! don't rely on the UI
 		// again, this is security critical!
 		let url;
-		try { url = new URL(host); }
-		catch {}
+		try {
+			url = new URL(host);
+		} catch {}
 
-		if (!url || typeof host !== "string" || url.pathname !== "/" || host.endsWith("/") || (url.protocol !== "http:" && url.protocol !== "https:"))
+		if (
+			!url ||
+			typeof host !== "string" ||
+			url.pathname !== "/" ||
+			host.endsWith("/") ||
+			(url.protocol !== "http:" && url.protocol !== "https:")
+		)
 			throw new Error("[sheltupdate] invalid host passed to setCurrentHost");
 
 		const res = await ipcRenderer.invoke(

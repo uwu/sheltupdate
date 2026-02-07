@@ -51,10 +51,11 @@
 	const [vencordOtherwiseLoaded, setVencordOtherwiseLoaded] = createSignal(false);
 	const [bdOtherwiseLoaded, setBdOtherwiseLoaded] = createSignal(false);
 
-	const updateCurrent = () => Promise.all([
-		SheltupdateNative.getCurrentBranches().then(setCurrentBranches),
-		SheltupdateNative.getCurrentHost().then(setCurrentHost),
-	]);
+	const updateCurrent = () =>
+		Promise.all([
+			SheltupdateNative.getCurrentBranches().then(setCurrentBranches),
+			SheltupdateNative.getCurrentHost().then(setCurrentHost),
+		]);
 	updateCurrent().then(() => {
 		if (window.Vencord && !currentBranches().includes("vencord") && !currentBranches().includes("equicord"))
 			setVencordOtherwiseLoaded(true);
@@ -288,15 +289,17 @@
 					color=${ButtonColors.SECONDARY}
 					size=${ButtonSizes.TINY}
 					style=${{ display: "inline-block", "margin-left": ".5rem" }}
-					onClick=${(e) => openHostChangeModal().then((v) =>
-						SheltupdateNative.setCurrentHost(v).then(updateCurrent, (err) => {
-							updateCurrent();
-							showToast({
-								title: "Failed to change host!",
-								content: err?.message ?? err,
-								duration: 3000,
-							})
-						}))}
+					onClick=${(e) =>
+						openHostChangeModal().then((v) =>
+							SheltupdateNative.setCurrentHost(v).then(updateCurrent, (err) => {
+								updateCurrent();
+								showToast({
+									title: "Failed to change host!",
+									content: err?.message ?? err,
+									duration: 3000,
+								});
+							}),
+						)}
 				>Change</Button>
 			</span>
 		`;
@@ -361,7 +364,7 @@
 
 	async function openHostChangeModal() {
 		return new Promise((res, rej) =>
-			openModal(({close}) => {
+			openModal(({ close }) => {
 				onCleanup(rej);
 
 				const [newHost, setNewHost] = createSignal(untrack(currentHost));
@@ -376,20 +379,16 @@
 					}
 
 					// must not have a trailing path, else branch setting logic would break
-					if (url.pathname !== "/")
-						return "Hosts must not have a path";
+					if (url.pathname !== "/") return "Hosts must not have a path";
 
 					// don't have a trailing /
-					if (newHost().endsWith("/"))
-						return "Hosts must not have a trailing /";
+					if (newHost().endsWith("/")) return "Hosts must not have a trailing /";
 
 					// openasar does not support http
 					if (url.protocol !== "https:") {
 						if (url.protocol === "http:") {
-							if (window.openasar)
-								return "OpenAsar does not work with insecure hosts"
-						}
-						else return "Hosts must be http: or https:";
+							if (window.openasar) return "OpenAsar does not work with insecure hosts";
+						} else return "Hosts must be http: or https:";
 					}
 				});
 
@@ -421,16 +420,16 @@
 						<${TextBox}
 							value=${newHost}
 							onInput=${(v) => setNewHost(v)}
-							style=${() => validationIssue() ? {border: "1px solid var(--input-border-critical)"} : {}}
+							style=${() => (validationIssue() ? { border: "1px solid var(--input-border-critical)" } : {})}
 						/>
-						<${Text} tag=${TextTags.textSM} style=${{color: "var(--text-critical)"}}>
+						<${Text} tag=${TextTags.textSM} style=${{ color: "var(--text-critical)" }}>
 							${validationIssue}
 						<//>
 					<//>
 					<${ModalConfirmFooter} close=${() => close} disabled=${validationIssue} onConfirm=${() => res(newHost())} />
 				<//>
 			`;
-			})
+			}),
 		);
 	}
 })();
