@@ -1,4 +1,4 @@
-import { rm } from "fs/promises";
+import { copyFile, rm } from "fs/promises";
 import { createWriteStream, mkdirSync } from "fs";
 import { join } from "path";
 import { Writable } from "stream";
@@ -21,6 +21,11 @@ export async function setup(target, log) {
 		const req = await fetch(releaseUrl + f);
 		await req.body.pipeTo(Writable.toWeb(createWriteStream(p)));
 	}
+
+	const preloadSource = join(target, "vencord-desktop", "vencordDesktopPreload.js");
+	const preloadAlias = join(target, "vencord-desktop", "preload.js");
+	await rm(preloadAlias, { force: true });
+	await copyFile(preloadSource, preloadAlias);
 
 	log("Done!");
 }
