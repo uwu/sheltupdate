@@ -56,7 +56,7 @@ function stripUnicode(unicodeStr: string) {
 async function reportNodeHealth(up: boolean, env: Env, envName: string, origins: Origin[], origin: Origin) {
 	let existingStatus = (await env.origin_status.get<OriginStatus>(envName + origin.url, "json"))?.down;
 	// `+` here converts any stored legacy `boolean`s correctly into `OriginStatusType`s
-	existingStatus = existingStatus ? +existingStatus : undefined;
+	existingStatus = existingStatus != null ? +existingStatus : undefined;
 
 	// we have a very limited number of kv put()s so we need to be frugal with them
 	// put only if we have a non-up status stored, and the node is going down
