@@ -85,12 +85,14 @@ async function reportNodeHealth(up: boolean, env: Env, envName: string, origins:
 
 	// check if this node status is already recorded in D1
 	const lastIncident = await env.incidents_db
-		.prepare(`
+		.prepare(
+			`
 			SELECT * FROM incidents
 			WHERE env = ? AND message IS NULL
 			ORDER BY timestamp DESC
 			LIMIT 1
-		`)
+		`,
+		)
 		.bind(envName)
 		.first<Incident>();
 
@@ -127,10 +129,12 @@ async function reportNodeHealth(up: boolean, env: Env, envName: string, origins:
 	// message is null because that field is exclusivley for manually added outages
 	// in which case, nodesUp and allNodes will be null instead
 	await env.incidents_db
-		.prepare(`
+		.prepare(
+			`
 		INSERT INTO incidents (timestamp, env, nodesUp, allNodes, message)
 		VALUES (unixepoch('subsec'), ?1, ?2, ?3, NULL)
-	`)
+	`,
+		)
 		.bind(envName, newNodesUp, allNodes)
 		.run();
 
@@ -308,7 +312,7 @@ export default {
 					// we dont want a slow D1 query in the code path for successful requests, so we dont `await` this.
 					// after about 60 seconds, once KV caches invalidate, the nodes that are failed will be completely skipped,
 					// so those are less of a concern for actually awaiting
-					//ctx.waitUntil(checkAndReportHealth(env, url.hostname, CONFIG, o));
+					ctx.waitUntil(checkAndReportHealth(env, url.hostname, CONFIG, o));
 
 					// dashboard
 					if (url.pathname === "/") return addNodeHeader(await injectDashboard(resp), o);
