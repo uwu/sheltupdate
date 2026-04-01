@@ -5,7 +5,7 @@ import { mkdirSync, writeFileSync, readFileSync, cpSync, rmSync } from "fs";
 import { join, relative, win32, posix } from "path";
 
 import tar from "tar";
-import glob from "glob";
+import { globSync } from "tinyglobby";
 
 import { brotliDecompressSync, brotliCompressSync, constants } from "zlib";
 import { ensureBranchIsReady, getBranch, getSingleBranchMetas } from "../common/branchesLoader.js";
@@ -187,7 +187,7 @@ const patchFs = withSection("v2 module patcher", async (span, m, branchName) => 
 			cpSync(cacheDir, filesDir, { recursive: true });
 		}
 
-		const allFiles = glob.sync(`${filesDir}/**/*.*`);
+		const allFiles = globSync("**/*.*", { cwd: filesDir, absolute: true });
 		for (const f of allFiles) {
 			// The updater always expects '/' as separator in delta_manifest.json (regardless of platform)
 			const key = relative(filesDir, f).replaceAll(win32.sep, posix.sep);

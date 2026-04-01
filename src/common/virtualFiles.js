@@ -1,6 +1,5 @@
 import { Readable } from "stream";
-import archiver from "archiver";
-import unzipper from "unzipper";
+import { ZipReader, ZipWriter, Uint8ArrayReader, Uint8ArrayWriter } from "@zip.js/zip.js";
 import tarStream from "tar-stream";
 
 // A virtual file tree is a Map<string, Buffer> where keys are posix-style relative paths.
@@ -18,35 +17,29 @@ export const streamToBuffer = async (stream) => {
 
 export const readZip = async (buffer) => {
 	const files = new Map();
-	const dir = await unzipper.Open.buffer(buffer);
+	const reader = new ZipReader(new Uint8ArrayReader(new Uint8Array(buffer)));
+	const entries = await reader.getEntries();
 
-	for (const entry of dir.files) {
-		if (entry.type === "Directory") continue;
-		const path = normalizePath(entry.path);
-		files.set(path, await entry.buffer());
+	for (const entry of entries) {
+		if (entry.directory) continue;
+		const path = normalizePath(entry.filename);
+		const data = await entry.getData(new Uint8ArrayWriter());
+		files.set(path, Buffer.from(data));
 	}
 
+	await reader.close();
 	return files;
 };
 
 export const writeZip = async (files) => {
-	const archive = archiver("zip");
-	const chunks = [];
-
-	const done = new Promise((resolve, reject) => {
-		archive.on("data", (chunk) => chunks.push(chunk));
-		archive.on("end", () => resolve());
-		archive.on("error", reject);
-	});
+	const writer = new ZipWriter(new Uint8ArrayWriter());
 
 	for (const [path, data] of [...files.entries()].sort(([a], [b]) => a.localeCompare(b))) {
-		archive.append(data, { name: path });
+		await writer.add(path, new Uint8ArrayReader(new Uint8Array(data)));
 	}
 
-	archive.finalize();
-	await done;
-
-	return Buffer.concat(chunks);
+	const result = await writer.close();
+	return Buffer.from(result);
 };
 
 export const readTar = async (buffer) => {

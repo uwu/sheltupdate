@@ -1,10 +1,7 @@
-import { readFileSync, writeFileSync, cpSync, createWriteStream, rmSync } from "fs";
+import { mkdirSync, readFileSync, writeFileSync, cpSync, rmSync, readdirSync, statSync } from "fs";
 
 import stream from "stream";
-import { join } from "path";
-
-import unzipper from "unzipper";
-import archiver from "archiver";
+import { join, relative, posix, win32 } from "path";
 
 import basicProxy from "../../common/proxy/index.js";
 import { ensureBranchIsReady, getBranch, getSingleBranchMetas } from "../../common/branchesLoader.js";
@@ -37,6 +34,19 @@ const patchInMemory = withSection("v1 module patcher", async (span, c) => {
 	return await section("create module zip", () => writeZip(files));
 });
 
+const collectFiles = (dir) => {
+	const files = new Map();
+	const walk = (d) => {
+		for (const entry of readdirSync(d)) {
+			const full = join(d, entry);
+			if (statSync(full).isDirectory()) walk(full);
+			else files.set(relative(dir, full).replaceAll(win32.sep, posix.sep), readFileSync(full));
+		}
+	};
+	walk(dir);
+	return files;
+};
+
 const patchFs = withSection("v1 module patcher", async (span, c, cacheDir, cacheFinalFile) => {
 	const { branch: branch_, /*channel,*/ version } = c.req.param();
 	//const { platform, host_version } = c.req.query();
@@ -48,16 +58,17 @@ const patchFs = withSection("v1 module patcher", async (span, c, cacheDir, cache
 
 	const cacheExtractDir = join(cacheDir, "extract" + Math.random().toString(16));
 
-	const s = await section("download original module", async () => {
+	await section("download and extract original module", async () => {
 		const prox = await basicProxy(c, {}, [version, version.substring(branch.version.toString().length)]);
+		const zipBuffer = await streamToBuffer(stream.Readable.from(prox.body));
+		const files = await readZip(zipBuffer);
 
-		let s = stream.Readable.from(prox.body);
-
-		let t = s.pipe(unzipper.Extract({ path: cacheExtractDir }));
-
-		await new Promise((res) => t.on("close", res));
-
-		return s;
+		mkdirSync(cacheExtractDir, { recursive: true });
+		for (const [path, data] of files) {
+			const dest = join(cacheExtractDir, path);
+			mkdirSync(join(dest, ".."), { recursive: true });
+			writeFileSync(dest, data);
+		}
 	});
 
 	section("copy files", () => {
@@ -71,23 +82,9 @@ const patchFs = withSection("v1 module patcher", async (span, c, cacheDir, cache
 	});
 
 	await section("create module zip", async () => {
-		const outputStream = createWriteStream(`${cacheFinalFile}`);
-
-		const archive = archiver("zip");
-
-		archive.pipe(outputStream);
-
-		archive.directory(cacheExtractDir, false);
-
-		archive.finalize();
-
-		await new Promise((res) => outputStream.on("close", res));
-
-		s.destroy();
-
-		outputStream.close();
-		outputStream.destroy();
-
+		const files = collectFiles(cacheExtractDir);
+		const finalBuf = await writeZip(files);
+		writeFileSync(cacheFinalFile, finalBuf);
 		rmSync(cacheExtractDir, { recursive: true });
 	});
 

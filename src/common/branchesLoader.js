@@ -3,7 +3,7 @@ import { join, basename, relative, win32, posix } from "path";
 import { pathToFileURL } from "url";
 import { createHash } from "crypto";
 
-import glob from "glob";
+import { globSync } from "tinyglobby";
 import { config, srcDir, version as shupVersion } from "./config.js";
 import { cacheBase, inMemory } from "./fsCache.js";
 import { dcVersion } from "../desktopCore/index.js";
@@ -66,7 +66,9 @@ const getBranchFilesCacheDir = (b) => join(cacheBase, `extra-files-${b}`);
 const init = withSection("branch finder", async (span) => {
 	const branchDir = join(srcDir, "..", "branches");
 
-	const dirs = glob.sync(join(branchDir, "*", "*"));
+	const dirs = globSync("*/*", { cwd: branchDir, onlyDirectories: true, absolute: true }).map((d) =>
+		d.replace(/\/+$/, ""),
+	);
 
 	span.addEvent("found branch list", { dirs });
 
@@ -77,7 +79,7 @@ const init = withSection("branch finder", async (span) => {
 			const name = splits.pop();
 			const type = splits.pop();
 
-			let files = glob.sync(`${d}/*`);
+			let files = globSync("*", { cwd: d, absolute: true, onlyFiles: false }).map((f) => f.replace(/\/+$/, ""));
 
 			let main = "";
 			let preload = "";
@@ -118,7 +120,7 @@ const init = withSection("branch finder", async (span) => {
 					const filename = basename(f);
 					if (internalFiles.has(filename)) continue;
 
-					const subFiles = glob.sync(`${f}/**/*.*`);
+					const subFiles = globSync("**/*.*", { cwd: f, absolute: true });
 					if (subFiles.length > 0) {
 						for (const sf of subFiles) {
 							const relPath = relative(d, sf).replaceAll(win32.sep, posix.sep);
@@ -130,7 +132,7 @@ const init = withSection("branch finder", async (span) => {
 					}
 				}
 
-				const allFiles = glob.sync(`${d}/**/*.*`);
+				const allFiles = globSync("**/*.*", { cwd: d, absolute: true });
 				const fileHashes = allFiles.map((f) => sha256(readFileSync(f)));
 
 				const version = parseInt(
@@ -163,7 +165,7 @@ const init = withSection("branch finder", async (span) => {
 					cpSync(oldPath, newPath, { recursive: true });
 				}
 
-				const allFiles = glob.sync(`${d}/**/*.*`);
+				const allFiles = globSync("**/*.*", { cwd: d, absolute: true });
 				const fileHashes = allFiles.map((f) => sha256(readFileSync(f)));
 
 				const version = parseInt(
@@ -348,7 +350,7 @@ const runBranchSetups = withSection("periodic branch setups", async (span) => {
 					throw e;
 				}
 
-				const allFiles = glob.sync(`${cacheDir}/**/*.*`);
+				const allFiles = globSync("**/*.*", { cwd: cacheDir, absolute: true });
 				branches[b].cacheDirs = [cacheDir];
 				branches[b].files = allFiles;
 
