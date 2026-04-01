@@ -11,9 +11,10 @@ import { brotliDecompressSync, brotliCompressSync, constants } from "zlib";
 import { ensureBranchIsReady, getBranch, getSingleBranchMetas } from "../common/branchesLoader.js";
 import { section, withSection } from "../common/tracer.js";
 import { SpanStatusCode } from "@opentelemetry/api";
-import { cacheBase } from "../common/fsCache.js";
+import { cacheBase, inMemory } from "../common/fsCache.js";
 import { reportV2Cached, reportV2Patched } from "../dashboard/reporting.js";
 import { dcMain, dcPreload } from "../desktopCore/index.js";
+import { readTar, writeTar, overlayFiles, setText } from "../common/virtualFiles.js";
 
 const cache = {};
 
@@ -43,7 +44,86 @@ const brotlify = withSection("brotli", (span, buf) =>
 	brotliCompressSync(buf, { params: { [constants.BROTLI_PARAM_QUALITY]: 9 } }),
 );
 
-export const patch = withSection("v2 module patcher", async (span, m, branchName) => {
+const patchInMemory = withSection("v2 module patcher", async (span, m, branchName) => {
+	const cacheName = getCacheName("discord_desktop_core", m.module_version, branchName);
+
+	const cached = cache[cacheName];
+	if (cached) {
+		const expectedSource = cacheDigests.get(cached.hash);
+
+		if (expectedSource && expectedSource === m.package_sha256) {
+			reportV2Cached();
+			return cached.hash;
+		} else {
+			cacheDigests.delete(cached.hash);
+			delete cache[cacheName];
+		}
+	}
+	reportV2Patched();
+
+	await ensureBranchIsReady(branchName);
+
+	const branch = getBranch(branchName);
+
+	const tarBuffer = await section("download original module", async () => {
+		const data = await download(m.url);
+		return brotliDecompressSync(data);
+	});
+
+	const files = await section("extract original module", () => readTar(tarBuffer));
+
+	section("patch module files", () => {
+		let deltaManifest = JSON.parse(files.get("delta_manifest.json").toString("utf8"));
+
+		const moddedIndex = dcMain.replace("// __BRANCHES_MAIN__", branch.main);
+		setText(files, "files/index.js", moddedIndex);
+		deltaManifest.files["index.js"] = { New: { Sha256: sha256(moddedIndex) } };
+
+		const moddedPreload = dcPreload.replace("// __BRANCHES_PRELOAD__", branch.preload);
+		setText(files, "files/preload.js", moddedPreload);
+		deltaManifest.files["preload.js"] = { New: { Sha256: sha256(moddedPreload) } };
+
+		const availableBranches = JSON.stringify(getSingleBranchMetas(), null, 4);
+		setText(files, "files/branches.json", availableBranches);
+		deltaManifest.files["branches.json"] = { New: { Sha256: sha256(availableBranches) } };
+
+		for (const [relPath, data] of branch.extraFiles) {
+			const archivePath = posix.join("files", relPath);
+			files.set(archivePath, data);
+		}
+
+		for (const [path, data] of files) {
+			if (!path.startsWith("files/")) continue;
+			const key = path.slice("files/".length);
+			deltaManifest.files[key] = {
+				New: {
+					Sha256: sha256(data),
+				},
+			};
+		}
+
+		setText(files, "delta_manifest.json", JSON.stringify(deltaManifest));
+	});
+
+	return await section("compress final module", async () => {
+		const tarBuf = await writeTar(files);
+
+		const final = brotlify(tarBuf);
+
+		const finalHash = sha256(final);
+
+		cache[cacheName] = {
+			hash: finalHash,
+			final,
+		};
+
+		cacheDigests.set(finalHash, m.package_sha256);
+
+		return finalHash;
+	});
+});
+
+const patchFs = withSection("v2 module patcher", async (span, m, branchName) => {
 	const cacheName = getCacheName("discord_desktop_core", m.module_version, branchName);
 
 	const cached = cache[cacheName];
@@ -152,6 +232,8 @@ export const patch = withSection("v2 module patcher", async (span, m, branchName
 	});
 });
 
+export const patch = inMemory ? patchInMemory : patchFs;
+
 export const getFinal = withSection("v2 module patcher", (span, req) => {
 	const moduleName = req.param("moduleName");
 	const moduleVersion = req.param("moduleVersion");
@@ -169,5 +251,3 @@ export const getFinal = withSection("v2 module patcher", (span, req) => {
 
 	return cached.final;
 });
-
-// export const getChecksum = async (m, branch) => sha256(await patch(m, branch));

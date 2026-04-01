@@ -14,13 +14,17 @@ export async function setup(target, log) {
 		.then((r) => r.json())
 		.then((j) => j.assets.find((a) => a.browser_download_url?.includes(".asar")).browser_download_url);
 
-	const asarPath = join(target, "betterdiscord.asar");
+	if (typeof target === "string") {
+		const asarPath = join(target, "betterdiscord.asar");
 
-	const fileRes = await fetch(url);
+		const fileRes = await fetch(url);
 
-	// pipe into file
-	await rm(asarPath, { force: true });
-	await fileRes.body.pipeTo(Writable.toWeb(createWriteStream(asarPath)));
+		// pipe into file
+		await rm(asarPath, { force: true });
+		await fileRes.body.pipeTo(Writable.toWeb(createWriteStream(asarPath)));
+	} else {
+		await target.downloadTo("betterdiscord.asar", url);
+	}
 
 	log("Done!");
 }

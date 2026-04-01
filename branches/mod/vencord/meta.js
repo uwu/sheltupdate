@@ -10,22 +10,43 @@ export const incompatibilities = ["betterdiscord", "equicord", "moonlight"];
 export async function setup(target, log) {
 	const releaseUrl = "https://github.com/Vendicated/Vencord/releases/download/devbuild/";
 
-	mkdirSync(join(target, "vencord-desktop"), { recursive: true });
+	if (typeof target === "string") {
+		mkdirSync(join(target, "vencord-desktop"), { recursive: true });
 
-	for (const f of ["vencordDesktopMain.js", "vencordDesktopPreload.js", "renderer.js", "vencordDesktopRenderer.css"]) {
-		log(`Downloading ${f}...`);
+		for (const f of [
+			"vencordDesktopMain.js",
+			"vencordDesktopPreload.js",
+			"renderer.js",
+			"vencordDesktopRenderer.css",
+		]) {
+			log(`Downloading ${f}...`);
 
-		const p = join(target, "vencord-desktop", f);
-		await rm(p, { force: true });
+			const p = join(target, "vencord-desktop", f);
+			await rm(p, { force: true });
 
-		const req = await fetch(releaseUrl + f);
-		await req.body.pipeTo(Writable.toWeb(createWriteStream(p)));
+			const req = await fetch(releaseUrl + f);
+			await req.body.pipeTo(Writable.toWeb(createWriteStream(p)));
+		}
+
+		const preloadSource = join(target, "vencord-desktop", "vencordDesktopPreload.js");
+		const preloadAlias = join(target, "vencord-desktop", "preload.js");
+		await rm(preloadAlias, { force: true });
+		await copyFile(preloadSource, preloadAlias);
+	} else {
+		for (const f of [
+			"vencordDesktopMain.js",
+			"vencordDesktopPreload.js",
+			"renderer.js",
+			"vencordDesktopRenderer.css",
+		]) {
+			log(`Downloading ${f}...`);
+			await target.downloadTo(`vencord-desktop/${f}`, releaseUrl + f);
+		}
+
+		const res = await fetch(releaseUrl + "vencordDesktopPreload.js");
+		const buf = Buffer.from(await res.arrayBuffer());
+		target.writeFile("vencord-desktop/preload.js", buf);
 	}
-
-	const preloadSource = join(target, "vencord-desktop", "vencordDesktopPreload.js");
-	const preloadAlias = join(target, "vencord-desktop", "preload.js");
-	await rm(preloadAlias, { force: true });
-	await copyFile(preloadSource, preloadAlias);
 
 	log("Done!");
 }

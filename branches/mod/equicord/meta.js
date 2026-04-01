@@ -11,16 +11,23 @@ export const incompatibilities = ["betterdiscord", "vencord", "moonlight"];
 export async function setup(target, log) {
 	const releaseUrl = "https://github.com/Equicord/Equicord/releases/download/latest/";
 
-	mkdirSync(join(target, "equicord-desktop"), { recursive: true });
+	if (typeof target === "string") {
+		mkdirSync(join(target, "equicord-desktop"), { recursive: true });
 
-	for (const f of ["equibopMain.js", "equibopPreload.js", "renderer.js", "renderer.css"]) {
-		log(`Downloading ${f}...`);
+		for (const f of ["equibopMain.js", "equibopPreload.js", "renderer.js", "renderer.css"]) {
+			log(`Downloading ${f}...`);
 
-		const p = join(target, "equicord-desktop", f);
-		await rm(p, { force: true });
+			const p = join(target, "equicord-desktop", f);
+			await rm(p, { force: true });
 
-		const req = await fetch(releaseUrl + f);
-		await req.body.pipeTo(Writable.toWeb(createWriteStream(p)));
+			const req = await fetch(releaseUrl + f);
+			await req.body.pipeTo(Writable.toWeb(createWriteStream(p)));
+		}
+	} else {
+		for (const f of ["equibopMain.js", "equibopPreload.js", "renderer.js", "renderer.css"]) {
+			log(`Downloading ${f}...`);
+			await target.downloadTo(`equicord-desktop/${f}`, releaseUrl + f);
+		}
 	}
 
 	log("Done!");

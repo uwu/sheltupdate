@@ -1,13 +1,14 @@
 import { mkdirSync, readFileSync, cpSync } from "fs";
-import { join, basename } from "path";
+import { join, basename, relative, win32, posix } from "path";
 import { pathToFileURL } from "url";
 import { createHash } from "crypto";
 
 import glob from "glob";
 import { config, srcDir, version as shupVersion } from "./config.js";
-import { cacheBase } from "./fsCache.js";
+import { cacheBase, inMemory } from "./fsCache.js";
 import { dcVersion } from "../desktopCore/index.js";
 import { withSection, section } from "./tracer.js";
+import { overlayFiles } from "./virtualFiles.js";
 
 let branches = {};
 
@@ -108,44 +109,82 @@ const init = withSection("branch finder", async (span) => {
 				}
 			}
 
-			// copy extra files into cache
-			const cacheDir = getBranchFilesCacheDir(name);
-			mkdirSync(cacheDir);
+			const internalFiles = new Set(["main.js", "preload.js", "meta.js"]);
 
-			for (let i = 0; i < files.length; i++) {
-				const oldPath = files[i];
-				const newPath = join(cacheDir, oldPath.slice(d.length + 1));
-				files[i] = newPath;
+			if (inMemory) {
+				// read extra files into memory
+				const extraFiles = new Map();
+				for (const f of files) {
+					const filename = basename(f);
+					if (internalFiles.has(filename)) continue;
 
-				cpSync(oldPath, newPath, { recursive: true });
+					const subFiles = glob.sync(`${f}/**/*.*`);
+					if (subFiles.length > 0) {
+						for (const sf of subFiles) {
+							const relPath = relative(d, sf).replaceAll(win32.sep, posix.sep);
+							extraFiles.set(relPath, readFileSync(sf));
+						}
+					} else {
+						const relPath = relative(d, f).replaceAll(win32.sep, posix.sep);
+						extraFiles.set(relPath, readFileSync(f));
+					}
+				}
+
+				const allFiles = glob.sync(`${d}/**/*.*`);
+				const fileHashes = allFiles.map((f) => sha256(readFileSync(f)));
+
+				const version = parseInt(
+					sha256(fileHashes.join(" ") + main + preload + dcVersion + shupVersion).substring(0, 2),
+					16,
+				);
+
+				branches[name] = {
+					extraFiles,
+					main,
+					preload,
+					version,
+					type,
+					displayName,
+					description,
+					incompatibilities,
+					hidden,
+					setup,
+				};
+			} else {
+				// copy extra files into cache dir on disk
+				const cacheDir = getBranchFilesCacheDir(name);
+				mkdirSync(cacheDir);
+
+				for (let i = 0; i < files.length; i++) {
+					const oldPath = files[i];
+					const newPath = join(cacheDir, oldPath.slice(d.length + 1));
+					files[i] = newPath;
+
+					cpSync(oldPath, newPath, { recursive: true });
+				}
+
+				const allFiles = glob.sync(`${d}/**/*.*`);
+				const fileHashes = allFiles.map((f) => sha256(readFileSync(f)));
+
+				const version = parseInt(
+					sha256(fileHashes.join(" ") + main + preload + dcVersion + shupVersion).substring(0, 2),
+					16,
+				);
+
+				branches[name] = {
+					files: allFiles.filter((f) => !internalFiles.has(basename(f))),
+					cacheDirs: [cacheDir],
+					main,
+					preload,
+					version,
+					type,
+					displayName,
+					description,
+					incompatibilities,
+					hidden,
+					setup,
+				};
 			}
-
-			// we will reset these anyway later for branches with setups,
-			// but for the rest of them, just populate it now.
-			const allFiles = glob.sync(`${d}/**/*.*`);
-			const fileHashes = allFiles.map((f) => sha256(readFileSync(f)));
-
-			// the list of branches is sent along with the module and accounting for that is difficult so
-			// just factor the sheltupdate release number into the version and leave it at that.
-			const version = parseInt(
-				sha256(fileHashes.join(" ") + main + preload + dcVersion + shupVersion).substring(0, 2),
-				16,
-			);
-			const internalFiles = ["main.js", "preload.js", "meta.js"];
-
-			branches[name] = {
-				files: allFiles.filter((f) => !internalFiles.includes(basename(f))),
-				cacheDirs: [cacheDir],
-				main,
-				preload,
-				version,
-				type,
-				displayName,
-				description,
-				incompatibilities,
-				hidden,
-				setup,
-			};
 
 			// create wait-for-setup promises
 			if (setup) {
@@ -206,36 +245,53 @@ const init = withSection("branch finder", async (span) => {
 
 			const bs = bNames.map((n) => branches[n]);
 
-			branches[key] = {
-				// these will be updated by setups later so have to make it lazy
-				get files() {
-					return bs.map((x) => x.files).reduce((x, a) => a.concat(x), []);
-				},
-				get cacheDirs() {
-					return bs.flatMap((b) => b.cacheDirs);
-				},
-				main: bs
-					.map((x) => x.main)
-					.filter((p) => p)
-					.join("\n\t"),
-				preload: bs
-					.map((x) => x.preload)
-					.filter((p) => p)
-					.join("\n"),
-				// cap the version well under u32::max or some rust code somewhere in the client dies
-				// this will be updated by setups later so have to make it lazy
-				get version() {
-					return Number(BigInt(bs.map((x) => x.version).reduce((x, a) => `${x}0${a}`)) % BigInt(2 ** 28)) + 100;
-				},
-				type: "mixed",
-			};
+			if (inMemory) {
+				branches[key] = {
+					get extraFiles() {
+						const out = new Map();
+						for (const b of bs) overlayFiles(out, b.extraFiles);
+						return out;
+					},
+					main: bs
+						.map((x) => x.main)
+						.filter((p) => p)
+						.join("\n\t"),
+					preload: bs
+						.map((x) => x.preload)
+						.filter((p) => p)
+						.join("\n"),
+					get version() {
+						return Number(BigInt(bs.map((x) => x.version).reduce((x, a) => `${x}0${a}`)) % BigInt(2 ** 28)) + 100;
+					},
+					type: "mixed",
+				};
+			} else {
+				branches[key] = {
+					get files() {
+						return bs.map((x) => x.files).reduce((x, a) => a.concat(x), []);
+					},
+					get cacheDirs() {
+						return bs.flatMap((b) => b.cacheDirs);
+					},
+					main: bs
+						.map((x) => x.main)
+						.filter((p) => p)
+						.join("\n\t"),
+					preload: bs
+						.map((x) => x.preload)
+						.filter((p) => p)
+						.join("\n"),
+					get version() {
+						return Number(BigInt(bs.map((x) => x.version).reduce((x, a) => `${x}0${a}`)) % BigInt(2 ** 28)) + 100;
+					},
+					type: "mixed",
+				};
+			}
 		}
 	});
 });
 
 const runBranchSetups = withSection("periodic branch setups", async (span) => {
-	// perfect for async code I guess
-
 	await Promise.all(Object.keys(branches).map(singleSetup));
 
 	async function singleSetup(b) {
@@ -252,26 +308,56 @@ const runBranchSetups = withSection("periodic branch setups", async (span) => {
 			const newProm = new Promise((r) => (newResolve = r));
 			setupPromises.set(b, [newProm, newResolve, true]);
 
-			// create a folder in cache
-			const cacheDir = getBranchFilesCacheDir(b);
-			try {
-				await branches[b].setup(cacheDir, (...a) => span.addEvent(a.join(" ")));
-			} catch (e) {
-				// we failed! leave it in a "setting up" state until next time.
-				setupPromises.set(b, [newProm, newResolve, true, true]);
-				throw e;
+			if (inMemory) {
+				const setupFiles = new Map();
+
+				const setupTarget = {
+					writeFile(relPath, data) {
+						setupFiles.set(
+							relPath.replaceAll(win32.sep, posix.sep),
+							Buffer.isBuffer(data) ? data : Buffer.from(data),
+						);
+					},
+					async downloadTo(relPath, url) {
+						const res = await fetch(url);
+						const buf = Buffer.from(await res.arrayBuffer());
+						setupFiles.set(relPath.replaceAll(win32.sep, posix.sep), buf);
+					},
+				};
+
+				try {
+					await branches[b].setup(setupTarget, (...a) => span.addEvent(a.join(" ")));
+				} catch (e) {
+					setupPromises.set(b, [newProm, newResolve, true, true]);
+					throw e;
+				}
+
+				branches[b].extraFiles = setupFiles;
+
+				const fileHashes = [...setupFiles.values()].map((buf) => sha256(buf));
+				branches[b].version = parseInt(
+					sha256(fileHashes.join(" ") + branches[b].main + branches[b].preload + dcVersion).substring(0, 2),
+					16,
+				);
+			} else {
+				const cacheDir = getBranchFilesCacheDir(b);
+				try {
+					await branches[b].setup(cacheDir, (...a) => span.addEvent(a.join(" ")));
+				} catch (e) {
+					setupPromises.set(b, [newProm, newResolve, true, true]);
+					throw e;
+				}
+
+				const allFiles = glob.sync(`${cacheDir}/**/*.*`);
+				branches[b].cacheDirs = [cacheDir];
+				branches[b].files = allFiles;
+
+				const fileHashes = allFiles.map((f) => sha256(readFileSync(f)));
+				branches[b].version = parseInt(
+					sha256(fileHashes.join(" ") + branches[b].main + branches[b].preload + dcVersion).substring(0, 2),
+					16,
+				);
 			}
-
-			// regenerate files and version
-			const allFiles = glob.sync(`${cacheDir}/**/*.*`);
-			branches[b].cacheDirs = [cacheDir];
-			branches[b].files = allFiles;
-
-			const fileHashes = allFiles.map((f) => sha256(readFileSync(f)));
-			branches[b].version = parseInt(
-				sha256(fileHashes.join(" ") + branches[b].main + branches[b].preload + dcVersion).substring(0, 2),
-				16,
-			);
 
 			setupPromises.set(b, [newProm, newResolve, false]);
 

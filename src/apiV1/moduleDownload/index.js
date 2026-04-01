@@ -7,12 +7,12 @@ import patch from "./patchModule.js";
 import { getBranch } from "../../common/branchesLoader.js";
 import { reportEndpoint, reportV1Cached, reportV1Patched } from "../../dashboard/reporting.js";
 import { populateReqAttrs, withSection } from "../../common/tracer.js";
-import { cacheBase } from "../../common/fsCache.js";
+import { cacheBase, inMemory, v1ModuleCache } from "../../common/fsCache.js";
 import { getEtag } from "../../common/proxy/index.js";
 
 const cacheEtags = new Map();
 
-export const handleModuleDownload = withSection("v1 download module", async (span, c) => {
+const handleFs = withSection("v1 download module", async (span, c) => {
 	const { branch, /*channel,*/ module, version } = c.req.param();
 
 	const branchFull = getBranch(branch);
@@ -57,3 +57,48 @@ export const handleModuleDownload = withSection("v1 download module", async (spa
 
 	return basicRedirect(c);
 });
+
+const handleInMemory = withSection("v1 download module", async (span, c) => {
+	const { branch, /*channel,*/ module, version } = c.req.param();
+
+	const branchFull = getBranch(branch);
+	if (!branchFull) {
+		return c.notFound("Invalid sheltupdate branch");
+	}
+
+	reportEndpoint("v1_module_download");
+
+	populateReqAttrs(span, c);
+
+	if (module === "discord_desktop_core") {
+		const cacheName = `${module}-${branch}-${version}`;
+
+		const etag = await getEtag(c.req.url, {}, [version, version.substring(branchFull.version.toString().length)]);
+
+		const cached = v1ModuleCache.get(cacheName);
+		if (cached) {
+			if (etag && etag === cached.etag) {
+				span.addEvent("Served cached discord_desktop_core");
+				reportV1Cached();
+
+				c.header("Content-Type", "application/zip");
+				return c.body(cached.buffer);
+			} else {
+				span.addEvent(`etag mismatch, expecting ${cached.etag} but got ${etag}`);
+				v1ModuleCache.delete(cacheName);
+			}
+		}
+
+		reportV1Patched();
+		const buffer = await patch(c);
+
+		v1ModuleCache.set(cacheName, { etag, buffer });
+
+		c.header("Content-Type", "application/zip");
+		return c.body(buffer);
+	}
+
+	return basicRedirect(c);
+});
+
+export const handleModuleDownload = inMemory ? handleInMemory : handleFs;

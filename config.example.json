@@ -2,6 +2,7 @@
 	"port": 8080,
 	"host": "https://inject.shelter.uwu.network",
 	"stats": true,
+	"inMemory": false,
 	"setupIntervalHours": 3,
 	"tracing": {
 		"service": "sheltupdate",

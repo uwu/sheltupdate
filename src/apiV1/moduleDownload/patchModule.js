@@ -10,8 +10,34 @@ import basicProxy from "../../common/proxy/index.js";
 import { ensureBranchIsReady, getBranch, getSingleBranchMetas } from "../../common/branchesLoader.js";
 import { section, withSection } from "../../common/tracer.js";
 import { dcMain, dcPreload } from "../../desktopCore/index.js";
+import { inMemory } from "../../common/fsCache.js";
+import { readZip, writeZip, overlayFiles, setText, streamToBuffer } from "../../common/virtualFiles.js";
 
-export default withSection("v1 module patcher", async (span, c, cacheDir, cacheFinalFile) => {
+const patchInMemory = withSection("v1 module patcher", async (span, c) => {
+	const { branch: branch_, /*channel,*/ version } = c.req.param();
+
+	await ensureBranchIsReady(branch_);
+
+	const branch = getBranch(branch_);
+
+	const zipBuffer = await section("download original module", async () => {
+		const prox = await basicProxy(c, {}, [version, version.substring(branch.version.toString().length)]);
+		return await streamToBuffer(stream.Readable.from(prox.body));
+	});
+
+	const files = await section("extract original module", () => readZip(zipBuffer));
+
+	section("patch files", () => {
+		overlayFiles(files, branch.extraFiles);
+		setText(files, "index.js", dcMain.replace("// __BRANCHES_MAIN__", branch.main));
+		setText(files, "preload.js", dcPreload.replace("// __BRANCHES_PRELOAD__", branch.preload));
+		setText(files, "branches.json", JSON.stringify(getSingleBranchMetas(), null, 4));
+	});
+
+	return await section("create module zip", () => writeZip(files));
+});
+
+const patchFs = withSection("v1 module patcher", async (span, c, cacheDir, cacheFinalFile) => {
 	const { branch: branch_, /*channel,*/ version } = c.req.param();
 	//const { platform, host_version } = c.req.query();
 
@@ -68,3 +94,5 @@ export default withSection("v1 module patcher", async (span, c, cacheDir, cacheF
 	c.header("Content-Type", "application/zip");
 	return c.body(readFileSync(cacheFinalFile));
 });
+
+export default inMemory ? patchInMemory : patchFs;

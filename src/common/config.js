@@ -24,6 +24,7 @@ export const config = Object.freeze({
 	host: rawCfg?.host || `http://localhost:${rawCfg?.port || 8080}`,
 	stats: rawCfg?.stats ?? true,
 	setupIntervalHours: rawCfg?.setupIntervalHours ?? 3,
+	inMemory: rawCfg?.inMemory ?? false,
 	tracing: {
 		service: rawCfg?.tracing?.service ?? "sheltupdate",
 		log: rawCfg?.tracing?.log ?? true,
