@@ -1,6 +1,7 @@
 import { mkdir, rm } from "fs/promises";
 import { join } from "path";
 import { Readable, Writable } from "stream";
+import { gunzipSync } from "zlib";
 import tar from "tar";
 
 export const name = "Moonlight";
@@ -32,7 +33,6 @@ export async function setup(target, log) {
 		const fileRes = await fetch(url);
 		const buf = Buffer.from(await fileRes.arrayBuffer());
 
-		const { gunzipSync } = await import("zlib");
 		const tarBuf = gunzipSync(buf);
 
 		const tarStream = (await import("tar-stream")).default;

@@ -43,9 +43,7 @@ export async function setup(target, log) {
 			await target.downloadTo(`vencord-desktop/${f}`, releaseUrl + f);
 		}
 
-		const res = await fetch(releaseUrl + "vencordDesktopPreload.js");
-		const buf = Buffer.from(await res.arrayBuffer());
-		target.writeFile("vencord-desktop/preload.js", buf);
+		await target.downloadTo("vencord-desktop/preload.js", releaseUrl + "vencordDesktopPreload.js");
 	}
 
 	log("Done!");

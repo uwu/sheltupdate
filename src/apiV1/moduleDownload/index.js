@@ -12,7 +12,7 @@ import { getEtag } from "../../common/proxy/index.js";
 
 const cacheEtags = new Map();
 
-const handleFs = withSection("v1 download module", async (span, c) => {
+export const handleModuleDownload = withSection("v1 download module", async (span, c) => {
 	const { branch, /*channel,*/ module, version } = c.req.param();
 
 	const branchFull = getBranch(branch);
@@ -26,79 +26,54 @@ const handleFs = withSection("v1 download module", async (span, c) => {
 
 	if (module === "discord_desktop_core") {
 		const cacheName = `${module}-${branch}-${version}`;
-		const cacheDir = path.join(cacheBase, `v1-desktop-core`, cacheName);
-		const cacheFinalFile = path.join(cacheDir, "module.zip");
-
 		const etag = await getEtag(c.req.url, {}, [version, version.substring(branchFull.version.toString().length)]);
 
-		if (existsSync(cacheFinalFile)) {
-			// if cache is valid
-			if (etag && etag === cacheEtags.get(cacheFinalFile)) {
-				span.addEvent("Served cached discord_desktop_core");
-				reportV1Cached();
+		if (inMemory) {
+			const cached = v1ModuleCache.get(cacheName);
+			if (cached) {
+				if (etag && etag === cached.etag) {
+					span.addEvent("Served cached discord_desktop_core");
+					reportV1Cached();
 
-				c.header("Content-Type", "application/zip");
-				return c.body(readFileSync(cacheFinalFile));
-			} else {
-				span.addEvent(`etag mismatch, expecting ${cacheEtags.get(cacheFinalFile)} but got ${etag}`);
-
-				cacheEtags.delete(cacheFinalFile);
-				// delete cache and fall through to patch
-				rmSync(cacheDir, { recursive: true, force: true });
+					c.header("Content-Type", "application/zip");
+					return c.body(cached.buffer);
+				} else {
+					span.addEvent(`etag mismatch, expecting ${cached.etag} but got ${etag}`);
+					v1ModuleCache.delete(cacheName);
+				}
 			}
+
+			reportV1Patched();
+			const buffer = await patch(c);
+
+			v1ModuleCache.set(cacheName, { etag, buffer });
+
+			c.header("Content-Type", "application/zip");
+			return c.body(buffer);
+		} else {
+			const cacheDir = path.join(cacheBase, `v1-desktop-core`, cacheName);
+			const cacheFinalFile = path.join(cacheDir, "module.zip");
+
+			if (existsSync(cacheFinalFile)) {
+				if (etag && etag === cacheEtags.get(cacheFinalFile)) {
+					span.addEvent("Served cached discord_desktop_core");
+					reportV1Cached();
+
+					c.header("Content-Type", "application/zip");
+					return c.body(readFileSync(cacheFinalFile));
+				} else {
+					span.addEvent(`etag mismatch, expecting ${cacheEtags.get(cacheFinalFile)} but got ${etag}`);
+					cacheEtags.delete(cacheFinalFile);
+					rmSync(cacheDir, { recursive: true, force: true });
+				}
+			}
+
+			cacheEtags.set(cacheFinalFile, etag);
+
+			reportV1Patched();
+			return patch(c, cacheDir, cacheFinalFile);
 		}
-
-		// set expected etag
-		cacheEtags.set(cacheFinalFile, etag);
-
-		reportV1Patched();
-		return patch(c, cacheDir, cacheFinalFile);
 	}
 
 	return basicRedirect(c);
 });
-
-const handleInMemory = withSection("v1 download module", async (span, c) => {
-	const { branch, /*channel,*/ module, version } = c.req.param();
-
-	const branchFull = getBranch(branch);
-	if (!branchFull) {
-		return c.notFound("Invalid sheltupdate branch");
-	}
-
-	reportEndpoint("v1_module_download");
-
-	populateReqAttrs(span, c);
-
-	if (module === "discord_desktop_core") {
-		const cacheName = `${module}-${branch}-${version}`;
-
-		const etag = await getEtag(c.req.url, {}, [version, version.substring(branchFull.version.toString().length)]);
-
-		const cached = v1ModuleCache.get(cacheName);
-		if (cached) {
-			if (etag && etag === cached.etag) {
-				span.addEvent("Served cached discord_desktop_core");
-				reportV1Cached();
-
-				c.header("Content-Type", "application/zip");
-				return c.body(cached.buffer);
-			} else {
-				span.addEvent(`etag mismatch, expecting ${cached.etag} but got ${etag}`);
-				v1ModuleCache.delete(cacheName);
-			}
-		}
-
-		reportV1Patched();
-		const buffer = await patch(c);
-
-		v1ModuleCache.set(cacheName, { etag, buffer });
-
-		c.header("Content-Type", "application/zip");
-		return c.body(buffer);
-	}
-
-	return basicRedirect(c);
-});
-
-export const handleModuleDownload = inMemory ? handleInMemory : handleFs;
