@@ -1,5 +1,6 @@
 import { Hono } from "hono";
-import { validator } from "hono/validator";
+import { arktypeValidator } from "@hono/arktype-validator";
+import { type } from "arktype";
 import { config } from "./common/config.js";
 import { statsState } from "./dashboard/reporting.js";
 
@@ -8,53 +9,44 @@ const pendingSeeds = new Set(config.discovery.seeds.map((n) => new URL(n).origin
 const seedMap = new Map();
 const nodeMap = new Map();
 
-// I do not want anything being malformed and corrupting state.
-const validateNodes = (() => {
-	const validateUniqueUser = (data) =>
-		typeof data === "object" &&
-		data !== null &&
-		typeof data.platform === "string" &&
-		typeof data.host_version === "string" &&
-		typeof data.channel === "string" &&
-		typeof data.branch === "string" &&
-		typeof data.apiVer === "number";
-	const validateUniqueUsers = (data) =>
-		typeof data === "object" &&
-		data !== null &&
-		!Array.isArray(data) &&
-		Object.values(data).every(validateUniqueUser);
-	const validateRequestCounts = (data) =>
-		typeof data === "object" &&
-		data !== null &&
-		typeof data.v1_host_squirrel === "number" &&
-		typeof data.v1_host_notsquirrel === "number" &&
-		typeof data.v1_modules === "number" &&
-		typeof data.v1_module_download === "number" &&
-		typeof data.v2_manifest === "number" &&
-		typeof data.v2_module === "number";
-	const validateProxyOrRedirect = (data) =>
-		typeof data === "object" &&
-		data !== null &&
-		typeof data.proxied === "number" &&
-		typeof data.redirected === "number";
-	const validateRatio = (data) =>
-		typeof data === "object" && data !== null && typeof data.hit === "number" && typeof data.miss === "number";
-	const validateStatistics = (data) =>
-		validateUniqueUsers(data.uniqueUsers) &&
-		validateRequestCounts(data.requestCounts) &&
-		validateProxyOrRedirect(data.proxyOrRedirect) &&
-		validateRatio(data.proxyCacheHitRatio) &&
-		validateRatio(data.v1ModuleCacheHitRatio) &&
-		validateRatio(data.v2ManifestCacheHitRatio);
-	const validateNode = (data) =>
-		(typeof data.endpoint === "string" || data.endpoint == null) &&
-		typeof data.name === "string" &&
-		typeof data.id === "string" &&
-		typeof data.status === "string" &&
-		typeof data.ts === "number" &&
-		validateStatistics(data.statistics);
-	return (data) => Array.isArray(data) && data.every(validateNode);
-})();
+const UniqueUser = type({
+	platform: "string",
+	host_version: "string",
+	channel: "string",
+	branch: "string",
+	apiVer: "number",
+});
+const HitRatio = type({
+	hit: "number >= 0",
+	miss: "number >= 0",
+});
+const Statistics = type({
+	uniqueUsers: type.Record("string", UniqueUser),
+	requestCounts: {
+		v1_host_squirrel: "number >= 0",
+		v1_host_notsquirrel: "number >= 0",
+		v1_modules: "number >= 0",
+		v1_module_download: "number >= 0",
+		v2_manifest: "number >= 0",
+		v2_module: "number >= 0",
+	},
+	proxyOrRedirect: {
+		proxied: "number >= 0",
+		redirected: "number >= 0",
+	},
+	proxyCacheHitRatio: HitRatio,
+	v1ModuleCacheHitRatio: HitRatio,
+	v2ManifestCacheHitRatio: HitRatio,
+});
+const Node = type({
+	"endpoint?": "string.url",
+	name: "string",
+	id: "string",
+	status: '"online" | "offline" | "unknown"',
+	ts: "number.epoch",
+	statistics: Statistics,
+});
+const Nodes = Node.array();
 
 const getNodes = () => [
 	{
@@ -88,7 +80,12 @@ function fetchNodes(endpoint) {
 		(r) =>
 			r.ok
 				? r.json().then(
-						(data) => (validateNodes(data) ? { data } : { error: "Structure validation failed" }),
+						(raw) => {
+							const data = Nodes(raw);
+							return data instanceof type.errors
+								? { error: "Structure validation failed", cause: data.summary }
+								: { data: data };
+						},
 						(err) => ({ error: "Failed to parse JSON", cause: err.message }),
 					)
 				: { error: "Received non-ok status code", cause: r.status },
@@ -203,10 +200,7 @@ export default new Hono()
 			}
 			await next();
 		},
-		validator("json", (v, c) => {
-			if (!validateNodes(v)) return c.text("Bad request", 400);
-			return v;
-		}),
+		arktypeValidator("json", Nodes),
 		async (c) => {
 			const nodes = await c.req.valid("json");
 			const seed = await c.req.header("x-shup-endpoint");
