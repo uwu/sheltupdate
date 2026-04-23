@@ -3,6 +3,19 @@
 	"host": "https://inject.shelter.uwu.network",
 	"stats": true,
 	"setupIntervalHours": 3,
+	"discovery": {
+		"enabled": false,
+		"name": "🇩🇪 DE",
+		"id": "86e6eb8400b8bb95",
+		"key": "64c1c89ddea68174f7e1fdcd73b960e9eb1995e81d1f9818763413c712c6de5e",
+		"endpoint": "https://de.shelter.uwu.network",
+		"interval": 15,
+		"seeds": [
+			"https://ch.shelter.uwu.network",
+			"https://lu.shelter.uwu.network",
+			"https://it.shelter.uwu.network"
+		]
+	},
 	"tracing": {
 		"service": "sheltupdate",
 		"log": true,
