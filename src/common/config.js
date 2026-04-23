@@ -29,9 +29,9 @@ export const config = Object.freeze({
 		name: rawCfg?.discovery?.name || "Unknown",
 		id: rawCfg?.discovery?.id,
 		key: rawCfg?.discovery?.key,
-		private: !!rawCfg?.discovery?.private,
+		endpoint: rawCfg?.discovery?.endpoint,
 		interval: rawCfg?.discovery?.interval * 1000 || 15000,
-		nodes: rawCfg?.discovery?.nodes ?? [],
+		seeds: rawCfg?.discovery?.seeds ?? [],
 	},
 	tracing: {
 		service: rawCfg?.tracing?.service ?? "sheltupdate",

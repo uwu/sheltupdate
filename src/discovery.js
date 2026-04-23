@@ -1,14 +1,16 @@
 // @ts-check
 
 import { Hono } from "hono";
+import { validator } from "hono/validator";
 import { config } from "./common/config.js";
 import { statsState } from "./dashboard/reporting.js";
-import { validator } from "hono/validator";
 
-const pendingSeedEndpoints = new Set(config.discovery.nodes.map((n) => new URL(n).origin));
+const pendingSeeds = new Set(config.discovery.seeds.map((n) => new URL(n).origin));
+
+const seedMap = new Map();
 const nodeMap = new Map();
 
-const validateDirectNode = (() => {
+const validateNodes = (() => {
 	const validateUniqueUser = (data) =>
 		typeof data === "object" &&
 		data !== null &&
@@ -45,49 +47,49 @@ const validateDirectNode = (() => {
 		validateRatio(data.proxyCacheHitRatio) &&
 		validateRatio(data.v1ModuleCacheHitRatio) &&
 		validateRatio(data.v2ManifestCacheHitRatio);
-	const validateNodeCommon = (data) =>
+	const validateNode = (data) =>
+		(typeof data.endpoint === "string" || data.endpoint == null) &&
 		typeof data.name === "string" &&
 		typeof data.id === "string" &&
+		typeof data.online === "boolean" &&
 		typeof data.ts === "number" &&
 		validateStatistics(data.statistics);
-	const validateIndirectNode = (data) =>
-		validateNodeCommon(data) &&
-		(typeof data.endpoint === "string" || data.endpoint == null) &&
-		typeof data.online === "boolean";
-	return (data) =>
-		validateNodeCommon(data) &&
-		typeof data.private === "boolean" &&
-		Array.isArray(data.nodes) &&
-		data.nodes.every(validateIndirectNode);
+	return (data) => Array.isArray(data) && data.every(validateNode);
 })();
 
-const getDiscoveryData = () => ({
-	name: config.discovery.name,
-	id: config.discovery.id,
-	private: config.discovery.private,
-	ts: Date.now(),
-	nodes: [...nodeMap.values()],
-	statistics: statsState,
-});
+const getNodes = () => [
+	{
+		endpoint: config.discovery.endpoint,
+		id: config.discovery.id,
+		name: config.discovery.name,
+		online: true,
+		ts: Date.now(),
+		statistics: statsState,
+	},
+	...nodeMap.values(),
+];
 
-function fetchNodeData(endpoint) {
+function fetchNodes(endpoint) {
 	const signal = AbortSignal.timeout(5000);
 	const init = { signal };
 
 	if (config.discovery.key) {
 		init.method = "POST";
-		init.body = JSON.stringify(getDiscoveryData());
-		init.headers = {
-			"x-shup-key": config.discovery.key,
+		init.body = JSON.stringify(getNodes());
+		init.headers = new Headers({
 			"content-type": "application/json",
-		};
+			"x-shup-key": config.discovery.key,
+		});
+		if (config.discovery.endpoint) {
+			init.headers.set("x-shup-endpoint", config.discovery.endpoint);
+		}
 	}
 
 	return fetch(new URL("/_discovery", endpoint), init).then(
 		(r) =>
 			r.ok
 				? r.json().then(
-						(data) => (validateDirectNode(data) ? { data } : { error: "Structure validation failed" }),
+						(data) => (validateNodes(data) ? { data } : { error: "Structure validation failed" }),
 						(err) => ({ error: "Failed to parse JSON", cause: err.message }),
 					)
 				: { error: "Received non-ok status code", cause: r.status },
@@ -95,63 +97,53 @@ function fetchNodeData(endpoint) {
 	);
 }
 
-function processNodeData(data, endpoint) {
+function processNode(data) {
 	if (data.id === config.discovery.id) return false;
 
-	let existingNode = nodeMap.get(data.id);
-	if (existingNode && existingNode.ts > data.ts) return false;
-	if (!existingNode) nodeMap.set(data.id, (existingNode = {}));
+	let node = nodeMap.get(data.id);
+	if (node && node.ts > data.ts) return false;
+	if (!node) nodeMap.set(data.id, (node = {}));
 
-	Object.defineProperty(existingNode, "endpoint", {
-		value: endpoint,
-		enumerable: !data.private,
-	});
-	existingNode.name = data.name;
-	existingNode.id = data.id;
-	existingNode.online = true;
-	existingNode.ts = data.ts;
-	existingNode.statistics = data.statistics;
+	node.endpoint = data.endpoint;
+	node.name = data.name;
+	node.id = data.id;
+	node.online = data.online;
+	node.ts = data.ts;
+	node.statistics = data.statistics;
 
-	for (const node of data.nodes) {
-		if (node.id === config.discovery.id) continue;
-		if (nodeMap.has(node.id)) {
-			// If we don't have a direct path to a node, update if newer.
-			const existing = nodeMap.get(node.id);
-			if (existing.endpoint || node.ts < existing.ts) continue;
-		}
-		nodeMap.set(node.id, {
-			endpoint: node.endpoint,
-			name: node.name,
-			id: node.id,
-			online: node.online,
-			ts: node.ts,
-			statistics: node.statistics,
-		});
-		if (node.endpoint) pendingSeedEndpoints.delete(node.endpoint);
-	}
-
+	pendingSeeds.delete(node.endpoint);
 	return true;
+}
+
+function processNodes([primary, ...nodes], seed) {
+	if (seed) seedMap.set(primary.id, seed);
+	processNode(primary);
+	for (const node of nodes) processNode(node);
 }
 
 async function discoverNodes() {
 	nodeMap.forEach(async (node) => {
-		if (!node.endpoint) return;
-		const result = await fetchNodeData(node.endpoint);
+		const endpoint = node.endpoint || seedMap.get(node.id);
+		if (!endpoint) return;
+
+		const result = await fetchNodes(endpoint);
 		if (!result.data) {
 			node.online = false;
+			node.ts = Date.now();
 			return;
 		}
-		processNodeData(result.data, node.endpoint);
+
+		processNodes(result.data);
 	});
 }
 
 async function seedNodes() {
-	pendingSeedEndpoints.forEach(async (endpoint) => {
-		const result = await fetchNodeData(endpoint);
+	pendingSeeds.forEach(async (seed) => {
+		const result = await fetchNodes(seed);
 		if (!result.data) return;
-		if (processNodeData(result.data, endpoint)) pendingSeedEndpoints.delete(endpoint);
+		processNodes(result.data, seed);
 	});
-	if (pendingSeedEndpoints.size === 0) clearInterval(seedInterval);
+	if (pendingSeeds.size === 0) clearInterval(seedInterval);
 }
 
 let seedInterval;
@@ -168,7 +160,7 @@ export default new Hono()
 		await next();
 	})
 	.get("/_discovery", (c) => {
-		return c.json(getDiscoveryData());
+		return c.json(getNodes());
 	})
 	.post(
 		"/_discovery",
@@ -179,15 +171,14 @@ export default new Hono()
 			await next();
 		},
 		validator("json", (v, c) => {
-			if (!validateDirectNode(v)) return c.text("Bad request", 400);
+			if (!validateNodes(v)) return c.text("Bad request", 400);
 			return v;
 		}),
 		async (c) => {
-			const data = await c.req.valid("json");
-
-			processNodeData(data /* TODO: endpoint */);
-
-			return c.json(getDiscoveryData());
+			const nodes = await c.req.valid("json");
+			const seed = await c.req.header("x-shup-endpoint");
+			processNodes(nodes, seed);
+			return c.json(getNodes());
 		},
 	);
 
