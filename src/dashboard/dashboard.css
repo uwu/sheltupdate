@@ -150,11 +150,14 @@ body {
 	width: 0.8em;
 	border-radius: 100%;
 	background: var(--dot-color);
-	&.online {
+	&.cluster-live, &.cluster-online {
 		--dot-color: #1b9e77;
 	}
-	&.offline {
+	&.cluster-offline {
 		--dot-color: #d22d39;
+	}
+	&.cluster-unknown {
+		--dot-color: #666666;
 	}
 }
 

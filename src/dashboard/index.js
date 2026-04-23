@@ -19,9 +19,9 @@ function clusterStatusTemplate() {
 		<div>
 		${nodes
 			.map(
-				([name, online]) => `<div>
-				<div class="cluster-node ${online ? "online" : "offline"}"></div>
-				<span>${name}: ${online ? "Online" : "Offline"}</span>
+				([name, status]) => `<div>
+				<div class="cluster-node cluster-${status}"></div>
+				<span>${name}: ${status[0].toUpperCase() + status.slice(1)}</span>
 			</div>`,
 			)
 			.join("\n")}

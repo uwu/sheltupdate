@@ -1,5 +1,3 @@
-// @ts-check
-
 import { Hono } from "hono";
 import { validator } from "hono/validator";
 import { config } from "./common/config.js";
@@ -10,6 +8,7 @@ const pendingSeeds = new Set(config.discovery.seeds.map((n) => new URL(n).origin
 const seedMap = new Map();
 const nodeMap = new Map();
 
+// I do not want anything being malformed and corrupting state.
 const validateNodes = (() => {
 	const validateUniqueUser = (data) =>
 		typeof data === "object" &&
@@ -51,7 +50,7 @@ const validateNodes = (() => {
 		(typeof data.endpoint === "string" || data.endpoint == null) &&
 		typeof data.name === "string" &&
 		typeof data.id === "string" &&
-		typeof data.online === "boolean" &&
+		typeof data.status === "string" &&
 		typeof data.ts === "number" &&
 		validateStatistics(data.statistics);
 	return (data) => Array.isArray(data) && data.every(validateNode);
@@ -62,7 +61,7 @@ const getNodes = () => [
 		endpoint: config.discovery.endpoint,
 		id: config.discovery.id,
 		name: config.discovery.name,
-		online: true,
+		status: "online",
 		ts: Date.now(),
 		statistics: statsState,
 	},
@@ -107,7 +106,7 @@ function processNode(data) {
 	node.endpoint = data.endpoint;
 	node.name = data.name;
 	node.id = data.id;
-	node.online = data.online;
+	node.status = data.status;
 	node.ts = data.ts;
 	node.statistics = data.statistics;
 
@@ -128,7 +127,7 @@ async function discoverNodes() {
 
 		const result = await fetchNodes(endpoint);
 		if (!result.data) {
-			node.online = false;
+			node.status = "offline";
 			node.ts = Date.now();
 			return;
 		}
@@ -146,12 +145,46 @@ async function seedNodes() {
 	if (pendingSeeds.size === 0) clearInterval(seedInterval);
 }
 
+// This is only for nodes that are private and have been introduced indirectly.
+// Example:
+// Node A <-/-> Node B <---> Node C
+//   ^-________________________/
+// B is the only node capable of directly contacting C, if B is offline we
+// cannot know if C is still online, C might still be pushing data to us.
+const UNKNOWN_TIME = config.discovery.interval * 2; // default 30 seconds
+const OFFLINE_TIME = UNKNOWN_TIME * 2; // default 1 minute
+
+// Offline nodes may be held forever if enough nodes are online at all times,
+// delete them if it gets out of hand.
+const DELETE_TIME = 7 * 24 * 60 * 60 * 1000; // 1 week
+
+function maintainNodes() {
+	nodeMap.forEach((node) => {
+		const diff = Date.now() - node.ts;
+		if (diff > DELETE_TIME) {
+			nodeMap.delete(node.id);
+			return;
+		}
+
+		if (!node.endpoint) {
+			if (node.status === "unknown" && diff > OFFLINE_TIME) {
+				node.status = "offline";
+				node.ts = Date.now();
+			} else if (node.status === "online" && diff > UNKNOWN_TIME) {
+				node.status = "unknown";
+				node.ts = Date.now();
+			}
+		}
+	});
+}
+
 let seedInterval;
 if (config.discovery.enabled) {
-	seedInterval = setInterval(seedNodes, config.discovery.interval * 2);
+	seedInterval = setInterval(seedNodes, config.discovery.interval);
 	seedNodes();
 
 	setInterval(discoverNodes, config.discovery.interval);
+	setInterval(maintainNodes, config.discovery.interval);
 }
 
 export default new Hono()
@@ -217,4 +250,4 @@ export function getAggregatedStatistics() {
 	return aggregate;
 }
 export const getClusterHealth = () =>
-	[{ name: config.discovery.name, online: true }, ...nodeMap.values()].map((n) => [n.name, n.online]);
+	[{ name: config.discovery.name, status: "live" }, ...nodeMap.values()].map((n) => [n.name, n.status]);
