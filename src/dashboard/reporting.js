@@ -39,7 +39,7 @@ export function reportEndpoint(name) {
 /// call on v1 handlemodules, v2 handlemanifest
 export function reportUniqueUser(ip, platform, host_version, channel, branch, apiVer) {
 	if (!config.stats) return;
-	statsState.uniqueUsers[createHash("sha256").update(ip).digest("hex")] = {
+	statsState.uniqueUsers[createHash("sha256").update(ip).digest("hex").slice(0, 32)] = {
 		platform,
 		host_version,
 		channel,

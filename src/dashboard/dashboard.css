@@ -1,9 +1,16 @@
+@font-face {
+	font-family: "Twemoji Flags";
+	unicode-range: U+1F1E6-1F1FF, U+1F3F4, U+E0062-E0063, U+E0065, U+E0067, U+E006C, U+E006E, U+E0073-E0074, U+E0077, U+E007F;
+	src: url('https://esm.sh/country-flag-emoji-polyfill/dist/TwemojiCountryFlags.woff2') format('woff2');
+	font-display: swap;
+}
+
 body {
 	margin: 0;
 	padding: 1rem;
 	background: black;
 	color: white;
-	font-family: "IBM Plex Mono",
+	font-family: "Twemoji Flags", "IBM Plex Mono",
 		ui-monospace, SFMono-Regular, Menlo, Monaco,
 		Consolas, "Liberation Mono", "Courier New", monospace;
 }
@@ -123,6 +130,32 @@ body {
 
 .plot-wrap > * {
 	font-size: 0.875rem !important;
+}
+
+#cluster-status {
+	margin-top: 1.25rem;
+
+	& > div {
+		display: flex;
+		flex-flow: row wrap;
+		gap: 0.5rem 1rem;
+		justify-content: space-evenly;
+		width: 100%;
+	}
+}
+
+.cluster-node {
+	display: inline-block;
+	height: 0.8em;
+	width: 0.8em;
+	border-radius: 100%;
+	background: var(--dot-color);
+	&.online {
+		--dot-color: #1b9e77;
+	}
+	&.offline {
+		--dot-color: #d22d39;
+	}
 }
 
 /* the uwu design language does not call for bold text. */

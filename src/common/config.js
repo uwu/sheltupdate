@@ -22,8 +22,17 @@ try {
 export const config = Object.freeze({
 	port: rawCfg?.port || 8080,
 	host: rawCfg?.host || `http://localhost:${rawCfg?.port || 8080}`,
-	stats: rawCfg?.stats ?? true,
 	setupIntervalHours: rawCfg?.setupIntervalHours ?? 3,
+	stats: rawCfg?.stats ?? true,
+	discovery: {
+		enabled: !!rawCfg?.discovery?.enabled,
+		name: rawCfg?.discovery?.name || "Unknown",
+		id: rawCfg?.discovery?.id,
+		key: rawCfg?.discovery?.key,
+		private: !!rawCfg?.discovery?.private,
+		interval: rawCfg?.discovery?.interval * 1000 || 15000,
+		nodes: rawCfg?.discovery?.nodes ?? [],
+	},
 	tracing: {
 		service: rawCfg?.tracing?.service ?? "sheltupdate",
 		log: rawCfg?.tracing?.log ?? true,

@@ -14,6 +14,7 @@ import dashboard from "./dashboard/index.js";
 
 // kick off webhook
 import "./webhook.js";
+import discovery from "./discovery.js";
 
 const app = new Hono()
 	.use(otel())
@@ -26,6 +27,7 @@ const app = new Hono()
 	.route("/", apiV1)
 	.route("/", apiV2)
 	.route("/", dashboard)
+	.route("/", discovery)
 	.get("/sheltupdate_branches", async (c) => {
 		// cors
 		c.header("Access-Control-Allow-Origin", "*");
