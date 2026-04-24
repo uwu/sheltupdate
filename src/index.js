@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { otel } from "@hono/otel";
 import { createMiddleware } from "hono/factory";
 import { serve } from "@hono/node-server";
+import { compress } from "hono/compress";
 
 import { config, changelog, version } from "./common/config.js";
 import { getSingleBranchMetas } from "./common/branchesLoader.js";
@@ -18,6 +19,7 @@ import discovery from "./discovery.js";
 import { startCloudflared, stopCloudflared } from "./common/cloudflared.js";
 
 const app = new Hono()
+	.use(compress())
 	.use(otel())
 	.use(
 		createMiddleware(async (c, next) => {
