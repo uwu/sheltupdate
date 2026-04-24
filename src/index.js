@@ -15,6 +15,7 @@ import dashboard from "./dashboard/index.js";
 // kick off webhook
 import "./webhook.js";
 import discovery from "./discovery.js";
+import { startCloudflared, stopCloudflared } from "./common/cloudflared.js";
 
 const app = new Hono()
 	.use(otel())
@@ -39,7 +40,34 @@ const app = new Hono()
 		return c.text(changelog);
 	});
 
-serve({
-	fetch: app.fetch,
-	port: config.port,
-});
+const server = serve(
+	{
+		fetch: app.fetch,
+		port: config.port,
+	},
+	() => {
+		startCloudflared();
+	},
+);
+
+let shuttingDown = false;
+
+function shutdown(signal) {
+	if (shuttingDown) return;
+	shuttingDown = true;
+
+	console.log(`[sheltupdate] Shutting down${signal ? ` (${signal})` : ""}`);
+	let tunnelClosed = stopCloudflared(signal === "SIGINT" ? "SIGINT" : "SIGTERM");
+
+	server.close((error) => {
+		if (error || !tunnelClosed) {
+			console.error("[sheltupdate] Something went wrong while shutting down, may have lingering processes!", error);
+			process.exit(1);
+		}
+
+		process.exit(0);
+	});
+}
+
+process.once("SIGINT", () => shutdown("SIGINT"));
+process.once("SIGTERM", () => shutdown("SIGTERM"));

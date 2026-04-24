@@ -19,10 +19,16 @@ try {
 	console.error("Failed to load config, using defaults");
 }
 
+const DEFAULT_PORT = 8080;
+
 export const config = Object.freeze({
-	port: rawCfg?.port || 8080,
-	host: rawCfg?.host || `http://localhost:${rawCfg?.port || 8080}`,
+	port: rawCfg?.port || DEFAULT_PORT,
+	host: rawCfg?.host || `http://localhost:${rawCfg?.port || DEFAULT_PORT}`,
 	setupIntervalHours: rawCfg?.setupIntervalHours ?? 3,
+	cloudflared: {
+		enabled: !!rawCfg?.cloudflared?.enabled,
+		binary: rawCfg?.cloudflared?.binary || "cloudflared",
+	},
 	stats: rawCfg?.stats ?? true,
 	discovery: {
 		enabled: !!rawCfg?.discovery?.enabled,
