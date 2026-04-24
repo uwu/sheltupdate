@@ -10,7 +10,12 @@ COPY pnpm-lock.yaml pnpm-lock.yaml
 
 RUN pnpm i --frozen-lockfile --prod
 
+FROM node:23-alpine AS cloudflared
+RUN apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/testing cloudflared
+
 FROM node:23-alpine
+
+COPY --from=cloudflared /usr/bin/cloudflared /usr/bin/cloudflared
 
 COPY src src
 COPY branches branches
