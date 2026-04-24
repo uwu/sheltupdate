@@ -2,7 +2,7 @@
 	"port": 8080,
 	"host": "https://inject.shelter.uwu.network",
 	"cloudflared": {
-		"enabled": true
+		"enabled": false
 	},
 	"stats": true,
 	"setupIntervalHours": 3,
