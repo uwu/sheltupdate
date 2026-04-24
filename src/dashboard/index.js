@@ -3,7 +3,7 @@ import { join } from "path";
 import { config, srcDir, startTime, version } from "../common/config.js";
 import { getSingleBranchMetas } from "../common/branchesLoader.js";
 import { Hono } from "hono";
-import { getAggregatedStatistics, getClusterHealth, getClusterStartTime } from "../discovery.js";
+import { clusterStartTime, getAggregatedStatistics, getClusterHealth } from "../discovery.js";
 
 const html = readFileSync(join(srcDir, "dashboard", "template.html"), "utf8");
 const css_ = readFileSync(join(srcDir, "dashboard", "dashboard.css"), "utf8");
@@ -36,7 +36,7 @@ function template(temp) {
 		.replaceAll("__USER_COUNT__", Object.values(statsState.uniqueUsers).length)
 		.replaceAll("__VERSION__", version)
 		.replaceAll("__NODE_START_TIME__", startTime)
-		.replaceAll("__CLUSTER_START_TIME__", getClusterStartTime())
+		.replaceAll("__CLUSTER_START_TIME__", clusterStartTime)
 		.replaceAll("__STATE__", JSON.stringify(statsState))
 		.replaceAll("__BRANCHES__", JSON.stringify(getSingleBranchMetas()))
 		.replaceAll("__CACHE_PROX__", hitRatio(statsState.proxyCacheHitRatio))

@@ -16,6 +16,10 @@ const seedMap = new Map();
 /** @type {Map<string, Node>} */
 const nodeMap = new Map();
 
+// Start time of the entire cluster, all nodes aim to get this value as low as
+// possible by comparing their own start times.
+export let clusterStartTime = startTime;
+
 const UniqueUser = type({
 	platform: "string",
 	host_version: "string",
@@ -52,6 +56,7 @@ const Node = type({
 	status: '"online" | "offline" | "unknown"',
 	ts: "number.epoch",
 	startTime: "number.epoch",
+	clusterStartTime: "number.epoch",
 	statistics: Statistics,
 });
 const Nodes = Node.array().atLeastLength(1);
@@ -78,6 +83,7 @@ const getNodes = () => [
 		status: "online",
 		ts: Date.now(),
 		startTime,
+		clusterStartTime,
 		statistics: statsState,
 	},
 	...nodeMap.values(),
@@ -142,8 +148,10 @@ function processNode(data) {
 	}
 
 	let existing = nodeMap.get(data.id);
-	if (existing && existing.ts > data.ts) return;
+	if (existing && existing.ts >= data.ts) return;
 	nodeMap.set(data.id, data);
+
+	if (data.clusterStartTime < clusterStartTime) clusterStartTime = data.clusterStartTime;
 }
 
 /**
@@ -295,13 +303,6 @@ export function getAggregatedStatistics() {
 	const statistics = [...nodeMap.values()].sort((a, b) => a.ts - b.ts).map((n) => n.statistics);
 	for (const stats of statistics) mergeStatistics(aggregate, stats);
 	return aggregate;
-}
-export function getClusterStartTime() {
-	let earliest = startTime;
-	for (const node of nodeMap.values()) {
-		if (node.startTime && node.startTime < earliest) earliest = node.startTime;
-	}
-	return earliest;
 }
 export const getClusterHealth = () =>
 	[{ name: config.discovery.name, status: "live" }, ...nodeMap.values()].map((n) => [n.name, n.status]);
