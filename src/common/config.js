@@ -14,7 +14,7 @@ if (!version) throw new Error("Version number not found, changelog is missing or
 
 let rawCfg;
 try {
-	rawCfg = JSON.parse(readFileSync(resolve(srcDir, "../config.json"), "utf8"));
+	rawCfg = JSON.parse(readFileSync(process.env.SHELTUPDATE_CONFIG || resolve(srcDir, "../config.json"), "utf8"));
 } catch (e) {
 	console.error("Failed to load config, using defaults");
 }

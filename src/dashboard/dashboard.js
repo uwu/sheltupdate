@@ -22,9 +22,22 @@ const formatDurAuto = formatDurationWithOptions({});
 
 const formatSince = (s) => formatDurDHM(since(s)) || formatDurAuto(since(s));
 
-const [uptimeEl, startTimeEl, endpointWrap, branchesWrap, channelsWrap, platformsWrap, hostVersWrap, apiVersWrap] = [
-	"stat-uptime",
-	"stat-start-time",
+const [
+	nodeUptimeEl,
+	nodeStartTimeEl,
+	clusterUptimeEl,
+	clusterStartTimeEl,
+	endpointWrap,
+	branchesWrap,
+	channelsWrap,
+	platformsWrap,
+	hostVersWrap,
+	apiVersWrap,
+] = [
+	"stat-node-uptime",
+	"stat-node-start-time",
+	"stat-cluster-uptime",
+	"stat-cluster-start-time",
 	"endpoint-plot-wrap",
 	"branches-wrap",
 	"chans-wrap",
@@ -153,11 +166,14 @@ const branchMetadata = __BRANCHES__; /*[
 	},
 ];*/
 
-const startTime = new Date(__START_TIME__ /*1734667290000*/);
-startTimeEl.textContent = formatTime(startTime);
+const nodeStartTime = new Date(__NODE_START_TIME__ /*1734667290000*/);
+const clusterStartTime = new Date(__CLUSTER_START_TIME__ /*1734667290000*/);
+nodeStartTimeEl.textContent = formatTime(nodeStartTime);
+clusterStartTimeEl.textContent = formatTime(clusterStartTime);
 
 const refreshTimes = () => {
-	uptimeEl.textContent = formatSince(startTime);
+	nodeUptimeEl.textContent = formatSince(nodeStartTime);
+	clusterUptimeEl.textContent = formatSince(clusterStartTime);
 };
 refreshTimes();
 setInterval(refreshTimes, 1_000);

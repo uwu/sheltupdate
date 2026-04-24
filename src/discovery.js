@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { arktypeValidator } from "@hono/arktype-validator";
 import { type } from "arktype";
-import { config } from "./common/config.js";
+import { config, startTime } from "./common/config.js";
 import { statsState } from "./dashboard/reporting.js";
 
 const pendingSeeds = new Set(config.discovery.seeds.map((n) => new URL(n).origin));
@@ -44,6 +44,7 @@ const Node = type({
 	id: "string",
 	status: '"online" | "offline" | "unknown"',
 	ts: "number.epoch",
+	"startTime?": "number.epoch",
 	statistics: Statistics,
 });
 const Nodes = Node.array();
@@ -55,6 +56,7 @@ const getNodes = () => [
 		name: config.discovery.name,
 		status: "online",
 		ts: Date.now(),
+		startTime,
 		statistics: statsState,
 	},
 	...nodeMap.values(),
@@ -105,6 +107,7 @@ function processNode(data) {
 	node.id = data.id;
 	node.status = data.status;
 	node.ts = data.ts;
+	node.startTime = data.startTime;
 	node.statistics = data.statistics;
 
 	pendingSeeds.delete(node.endpoint);
@@ -242,6 +245,13 @@ export function getAggregatedStatistics() {
 	const statistics = [...nodeMap.values()].sort((a, b) => a.ts - b.ts).map((n) => n.statistics);
 	for (const stats of statistics) mergeStatistics(aggregate, stats);
 	return aggregate;
+}
+export function getClusterStartTime() {
+	let earliest = startTime;
+	for (const node of nodeMap.values()) {
+		if (node.startTime && node.startTime < earliest) earliest = node.startTime;
+	}
+	return earliest;
 }
 export const getClusterHealth = () =>
 	[{ name: config.discovery.name, status: "live" }, ...nodeMap.values()].map((n) => [n.name, n.status]);
