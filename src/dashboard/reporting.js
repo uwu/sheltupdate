@@ -1,4 +1,4 @@
-import { createHash } from "crypto";
+import { createHmac } from "crypto";
 import { config } from "../common/config.js";
 
 // state
@@ -39,13 +39,13 @@ export function reportEndpoint(name) {
 /// call on v1 handlemodules, v2 handlemanifest
 export function reportUniqueUser(ip, platform, host_version, channel, branch, apiVer) {
 	if (!config.stats) return;
-	statsState.uniqueUsers[createHash("sha256").update(ip).digest("hex").slice(0, 32)] = {
+	const id = createHmac("sha256", config.discovery.key).update(ip).digest("hex");
+	statsState.uniqueUsers[id] = {
 		platform,
 		host_version,
 		channel,
 		branch,
 		apiVer,
-		//time: Date.now(),
 	};
 }
 

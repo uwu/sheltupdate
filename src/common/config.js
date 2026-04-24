@@ -1,6 +1,7 @@
 import { readFileSync } from "fs";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
+import { randomUUID } from "crypto";
 
 export const srcDir = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -34,7 +35,7 @@ export const config = Object.freeze({
 		enabled: !!rawCfg?.discovery?.enabled,
 		name: rawCfg?.discovery?.name || "Unknown",
 		id: rawCfg?.discovery?.id,
-		key: rawCfg?.discovery?.key,
+		key: rawCfg?.discovery?.key ?? randomUUID(),
 		endpoint: rawCfg?.discovery?.endpoint,
 		interval: rawCfg?.discovery?.interval * 1000 || 15000,
 		seeds: rawCfg?.discovery?.seeds ?? [],
