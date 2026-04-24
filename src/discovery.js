@@ -1,3 +1,5 @@
+// @ts-check
+
 import { Hono } from "hono";
 import { arktypeValidator } from "@hono/arktype-validator";
 import { type } from "arktype";
@@ -5,7 +7,7 @@ import { config, startTime } from "./common/config.js";
 import { statsState } from "./dashboard/reporting.js";
 
 /** @type {Set<string>} */
-const pendingSeeds = new Set(config.discovery.seeds.map((n) => new URL(n).origin));
+const pendingSeeds = new Set(config.discovery.seeds.map((/** @type {string} */ n) => new URL(n).origin));
 
 /** @type {Map<string, string>} */
 const seedMap = new Map();
@@ -131,7 +133,7 @@ function processNode(data) {
 
 	let node = nodeMap.get(data.id);
 	if (node && node.ts > data.ts) return false;
-	if (!node) nodeMap.set(data.id, (node = {}));
+	if (!node) nodeMap.set(data.id, (node = /** @type {Node} */ ({})));
 
 	node.endpoint = data.endpoint;
 	node.name = data.name;
@@ -141,7 +143,7 @@ function processNode(data) {
 	node.startTime = data.startTime;
 	node.statistics = data.statistics;
 
-	pendingSeeds.delete(node.endpoint);
+	if (node.endpoint) pendingSeeds.delete(node.endpoint);
 	return true;
 }
 
@@ -172,12 +174,12 @@ async function discoverNodes() {
 }
 
 async function seedNodes() {
+	if (pendingSeeds.size === 0) return clearInterval(seedInterval);
 	pendingSeeds.forEach(async (seed) => {
 		const result = await fetchNodes(seed);
 		if (!("data" in result)) return;
 		processNodes(result.data, seed);
 	});
-	if (pendingSeeds.size === 0) clearInterval(seedInterval);
 }
 
 // This is only for nodes that are private and have been introduced indirectly.
@@ -194,7 +196,7 @@ const OFFLINE_TIME = UNKNOWN_TIME * 2; // default 1 minute
 const DELETE_TIME = 7 * 24 * 60 * 60 * 1000; // 1 week
 
 function maintainNodes() {
-	nodeMap.forEach((node) => {
+	for (const node of nodeMap.values()) {
 		const diff = Date.now() - node.ts;
 		if (diff > DELETE_TIME) {
 			nodeMap.delete(node.id);
@@ -210,7 +212,7 @@ function maintainNodes() {
 				node.ts = Date.now();
 			}
 		}
-	});
+	}
 }
 
 /** @type {NodeJS.Timeout} */
