@@ -50,7 +50,7 @@ const Node = type({
 	"startTime?": "number.epoch",
 	statistics: Statistics,
 });
-const Nodes = Node.array();
+const Nodes = Node.array().atLeastLength(1);
 
 /**
  * @template S, T
