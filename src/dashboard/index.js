@@ -11,22 +11,23 @@ const js__ = readFileSync(join(srcDir, "dashboard", "dashboard.js"), "utf8");
 
 const hitRatio = ({ hit, miss }) => (hit || miss ? ((100 * hit) / (hit + miss)).toFixed(1) + "%" : "N/A");
 
+const escape = (str) => str.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 function clusterStatusTemplate() {
 	const nodes = getClusterHealth();
 	return `
-	<div id="cluster-status" class="stats-card">
-		<h2 class="card-title">Cluster Status</h2>
-		<div>
-		${nodes
-			.map(
-				([name, status]) => `<div>
-				<div class="cluster-node cluster-${status}"></div>
-				<span>${name}: ${status[0].toUpperCase() + status.slice(1)}</span>
-			</div>`,
-			)
-			.join("\n")}
-		</div>
-	<div>`;
+		<div id="cluster-status" class="stats-card">
+			<h2 class="card-title">Cluster Status</h2>
+			<div>
+${nodes
+	.map(
+		([name, status]) => `				<div>
+					<div class="cluster-node cluster-${status}"></div>
+					<span>${escape(name)}: ${status[0].toUpperCase() + status.slice(1)}</span>
+				</div>`,
+	)
+	.join("\n")}
+			</div>
+		</div>`;
 }
 
 function template(temp) {
