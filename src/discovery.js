@@ -164,13 +164,14 @@ function processNodes([primary, ...nodes], seed) {
 	for (const node of nodes) processNode(node);
 }
 
-async function discoverNodes() {
+function discoverNodes() {
 	nodeMap.forEach(async (node) => {
 		const endpoint = node.endpoint || seedMap.get(node.id);
 		if (!endpoint) return;
 
 		const result = await fetchNodes(endpoint);
 		if (!("data" in result)) {
+			// Mark node as offline and update timestamp so other nodes accept this update.
 			node.status = "offline";
 			node.ts = Date.now();
 			return;
@@ -180,7 +181,7 @@ async function discoverNodes() {
 	});
 }
 
-async function seedNodes() {
+function seedNodes() {
 	if (pendingSeeds.size === 0) return clearInterval(seedInterval);
 	pendingSeeds.forEach(async (seed) => {
 		// We may not push any data during the seed process, this would interfere
@@ -213,6 +214,9 @@ function maintainNodes() {
 		}
 
 		if (!node.endpoint) {
+			// Node is marked as unknown and then offline in stages, this is done
+			// so that the node being updated does not cause it to be maintained
+			// online indefinitely.
 			if (node.status === "unknown" && diff > OFFLINE_TIME) {
 				node.status = "offline";
 				node.ts = Date.now();
