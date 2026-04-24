@@ -17,10 +17,21 @@ const cap = (s) =>
 		.join(" ");
 
 const formatTime = format("h:mm:ss b");
+const formatDateTime = format("MMM d, h:mm:ss b");
+const formatDateTimeWithYear = format("MMM d, yyyy, h:mm:ss b");
 const formatDurDHM = formatDurationWithOptions({ format: ["days", "hours", "minutes"] });
 const formatDurAuto = formatDurationWithOptions({});
 
 const formatSince = (s) => formatDurDHM(since(s)) || formatDurAuto(since(s));
+
+const formatStartTime = (start) => {
+	const now = new Date();
+
+	if (start.getFullYear() !== now.getFullYear()) return formatDateTimeWithYear(start);
+	if (since(start).days) return formatDateTime(start);
+
+	return formatTime(start);
+};
 
 const [
 	nodeUptimeEl,
@@ -168,8 +179,8 @@ const branchMetadata = __BRANCHES__; /*[
 
 const nodeStartTime = new Date(__NODE_START_TIME__ /*1734667290000*/);
 const clusterStartTime = new Date(__CLUSTER_START_TIME__ /*1734667290000*/);
-nodeStartTimeEl.textContent = formatTime(nodeStartTime);
-clusterStartTimeEl.textContent = formatTime(clusterStartTime);
+nodeStartTimeEl.textContent = formatStartTime(nodeStartTime);
+clusterStartTimeEl.textContent = formatStartTime(clusterStartTime);
 
 const refreshTimes = () => {
 	nodeUptimeEl.textContent = formatSince(nodeStartTime);
