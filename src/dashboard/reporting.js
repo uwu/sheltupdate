@@ -1,4 +1,4 @@
-import { createHmac } from "crypto";
+import { createHmac, randomUUID } from "crypto";
 import { config } from "../common/config.js";
 
 // state
@@ -36,10 +36,11 @@ export function reportEndpoint(name) {
 	statsState.requestCounts[name]++;
 }
 
+const hmacKey = config.discovery.key ?? randomUUID();
 /// call on v1 handlemodules, v2 handlemanifest
 export function reportUniqueUser(ip, platform, host_version, channel, branch, apiVer) {
 	if (!config.stats) return;
-	const id = createHmac("sha256", config.discovery.key).update(ip).digest("hex");
+	const id = createHmac("sha256", hmacKey).update(ip).digest("hex");
 	statsState.uniqueUsers[id] = {
 		platform,
 		host_version,

@@ -35,7 +35,7 @@ export const config = Object.freeze({
 		enabled: !!rawCfg?.discovery?.enabled,
 		name: rawCfg?.discovery?.name || "Unknown",
 		id: rawCfg?.discovery?.id,
-		key: rawCfg?.discovery?.key ?? randomUUID(),
+		key: rawCfg?.discovery?.key,
 		endpoint: rawCfg?.discovery?.endpoint,
 		interval: rawCfg?.discovery?.interval * 1000 || 15000,
 		seeds: rawCfg?.discovery?.seeds ?? [],
