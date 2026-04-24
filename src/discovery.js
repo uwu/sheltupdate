@@ -4,9 +4,12 @@ import { type } from "arktype";
 import { config, startTime } from "./common/config.js";
 import { statsState } from "./dashboard/reporting.js";
 
+/** @type {Set<string>} */
 const pendingSeeds = new Set(config.discovery.seeds.map((n) => new URL(n).origin));
 
+/** @type {Map<string, string>} */
 const seedMap = new Map();
+/** @type {Map<string, Node>} */
 const nodeMap = new Map();
 
 const UniqueUser = type({
@@ -49,6 +52,20 @@ const Node = type({
 });
 const Nodes = Node.array();
 
+/**
+ * @template S, T
+ * @typedef {{ [K in keyof S]: S[K] extends T ? K : never; }[keyof S]} ExtractTypeKeys
+ */
+
+/**
+ * @typedef {typeof Statistics.infer} Statistics
+ * @typedef {typeof HitRatio.infer} HitRatio
+ * @typedef {ExtractTypeKeys<Statistics, HitRatio>} HitRatioKeys
+ * @typedef {typeof Node.infer} Node
+ * @typedef {typeof Nodes.infer} Nodes
+ */
+
+/** @returns {Nodes} */
 const getNodes = () => [
 	{
 		endpoint: config.discovery.endpoint,
@@ -62,8 +79,13 @@ const getNodes = () => [
 	...nodeMap.values(),
 ];
 
-function fetchNodes(endpoint) {
+/**
+ * @param {string} endpoint
+ * @returns {Promise<{ data: Nodes } | { error: string, cause: any }>}
+ */
+async function fetchNodes(endpoint) {
 	const signal = AbortSignal.timeout(5000);
+	/** @type {RequestInit} */
 	const init = { signal };
 
 	if (config.discovery.key) {
@@ -78,23 +100,32 @@ function fetchNodes(endpoint) {
 		}
 	}
 
-	return fetch(new URL("/_discovery", endpoint), init).then(
-		(r) =>
-			r.ok
-				? r.json().then(
-						(raw) => {
-							const data = Nodes(raw);
-							return data instanceof type.errors
-								? { error: "Structure validation failed", cause: data.summary }
-								: { data: data };
-						},
-						(err) => ({ error: "Failed to parse JSON", cause: err.message }),
-					)
-				: { error: "Received non-ok status code", cause: r.status },
-		(err) => ({ error: "Failed to fetch", cause: err.message }),
-	);
+	let resp;
+	try {
+		resp = await fetch(new URL("/_discovery", endpoint), init);
+	} catch (err) {
+		return { error: "Failed to fetch", cause: String(err) };
+	}
+	if (!resp.ok) return { error: "Received non-ok status code", cause: resp.status };
+
+	let raw;
+	try {
+		raw = await resp.json();
+	} catch (err) {
+		return { error: "Failed to parse JSON", cause: String(err) };
+	}
+
+	const data = Nodes(raw);
+	if (data instanceof type.errors) {
+		return { error: "Structure validation failed", cause: data.summary };
+	}
+
+	return { data };
 }
 
+/**
+ * @param {Node} data
+ */
 function processNode(data) {
 	if (data.id === config.discovery.id) return false;
 
@@ -114,6 +145,10 @@ function processNode(data) {
 	return true;
 }
 
+/**
+ * @param {Nodes} nodes
+ * @param {string=} seed
+ */
 function processNodes([primary, ...nodes], seed) {
 	if (seed) seedMap.set(primary.id, seed);
 	processNode(primary);
@@ -126,7 +161,7 @@ async function discoverNodes() {
 		if (!endpoint) return;
 
 		const result = await fetchNodes(endpoint);
-		if (!result.data) {
+		if (!("data" in result)) {
 			node.status = "offline";
 			node.ts = Date.now();
 			return;
@@ -139,7 +174,7 @@ async function discoverNodes() {
 async function seedNodes() {
 	pendingSeeds.forEach(async (seed) => {
 		const result = await fetchNodes(seed);
-		if (!result.data) return;
+		if (!("data" in result)) return;
 		processNodes(result.data, seed);
 	});
 	if (pendingSeeds.size === 0) clearInterval(seedInterval);
@@ -178,6 +213,7 @@ function maintainNodes() {
 	});
 }
 
+/** @type {NodeJS.Timeout} */
 let seedInterval;
 if (config.discovery.enabled) {
 	seedInterval = setInterval(seedNodes, config.discovery.interval);
@@ -212,7 +248,16 @@ export default new Hono()
 		},
 	);
 
+/**
+ * @param {Statistics} onto
+ * @param {Statistics} from
+ */
 function mergeStatistics(onto, from) {
+	/**
+	 * @param {Statistics} onto
+	 * @param {Statistics} from
+	 * @param {HitRatioKeys} key
+	 */
 	function mergeHitRatio(onto, from, key) {
 		const ontoRatio = onto[key],
 			fromRatio = from[key];
@@ -241,6 +286,7 @@ function mergeStatistics(onto, from) {
 	mergeHitRatio(onto, from, "v2ManifestCacheHitRatio");
 }
 export function getAggregatedStatistics() {
+	/** @type {Statistics} */
 	const aggregate = JSON.parse(JSON.stringify(statsState));
 	const statistics = [...nodeMap.values()].sort((a, b) => a.ts - b.ts).map((n) => n.statistics);
 	for (const stats of statistics) mergeStatistics(aggregate, stats);
