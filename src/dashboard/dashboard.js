@@ -202,6 +202,9 @@ const apiVerCounts = {};
 const channelCounts = {};
 for (const user of Object.values(statsState.uniqueUsers)) {
 	const host = user.host_version === "unknown" ? "Unknown" : user.host_version;
+	if (!user.channel || !user.platform) continue;
+	const channel = cap(user.channel);
+	const platform = cap(user.platform);
 
 	for (const br of user.branch.split("+")) {
 		const brPretty = branchMetadata.find((b) => b.name === br)?.displayName ?? br;
@@ -209,14 +212,14 @@ for (const user of Object.values(statsState.uniqueUsers)) {
 		branchCounts[brPretty] ??= 0;
 		branchCounts[brPretty]++;
 	}
-	platformCounts[cap(user.platform)] ??= 0;
-	platformCounts[cap(user.platform)]++;
+	platformCounts[platform] ??= 0;
+	platformCounts[platform]++;
 	hostVerCounts[host] ??= 0;
 	hostVerCounts[host]++;
 	apiVerCounts["API V" + user.apiVer] ??= 0;
 	apiVerCounts["API V" + user.apiVer]++;
-	channelCounts[cap(user.channel)] ??= 0;
-	channelCounts[cap(user.channel)]++;
+	channelCounts[channel] ??= 0;
+	channelCounts[channel]++;
 }
 
 endpointWrap.append(
