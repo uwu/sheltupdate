@@ -8,6 +8,8 @@ import { statsState } from "./dashboard/reporting.js";
 
 /** @type {Set<string>} */
 const pendingSeeds = new Set(config.discovery.seeds.map((/** @type {string} */ n) => new URL(n).origin));
+// Marks whether or not statistics have been recovered from the mesh
+let recoveredStatistics = false;
 
 /** @type {Map<string, string>} */
 const seedMap = new Map();
@@ -49,7 +51,7 @@ const Node = type({
 	id: "string",
 	status: '"online" | "offline" | "unknown"',
 	ts: "number.epoch",
-	"startTime?": "number.epoch",
+	startTime: "number.epoch",
 	statistics: Statistics,
 });
 const Nodes = Node.array().atLeastLength(1);
@@ -83,14 +85,15 @@ const getNodes = () => [
 
 /**
  * @param {string} endpoint
+ * @param {boolean=} preventPush
  * @returns {Promise<{ data: Nodes } | { error: string, cause: any }>}
  */
-async function fetchNodes(endpoint) {
+async function fetchNodes(endpoint, preventPush = false) {
 	const signal = AbortSignal.timeout(5000);
 	/** @type {RequestInit} */
 	const init = { signal };
 
-	if (config.discovery.key) {
+	if (config.discovery.key && !preventPush) {
 		init.method = "POST";
 		init.body = JSON.stringify(getNodes());
 		init.headers = new Headers({
@@ -129,22 +132,18 @@ async function fetchNodes(endpoint) {
  * @param {Node} data
  */
 function processNode(data) {
-	if (data.id === config.discovery.id) return false;
+	if (data.endpoint) pendingSeeds.delete(data.endpoint);
+	if (data.id === config.discovery.id) {
+		if (!recoveredStatistics && data.ts < startTime) {
+			mergeStatistics(statsState, data.statistics);
+			recoveredStatistics = true;
+		}
+		return false;
+	}
 
-	let node = nodeMap.get(data.id);
-	if (node && node.ts > data.ts) return false;
-	if (!node) nodeMap.set(data.id, (node = /** @type {Node} */ ({})));
-
-	node.endpoint = data.endpoint;
-	node.name = data.name;
-	node.id = data.id;
-	node.status = data.status;
-	node.ts = data.ts;
-	node.startTime = data.startTime;
-	node.statistics = data.statistics;
-
-	if (node.endpoint) pendingSeeds.delete(node.endpoint);
-	return true;
+	let existing = nodeMap.get(data.id);
+	if (existing && existing.ts > data.ts) return;
+	nodeMap.set(data.id, data);
 }
 
 /**
@@ -176,7 +175,9 @@ async function discoverNodes() {
 async function seedNodes() {
 	if (pendingSeeds.size === 0) return clearInterval(seedInterval);
 	pendingSeeds.forEach(async (seed) => {
-		const result = await fetchNodes(seed);
+		// We may not push any data during the seed process, this would interfere
+		// with our ability to recover statistics from the nodes.
+		const result = await fetchNodes(seed, true);
 		if (!("data" in result)) return;
 		processNodes(result.data, seed);
 	});
@@ -245,6 +246,7 @@ export default new Hono()
 		async (c) => {
 			const nodes = await c.req.valid("json");
 			const seed = await c.req.header("x-shup-endpoint");
+
 			processNodes(nodes, seed);
 			return c.json(getNodes());
 		},
