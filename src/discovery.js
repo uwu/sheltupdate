@@ -77,10 +77,14 @@ const Nodes = Node.array().atLeastLength(1);
  * @typedef {typeof Nodes.infer} Nodes
  */
 
+// A node may chose to remain private while still pushing out it's endpoint
+// to the seed map of nodes it is contacting.
+const sharedEndpoint = !config.discovery.private ? config.discovery.endpoint : undefined;
+
 /** @returns {Nodes} */
 const getNodes = () => [
 	{
-		endpoint: config.discovery.endpoint,
+		endpoint: sharedEndpoint,
 		id: config.discovery.id,
 		name: config.discovery.name,
 		status: "online",

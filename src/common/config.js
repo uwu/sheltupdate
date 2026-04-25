@@ -37,6 +37,7 @@ export const config = Object.freeze({
 		id: rawCfg?.discovery?.id,
 		key: rawCfg?.discovery?.key,
 		endpoint: rawCfg?.discovery?.endpoint,
+		private: !!rawCfg?.discovery?.private, // Has no effect if `endpoint` and `key` are not specified
 		interval: rawCfg?.discovery?.interval * 1000 || 15000,
 		seeds: rawCfg?.discovery?.seeds ?? [],
 	},
