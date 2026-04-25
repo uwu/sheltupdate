@@ -6,8 +6,11 @@ import { type } from "arktype";
 import { config, startTime } from "./common/config.js";
 import { statsState } from "./dashboard/reporting.js";
 
+/** @param  {...any} data */
+const log = (...data) => console.log("[discovery]", ...data);
+
 /** @type {Set<string>} */
-const pendingSeeds = new Set(config.discovery.seeds.map((/** @type {string} */ n) => new URL(n).origin));
+const pendingSeeds = new Set(config.discovery.seeds.map((/** @type {string} */ n) => new URL(n).href));
 // Marks whether or not statistics have been recovered from the mesh
 let recoveredStatistics = false;
 
@@ -90,9 +93,10 @@ const getNodes = () => [
 ];
 
 /**
+ * @typedef {"fetch" | "parse" | "status" | "validation"} FetchError
  * @param {string} endpoint
  * @param {boolean=} preventPush
- * @returns {Promise<{ data: Nodes } | { error: string, cause: any }>}
+ * @returns {Promise<{ data: Nodes } | { error: FetchError, cause: any }>}
  */
 async function fetchNodes(endpoint, preventPush = false) {
 	const signal = AbortSignal.timeout(5000);
@@ -114,31 +118,47 @@ async function fetchNodes(endpoint, preventPush = false) {
 	let resp;
 	try {
 		resp = await fetch(new URL("/_discovery", endpoint), init);
-	} catch (err) {
-		return { error: "Failed to fetch", cause: String(err) };
+	} catch (/** @type {any} */ err) {
+		return { error: "fetch", cause: err?.cause?.code || String(err) };
 	}
-	if (!resp.ok) return { error: "Received non-ok status code", cause: resp.status };
 
-	let raw;
+	let raw, extra;
 	try {
 		raw = await resp.json();
 	} catch (err) {
-		return { error: "Failed to parse JSON", cause: String(err) };
+		extra = { error: "parse", message: String(err) };
+		return { error: "parse", cause: extra.message };
+	} finally {
+		if (!resp.ok) return { error: "status", cause: { status: resp.status, ...extra, ...raw } };
 	}
 
 	const data = Nodes(raw);
 	if (data instanceof type.errors) {
-		return { error: "Structure validation failed", cause: data.summary };
+		return { error: "validation", cause: data.summary };
 	}
 
 	return { data };
 }
 
 /**
+ * @param {string} endpoint
+ * @param {({ error: FetchError, cause: any })} data
+ */
+function reportFetchError(endpoint, data) {
+	// This intentionally doesn't handle all cases, we don't care about some
+	// failures outside of debugging.
+	if (data.error === "status") {
+		if (data.cause.status === 404) return;
+		log("failed to fetch", endpoint, data.cause);
+	} else if (data.error === "parse" || data.error === "validation") {
+		log("failed to fetch", endpoint, data.cause);
+	}
+}
+
+/**
  * @param {Node} data
  */
 function processNode(data) {
-	if (data.endpoint) pendingSeeds.delete(data.endpoint);
 	if (data.id === config.discovery.id) {
 		if (!recoveredStatistics && data.ts < startTime) {
 			mergeStatistics(statsState, data.statistics);
@@ -149,6 +169,7 @@ function processNode(data) {
 
 	let existing = nodeMap.get(data.id);
 	if (existing && existing.ts >= data.ts) return;
+	if (!existing) log("new node discovered:", data.id);
 	nodeMap.set(data.id, data);
 
 	if (data.clusterStartTime < clusterStartTime) clusterStartTime = data.clusterStartTime;
@@ -159,7 +180,12 @@ function processNode(data) {
  * @param {string=} seed
  */
 function processNodes([primary, ...nodes], seed) {
-	if (seed) seedMap.set(primary.id, seed);
+	if (seed) {
+		if (pendingSeeds.delete(seed)) {
+			log("resolved seed node:", seed, "as", primary.id);
+		}
+		seedMap.set(primary.id, seed);
+	}
 	processNode(primary);
 	for (const node of nodes) processNode(node);
 }
@@ -174,7 +200,7 @@ function discoverNodes() {
 			// Mark node as offline and update timestamp so other nodes accept this update.
 			node.status = "offline";
 			node.ts = Date.now();
-			return;
+			return reportFetchError(endpoint, result);
 		}
 
 		processNodes(result.data);
@@ -187,7 +213,7 @@ function seedNodes() {
 		// We may not push any data during the seed process, this would interfere
 		// with our ability to recover statistics from the nodes.
 		const result = await fetchNodes(seed, true);
-		if (!("data" in result)) return;
+		if (!("data" in result)) return reportFetchError(seed, result);
 		processNodes(result.data, seed);
 	});
 }
@@ -220,9 +246,11 @@ function maintainNodes() {
 			if (node.status === "unknown" && diff > OFFLINE_TIME) {
 				node.status = "offline";
 				node.ts = Date.now();
+				log("marked node as offline after inactivity:", node.id);
 			} else if (node.status === "online" && diff > UNKNOWN_TIME) {
 				node.status = "unknown";
 				node.ts = Date.now();
+				log("marked node as unknown after inactivity:", node.id);
 			}
 		}
 	}
@@ -231,11 +259,25 @@ function maintainNodes() {
 /** @type {NodeJS.Timeout} */
 let seedInterval;
 if (config.discovery.enabled) {
+	log("discovery enabled; interval:", config.discovery.interval, "cluster:", !!config.discovery.key);
+
 	seedInterval = setInterval(seedNodes, config.discovery.interval);
 	seedNodes();
 
 	setInterval(discoverNodes, config.discovery.interval);
 	setInterval(maintainNodes, config.discovery.interval);
+}
+
+/** @type {import("@hono/arktype-validator").Hook<any, any, any>} */
+function validationHook(result, c) {
+	if (result.success) return;
+	return c.json(
+		{
+			error: "validation",
+			message: result.errors.summary,
+		},
+		400,
+	);
 }
 
 export default new Hono()
@@ -249,15 +291,31 @@ export default new Hono()
 	.post(
 		"/_discovery",
 		async (c, next) => {
-			if (!config.discovery.key || config.discovery.key !== c.req.header("x-shup-key")) {
-				return c.text("Unauthorized", 403);
+			if (!config.discovery.key) {
+				// Act as if a GET was issued if no key is configured.
+				return c.json(getNodes());
+			} else if (config.discovery.key !== c.req.header("x-shup-key")) {
+				return c.json(
+					{
+						error: "unauthorized",
+						message: "Mismatched cluster key",
+					},
+					403,
+				);
 			}
 			await next();
 		},
-		arktypeValidator("json", Nodes),
+		arktypeValidator(
+			"header",
+			type({
+				"x-shup-endpoint?": "string.url.parse",
+			}),
+			validationHook,
+		),
+		arktypeValidator("json", Nodes, validationHook),
 		async (c) => {
 			const nodes = await c.req.valid("json");
-			const seed = await c.req.header("x-shup-endpoint");
+			const seed = await c.req.valid("header")["x-shup-endpoint"]?.href;
 
 			processNodes(nodes, seed);
 			return c.json(getNodes());
