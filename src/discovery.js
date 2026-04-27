@@ -243,7 +243,7 @@ function maintainNodes() {
 			return;
 		}
 
-		if (!node.endpoint) {
+		if (!node.endpoint && !seedMap.get(node.id)) {
 			// Node is marked as unknown and then offline in stages, this is done
 			// so that the node being updated does not cause it to be maintained
 			// online indefinitely.
