@@ -5,6 +5,38 @@
 	font-display: swap;
 }
 
+#marquee-bar {
+	background: white;
+	color: black;
+	overflow: hidden;
+	white-space: pre;
+	font-size: 1rem;
+	line-height: 1.5rem;
+	font-weight: normal;
+	/* break out of body's 1rem padding so the bar spans edge-to-edge */
+	margin: -1rem -1rem 0.5rem;
+	font-family:
+		"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
+		monospace;
+}
+
+#marquee-text {
+	display: inline-block;
+	white-space: pre;
+	/* 150ms * 9ch -> time to scroll entire string */
+	--marquee-duration: 1.35s;
+	animation: snapMarquee var(--marquee-duration) linear infinite;
+}
+
+@keyframes snapMarquee {
+	0% {
+		transform: translateX(0);
+	}
+	100% {
+		transform: translateX(-9ch);
+	}
+}
+
 body {
 	margin: 0;
 	padding: 1rem;
