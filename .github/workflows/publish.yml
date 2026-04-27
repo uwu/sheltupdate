@@ -30,6 +30,7 @@ jobs:
               if docker manifest inspect ghcr.io/${{ github.repository }}:0.0.$VERSION > /dev/null 2>&1; then
                 echo "Image with version (0.0.$VERSION) already exists in registry"
                 echo "Publishing a dev image.."
+                echo "IS_RELEASE=false" >> $GITHUB_ENV
               else
                 echo "Image with version (0.0.$VERSION) does not exist in the registry yet"
                 echo "Publishing a release and a dev image.."
