@@ -164,7 +164,7 @@ function reportFetchError(endpoint, data) {
  */
 function processNode(data) {
 	if (data.id === config.discovery.id) {
-		if (!recoveredStatistics && data.ts < startTime) {
+		if (!recoveredStatistics && data.startTime < startTime) {
 			mergeStatistics(statsState, data.statistics);
 			recoveredStatistics = true;
 		}
