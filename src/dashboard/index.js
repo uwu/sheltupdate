@@ -37,7 +37,7 @@ function template(temp) {
 	const statsState = getAggregatedStatistics();
 	return temp
 		.replaceAll("__USER_COUNT__", Object.values(statsState.uniqueUsers).length)
-		.replaceAll("__VERSION__", version)
+		.replaceAll("__VERSION__", isRelease ? ` r${version}` : "")
 		.replaceAll("__NODE_START_TIME__", startTime)
 		.replaceAll("__CLUSTER_START_TIME__", clusterStartTime)
 		.replaceAll("__STATE__", JSON.stringify(statsState))
