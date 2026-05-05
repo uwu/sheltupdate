@@ -30,7 +30,7 @@
 	},
 	"apiBases": {
 		"v1": "https://discord.com/api",
-		"v2": "https://discord.com/api/updates"
+		"v2": "https://updates.discord.com"
 	},
 	"webhook": {
 		"enable": false,

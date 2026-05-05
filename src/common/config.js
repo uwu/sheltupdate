@@ -58,7 +58,7 @@ export const config = Object.freeze({
 	},
 	apiBases: {
 		v1: rawCfg?.apiBases?.v1 || "https://discord.com/api",
-		v2: rawCfg?.apiBases?.v2 || "https://discord.com/api/updates",
+		v2: rawCfg?.apiBases?.v2 || "https://updates.discord.com",
 	},
 	webhook: {
 		enable: rawCfg?.webhook?.enable ?? false,

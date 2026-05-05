@@ -1,3 +1,8 @@
+## r41
+ - Add cloudflared integration, as part of migration to CF Tunnels for HA (#16)
+ - Introduce decentralized instance discovery and statistics synchronisation (#16)
+ - Update default v2 upstream endpoint, fixing compatability with new Linux host updater.
+
 ## r40
  - Update React Devtools (6.0.1 -> 7.0.1)
 
