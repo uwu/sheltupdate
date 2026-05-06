@@ -1,3 +1,6 @@
+## r43
+ - Make unique user reporting more robust, fixes discovery desync.
+
 ## r42
  - Fix 'Client Mods' page being empty
  - Fix devtools not getting enabled with shelter branch
