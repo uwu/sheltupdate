@@ -113,111 +113,115 @@ electron.session.defaultSession.webRequest.onHeadersReceived = () => {};
 // Patch DevTools setting, enabled by default
 const enableDevTools = process.env.SHELTER_FORCE_DEVTOOLS?.toLowerCase() !== "false";
 
-const originalRequire = Module.prototype.require;
+function onceDefined(obj, prop, callback) {
+	Object.defineProperty(obj, prop, {
+		set: (v) => {
+			delete obj[prop];
+			obj[prop] = v;
+			callback(v);
+		},
+		enumerable: false,
+		configurable: true,
+	});
+}
 
-Module.prototype.require = function (path) {
-	const loadedModule = originalRequire.call(this, path);
-	if (!path.endsWith("appSettings")) return loadedModule;
+// Stock Discord
+onceDefined(global, "appSettings", onSettings);
+// OpenAsar
+onceDefined(global, "settings", (obj) => {
+	const settings = obj.getSettings();
+	if (settings) onSettings(settings);
+});
 
-	const settingsApi =
-		loadedModule?.appSettings?.getSettings?.() ?? // stock
-		loadedModule?.getSettings?.(); // openasar
-
+function onSettings(settings) {
 	const settingsStore =
-		settingsApi?.settings ?? // Original
-		settingsApi?.store; // OpenAsar
+		settings?.settings ?? // Stock Discord
+		settings?.store; // OpenAsar
 
-	if (settingsApi) {
-		const rg = /^(https?:\/\/.+)\/([a-zA-Z0-9_+-]+)\/?$/;
+	const rg = /^(https?:\/\/.+)\/([a-zA-Z0-9_+-]+)\/?$/;
 
-		const getHost = () => {
-			const ue1 = settingsApi.get("UPDATE_ENDPOINT");
-			const ue2 = settingsApi.get("NEW_UPDATE_ENDPOINT");
+	const getHost = () => {
+		const ue1 = settings.get("UPDATE_ENDPOINT");
+		const ue2 = settings.get("NEW_UPDATE_ENDPOINT");
 
-			if (typeof ue1 === "string") {
-				const match = ue1.match(rg);
-				if (match?.[1]) {
-					return match[1];
-				}
+		if (typeof ue1 === "string") {
+			const match = ue1.match(rg);
+			if (match?.[1]) {
+				return match[1];
 			}
-
-			if (typeof ue2 === "string") {
-				const match = ue2.match(rg);
-				if (match?.[1]) {
-					return match[1];
-				}
-			}
-		};
-
-		electron.ipcMain.handle("SHELTER_HOST_GET", getHost);
-
-		electron.ipcMain.handle("SHELTER_HOST_SET", (_, h) => {
-			const ue1 = settingsApi.get("UPDATE_ENDPOINT");
-			const ue2 = settingsApi.get("NEW_UPDATE_ENDPOINT");
-
-			if (typeof ue1 === "string") {
-				const match = ue1.match(rg);
-				if (match?.[2]) {
-					settingsApi.set("UPDATE_ENDPOINT", `${h}/${match[2]}`);
-				}
-			}
-
-			if (typeof ue2 === "string") {
-				const match = ue2.match(rg);
-				if (match?.[2]) {
-					settingsApi.set("NEW_UPDATE_ENDPOINT", `${h}/${match[2]}`);
-				}
-			}
-		});
-
-		electron.ipcMain.handle("SHELTER_BRANCH_GET", () => {
-			const ue1 = settingsApi.get("UPDATE_ENDPOINT");
-			const ue2 = settingsApi.get("NEW_UPDATE_ENDPOINT");
-
-			if (typeof ue1 === "string") {
-				const match = ue1.match(rg);
-				if (match?.[2]) {
-					return match[2].split("+");
-				}
-			}
-
-			if (typeof ue2 === "string") {
-				const match = ue2.match(rg);
-				if (match?.[2]) {
-					return match[2].split("+");
-				}
-			}
-
-			return [];
-		});
-
-		electron.ipcMain.handle("SHELTER_BRANCH_SET", (_, b) => {
-			const host = getHost();
-
-			if (b.length) {
-				settingsApi.set("UPDATE_ENDPOINT", `${host}/${b.join("+")}`);
-				settingsApi.set("NEW_UPDATE_ENDPOINT", `${host}/${b.join("+")}/`);
-			} else {
-				settingsApi.set("UPDATE_ENDPOINT", undefined);
-				settingsApi.set("NEW_UPDATE_ENDPOINT", undefined);
-			}
-		});
-
-		try {
-			if (enableDevTools)
-				Object.defineProperty(settingsStore, "DANGEROUS_ENABLE_DEVTOOLS_ONLY_ENABLE_IF_YOU_KNOW_WHAT_YOURE_DOING", {
-					get: () => true,
-					set: () => {},
-					configurable: false,
-					enumerable: false, // prevents our patched value from getting saved to settings.json
-				});
-			Module.prototype.require = originalRequire;
-		} catch (e) {
-			logger.error(`Error getting settings module: ${e}${EOL}${e.stack}`);
 		}
+
+		if (typeof ue2 === "string") {
+			const match = ue2.match(rg);
+			if (match?.[1]) {
+				return match[1];
+			}
+		}
+	};
+
+	electron.ipcMain.handle("SHELTER_HOST_GET", getHost);
+
+	electron.ipcMain.handle("SHELTER_HOST_SET", (_, h) => {
+		const ue1 = settings.get("UPDATE_ENDPOINT");
+		const ue2 = settings.get("NEW_UPDATE_ENDPOINT");
+
+		if (typeof ue1 === "string") {
+			const match = ue1.match(rg);
+			if (match?.[2]) {
+				settings.set("UPDATE_ENDPOINT", `${h}/${match[2]}`);
+			}
+		}
+
+		if (typeof ue2 === "string") {
+			const match = ue2.match(rg);
+			if (match?.[2]) {
+				settings.set("NEW_UPDATE_ENDPOINT", `${h}/${match[2]}`);
+			}
+		}
+	});
+
+	electron.ipcMain.handle("SHELTER_BRANCH_GET", () => {
+		const ue1 = settings.get("UPDATE_ENDPOINT");
+		const ue2 = settings.get("NEW_UPDATE_ENDPOINT");
+
+		if (typeof ue1 === "string") {
+			const match = ue1.match(rg);
+			if (match?.[2]) {
+				return match[2].split("+");
+			}
+		}
+
+		if (typeof ue2 === "string") {
+			const match = ue2.match(rg);
+			if (match?.[2]) {
+				return match[2].split("+");
+			}
+		}
+
+		return [];
+	});
+
+	electron.ipcMain.handle("SHELTER_BRANCH_SET", (_, b) => {
+		const host = getHost();
+
+		if (b.length) {
+			settings.set("UPDATE_ENDPOINT", `${host}/${b.join("+")}`);
+			settings.set("NEW_UPDATE_ENDPOINT", `${host}/${b.join("+")}/`);
+		} else {
+			settings.set("UPDATE_ENDPOINT", undefined);
+			settings.set("NEW_UPDATE_ENDPOINT", undefined);
+		}
+	});
+
+	if (enableDevTools) {
+		Object.defineProperty(settingsStore, "DANGEROUS_ENABLE_DEVTOOLS_ONLY_ENABLE_IF_YOU_KNOW_WHAT_YOURE_DOING", {
+			get: () => true,
+			set: () => {},
+			configurable: false,
+			enumerable: false, // prevents our patched value from getting saved to settings.json
+		});
 	}
-	return loadedModule;
-};
+}
 // #endregion
 
 // #region Patch BrowserWindow
