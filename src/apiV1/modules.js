@@ -19,8 +19,7 @@ export const handleModules = withSection("v1 module update check", async (span, 
 
 	populateReqAttrs(span, c);
 
-	if (platform === "linux" || platform === "win" || platform === "osx")
-		reportUniqueUser(originatingIp(c), platform, `${platform} ${host_version}`, channel, branch, 1);
+	reportUniqueUser(originatingIp(c), platform, host_version, channel, branch, 1);
 
 	let json = await basicProxy(c).then((r) => r.json());
 

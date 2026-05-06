@@ -57,125 +57,20 @@ const [
 	"apiv-wrap",
 ].map(document.getElementById.bind(document));
 
-const statsState = __STATE__; /*{
-	uniqueUsers: {
-		a: {
-			platform: "linux",
-			host_version: "0.0.78",
-			channel: "stable",
-			branch: "shelter+reactdevtools+vencord",
-			apiVer: 1,
-			time: new Date("2024-12-20 9:00:00"),
-		},
-		b: {
-			platform: "win",
-			host_version: "unknown",
-			channel: "canary",
-			branch: "shelter+vencord",
-			apiVer: 2,
-			time: new Date("2024-12-20 16:00:00"),
-		},
-		c: {
-			platform: "win",
-			host_version: "unknown",
-			channel: "canary",
-			branch: "shelter+vencord",
-			apiVer: 2,
-			time: new Date("2024-12-20 16:00:00"),
-		},
-		d: {
-			platform: "mac",
-			host_version: "unknown",
-			channel: "stable",
-			branch: "vencord",
-			apiVer: 2,
-			time: new Date("2024-12-20 13:00:00"),
-		},
-	},
-	requestCounts: {
-		v1_host_squirrel: 435,
-		v1_host_notsquirrel: 34,
-		v1_modules: 45,
-		v1_module_download: 345,
-		v2_manifest: 45,
-		v2_module: 56,
-	},
-	proxyOrRedirect: {
-		proxied: 89,
-		redirected: 2,
-	},
-	proxyCacheHitRatio: {
-		hit: 90,
-		miss: 34,
-	},
-	v1ModuleCacheHitRatio: {
-		hit: 90,
-		miss: 2,
-	},
-	v2ManifestCacheHitRatio: {
-		hit: 90,
-		miss: 31,
-	},
-};*/
+/** @type {import("../discovery").Statistics} */
+const statsState = __STATE__;
 
-const branchMetadata = __BRANCHES__; /*[
-	{
-		version: 110,
-		type: "mod",
-		name: "shelter",
-		displayName: "shelter",
-		description: "Injects shelter",
-		hidden: false,
-	},
-	{
-		version: 16,
-		type: "mod",
-		name: "vencord",
-		displayName: "Vencord",
-		description: "Injects Vencord; This is not an officially supported Vencord install method",
-		hidden: false,
-	},
-	{
-		version: 223,
-		type: "mod",
-		name: "betterdiscord",
-		displayName: "BetterDiscord",
-		description: "Injects BetterDiscord",
-		hidden: false,
-	},
-	{
-		version: 231,
-		type: "tool",
-		name: "reactdevtools",
-		displayName: "React Developer Tools",
-		description: "Adds the React Dev Tools to the web developer panel",
-		hidden: false,
-	},
-	{
-		version: 13,
-		type: "tweak",
-		name: "spotify_embed_volume",
-		displayName: "Spotify Embed Volume",
-		description: "Adds a volume slider to Spotify embeds",
-		hidden: false,
-	},
-	{
-		version: 125,
-		type: "tweak",
-		name: "yt_ad_block",
-		displayName: "YouTube Ad Block",
-		description: "Removes ads in embeds and in the Watch Together activity",
-		hidden: false,
-	},
-	{
-		version: 122,
-		type: "tweak",
-		name: "yt_embed_fix",
-		displayName: "YouTube Embed Fix",
-		description: "Enables more videos to be viewable from within Discord (like UMG blocked ones)",
-		hidden: false,
-	},
-];*/
+/**
+ * @typedef Branch
+ * @prop {number} version
+ * @prop {string} type
+ * @prop {string} name
+ * @prop {string} displayName
+ * @prop {string} description
+ * @prop {boolean} hidden
+ */
+/** @type {Branch[]} */
+const branchMetadata = __BRANCHES__;
 
 const nodeStartTime = new Date(__NODE_START_TIME__ /*1734667290000*/);
 const clusterStartTime = new Date(__CLUSTER_START_TIME__ /*1734667290000*/);
@@ -201,8 +96,7 @@ const hostVerCounts = {};
 const apiVerCounts = {};
 const channelCounts = {};
 for (const user of Object.values(statsState.uniqueUsers)) {
-	const host = user.host_version === "unknown" ? "Unknown" : user.host_version;
-	if (!user.channel || !user.platform) continue;
+	const host = `${user.platform} ${user.version || "unknown"}`;
 	const channel = cap(user.channel);
 	const platform = cap(user.platform);
 

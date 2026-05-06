@@ -24,9 +24,9 @@ const nodeMap = new Map();
 export let clusterStartTime = startTime;
 
 const UniqueUser = type({
-	platform: "string",
-	host_version: "string",
-	channel: "string",
+	platform: '"linux" | "win" | "osx"',
+	channel: '"stable" | "ptb" | "canary" | "development"',
+	"version?": "string",
 	branch: "string",
 	apiVer: "number",
 });

@@ -24,7 +24,7 @@ export const handleManifest = withSection("v2 manifest", async (span, c) => {
 	reportUniqueUser(
 		originatingIp(c),
 		c.req.query("platform"),
-		`${c.req.query("platform")} ${c.req.query("platform_version")}`,
+		c.req.query("platform_version"),
 		c.req.query("channel"),
 		branch,
 		2,
