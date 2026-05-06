@@ -1,3 +1,7 @@
+## r42
+ - Fix 'Client Mods' page being empty
+ - Fix devtools not getting enabled with shelter branch
+
 ## r41
  - Add cloudflared integration, as part of migration to CF Tunnels for HA (#16)
  - Introduce decentralized instance discovery and statistics synchronisation (#16)
