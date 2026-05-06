@@ -1,5 +1,5 @@
 {
-	"name": "shup-ha",
+	"name": "shup-worker",
 	"version": "0.0.0",
 	"private": true,
 	"scripts": {
@@ -9,7 +9,8 @@
 		"cf-typegen": "wrangler types"
 	},
 	"devDependencies": {
+		"@types/node": "^25.6.0",
 		"typescript": "^5.5.2",
-		"wrangler": "^4.27.0"
+		"wrangler": "^4.88.0"
 	}
 }

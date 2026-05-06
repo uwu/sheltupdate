@@ -1,0 +1,42 @@
+/**
+ * For more details on how to configure Wrangler, refer to:
+ * https://developers.cloudflare.com/workers/wrangler/configuration/
+ */
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "shup-worker",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-05-05",
+	"observability": {
+		"enabled": true,
+	},
+	"upload_source_maps": true,
+	"compatibility_flags": ["nodejs_compat"],
+	"dev": {
+		"host": "inject.shelter.uwu.network",
+	},
+	"routes": [
+		{ "pattern": "inject.shelter.uwu.network", "custom_domain": true },
+		{ "pattern": "staging.shelter.uwu.network", "custom_domain": true },
+	],
+	"vars": {
+		"BASE_V1": "https://discord.com/api",
+		"BASE_V2": "https://updates.discord.com",
+		"VPC_MAP": {
+			"inject.shelter.uwu.network": "VPC_PRODUCTION",
+			"staging.shelter.uwu.network": "VPC_STAGING",
+		},
+	},
+	"vpc_services": [
+		{
+			"binding": "VPC_PRODUCTION",
+			"service_id": "019df9e0-d7c3-7721-89e9-fffb151a9019",
+			"remote": true,
+		},
+		{
+			"binding": "VPC_STAGING",
+			"service_id": "019df9e0-5121-7670-bd69-dd4867ae586d",
+			"remote": true,
+		},
+	],
+}
