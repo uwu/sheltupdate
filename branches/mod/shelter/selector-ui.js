@@ -32,6 +32,14 @@
 		settings: { registerSection },
 	} = shelter.plugin.scoped;
 
+	const ClientModsIcon = html`
+		<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+			<path
+				d="M13.833 1C14.3393 1 14.75 1.41073 14.75 1.91699V2.83301H19.333C20.3456 2.83301 21.167 3.65447 21.167 4.66699V9.25H22.083C22.5893 9.25 23 9.66074 23 10.167C22.9998 10.6731 22.5892 11.083 22.083 11.083H21.167V12.917H22.083C22.5892 12.917 22.9998 13.3269 23 13.833C23 14.3393 22.5893 14.75 22.083 14.75H21.167V19.333C21.167 20.3456 20.3456 21.167 19.333 21.167H14.75V22.083C14.75 22.5893 14.3393 23 13.833 23C13.3269 22.9998 12.917 22.5892 12.917 22.083V21.167H11.083V22.083C11.083 22.5892 10.6731 22.9998 10.167 23C9.66074 23 9.25 22.5893 9.25 22.083V21.167H4.66699C3.65447 21.167 2.83301 20.3456 2.83301 19.333V14.75H1.91699C1.41073 14.75 1 14.3393 1 13.833C1.00018 13.3269 1.41084 12.917 1.91699 12.917H2.83301V11.083H1.91699C1.41084 11.083 1.00018 10.6731 1 10.167C1 9.66074 1.41073 9.25 1.91699 9.25H2.83301V4.66699C2.83301 3.65447 3.65447 2.83301 4.66699 2.83301H9.25V1.91699C9.25 1.41073 9.66074 1 10.167 1C10.6731 1.00018 11.083 1.41084 11.083 1.91699V2.83301H12.917V1.91699C12.917 1.41084 13.3269 1.00018 13.833 1ZM5.125 18.875H18.875V5.125H5.125V18.875ZM14.75 7.41699C15.7625 7.41699 16.583 8.23748 16.583 9.25V14.75C16.583 15.7625 15.7625 16.583 14.75 16.583H9.25C8.23748 16.583 7.41699 15.7625 7.41699 14.75V9.25C7.41699 8.23748 8.23748 7.41699 9.25 7.41699H14.75ZM9.70801 14.292H14.292V9.70801H9.70801V14.292Z"
+				fill="currentColor" />
+		</svg>
+	`;
+
 	// deal with this plugin still existing after sheltupdate is gone!
 	if (!window.SheltupdateNative) {
 		const id = shelter.plugin.id;
@@ -94,7 +102,7 @@
 	// ok so this will display *above* the shelter heading which is not ideal but its okay i guess
 	registerSection("divider");
 	registerSection("header", "Sheltupdate");
-	registerSection("section", "sheltupdate", "Client Mods", SettingsView);
+	registerSection("section", "sheltupdate", "Client Mods", SettingsView, { icon: ClientModsIcon });
 
 	function BranchEntry(props /*: { name, data, value, onChange } */) {
 		// note: if shelter is disabled (i.e. you uninstalled sheltupdate), allow switching back on
