@@ -1,5 +1,5 @@
 ## WIP
- - Add 'Client Mods' settings icon
+ - Improve 'Client Mods' settings UI
 
 ## r43
  - Make unique user reporting more robust, fixes discovery desync.

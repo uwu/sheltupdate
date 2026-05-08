@@ -73,7 +73,7 @@ contextBridge.exposeInMainWorld("SheltupdateNative", {
 		// get user permission first, this is our main privesc safeguard
 		const dialogState = await ipcRenderer.invoke(
 			"SHELTER_BRANCHCHANGE_SECURITY_DIALOG",
-			`Confirm you want to change your installed mods to: ${br.map((b) => branches[b].name).join(", ")}?`,
+			`Confirm that you want to change your installed mods to: ${br.map((b) => branches[b].name).join(", ")}?`,
 		);
 
 		if (dialogState.response === 0)
@@ -104,7 +104,7 @@ contextBridge.exposeInMainWorld("SheltupdateNative", {
 
 		const res = await ipcRenderer.invoke(
 			"SHELTER_BRANCHCHANGE_SECURITY_DIALOG",
-			`Confirm you want to change sheltupdate instance to ${host}?`,
+			`Confirm that you want to change your sheltupdate instance to ${host}?`,
 		);
 		if (res.response === 0) throw new Error("[sheltupdate] User declined security check");
 
@@ -116,7 +116,7 @@ contextBridge.exposeInMainWorld("SheltupdateNative", {
 		// once again get user permission
 		const res = await ipcRenderer.invoke(
 			"SHELTER_BRANCHCHANGE_SECURITY_DIALOG",
-			`Confirm you want to uninstall your client mods? Your settings will not be deleted.`,
+			`Confirm that you want to uninstall all client mods? Your settings will not be deleted.`,
 		);
 		if (res.response === 0) throw new Error("[sheltupdate] User declined security check");
 

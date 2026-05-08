@@ -6,14 +6,15 @@
 		ui: {
 			Text,
 			TextTags,
+			TextWeights,
 			LinkButton,
 			Divider,
 			Button,
 			ButtonColors,
-			ButtonLooks,
 			ButtonSizes,
 			TextBox,
 			showToast,
+			ToastColors,
 			Header,
 			HeaderTags,
 			SwitchItem,
@@ -136,12 +137,11 @@
 		const [pendingBranches, setPendingBranches] = createSignal(new Set(currentBranches()));
 
 		// basically a set inequality test
-		const unsavedChanges = () => {
+		const hasUnsavedChanges = (e) => {
 			const a = pendingBranches();
 			const b = new Set(currentBranches());
 			return a.size !== b.size || !a.isSubsetOf(b);
 		};
-
 		const isUninstalled = () => !currentBranches().length;
 
 		// this is really silly
@@ -181,9 +181,7 @@
 											branchData.displayName,
 											foundIncompatibilities,
 										);
-										if (res === "disableOthers") {
-											foundIncompatibilities.forEach((b) => pb.delete(b));
-										} else if (res === "cancel") {
+										if (res === "cancel") {
 											return;
 										}
 									}
@@ -198,31 +196,14 @@
 					`,
 						)}
 
-			  <div style="display: flex">
-				  ${() =>
-						unsavedChanges()
-							? html`
-							<${Text}>
-								You have unsaved changes!<br />
-								Applying will require fully closing and reopening Discord.
-							<//>
-							<div style="flex: 1" />
-							<${Button} grow onClick=${(e) => {
-								SheltupdateNative.setBranches([...pendingBranches()]).then(updateCurrent, (err) => {
-									updateCurrent();
-									showToast({
-										title: "Failed to change mods!",
-										content: err?.message ?? err,
-										duration: 3000,
-									});
-								});
-							}}
-							>
-								Save Mods
-							<//>
-						`
-							: html`<div style="flex: 1" />`}
-
+			  <div style=${{
+					display: "flex",
+					"flex-direction": "column",
+					"align-items": "flex-end",
+					"margin-top": "32px",
+					gap: "16px",
+				}}>
+			  	  <${ChangeInstance} />
 				  <${Button}
 					  grow
 					  color=${ButtonColors.RED}
@@ -232,8 +213,9 @@
 								updateCurrent();
 								showToast({
 									title: "Failed to change mods!",
+									color: ToastColors.CRITICAL,
 									content: err?.message ?? err,
-									duration: 3000,
+									duration: 5000,
 								});
 							});
 						}}
@@ -243,7 +225,35 @@
 				  <//>
 			  </div>
 
-			  <${InstanceName} />
+			  <${UnsavedChanges}
+			  	hasUnsavedChanges=${hasUnsavedChanges}
+				onReset=${(e) => {
+					setPendingBranches(new Set(currentBranches()));
+				}}
+				onSave=${(e) => {
+					SheltupdateNative.setBranches([...pendingBranches()]).then(
+						() => {
+							updateCurrent();
+							showToast({
+								title: "Please fully restart Discord!",
+								color: ToastColors.WARNING,
+								content: "Applying requires fully closing and reopening Discord.",
+								duration: 5000,
+							});
+						},
+						(err) => {
+							updateCurrent();
+							showToast({
+								title: "Failed to change mods!",
+								color: ToastColors.CRITICAL,
+								content: err?.message ?? err,
+								duration: 5000,
+							});
+						},
+					);
+				}}
+				>
+			  <//>
 			`;
 		};
 	}
@@ -252,14 +262,14 @@
 		return html`
 			<div style="display: flex; flex-direction: column; align-items: center; height: calc(100vh - 140px); text-align: center; justify-content: center; gap: .5rem;">
 				<${Header} tag=${HeaderTags.H1} style="margin-bottom: 1rem">
-					sheltupdate will be uninstalled at next Discord app restart
+					sheltupdate will be uninstalled at the next Discord app restart
 				<//>
 				<${Text}>
 					Your plugins, themes, settings, etc. have not been deleted and will be remembered if
 					you reinstall sheltupdate in the future, or switch to some other injection method.
 				<//>
 				<${Text}>
-					Change your mind? Until you restart Discord, you can retrieve your installation of
+					Changed your mind? Until you restart Discord, you can retrieve your installation of
 					<${Space} />
 					${() => prettyModNames(uninstallCache())}
 					<${Space} />
@@ -274,8 +284,9 @@
 							updateCurrent();
 							showToast({
 								title: "Failed to change mods!",
+								color: ToastColors.CRITICAL,
 								content: err?.message ?? err,
-								duration: 3000,
+								duration: 5000,
 							});
 						})}
 					style=${{ "margin-top": "2rem" }}
@@ -286,30 +297,100 @@
 		`;
 	}
 
-	function InstanceName() {
+	function UnsavedChanges(props) {
 		return html`
-			<span>
-				<${Text} tag=${TextTags.textSM}>
-					sheltupdate instance: ${currentHost}
+			<div>
+				<div style=${() => ({
+					display: props.hasUnsavedChanges() ? "block" : "none",
+					"max-width": "696px",
+					width: "stretch",
+					"min-width": "300px",
+					bottom: "16px",
+					"margin-right": "16px",
+					position: "fixed",
+					"z-index": "2",
+				})}>
+					<div style=${{
+						"background-color": "var(--background-surface-highest, #2D2D2F)",
+						border: "1px solid var(--border-subtle, rgba(151, 151, 155, 0.12))",
+						"border-radius": "var(--radius-sm, 8px)",
+						"box-shadow":
+							"var(--legacy-elevation-high, 0 2px 10px 0 var(--opacity-black-20, rgba(0, 0, 0, 0.2)))",
+						"padding-block": "10px",
+						"padding-inline": "16px 10px",
+					}}>
+						<div style=${{
+							display: "flex",
+							"align-items": "center",
+							"justify-content": "space-between",
+							gap: "8px",
+							position: "relative",
+						}}>
+							<div style=${{ overflow: "hidden" }}>
+								<${Text}
+									tag=${TextTags.textMD}
+									weight=${TextWeights.medium}
+									style=${{ "text-overflow": "ellipsis", "white-space": "nowrap", overflow: "hidden", display: "block" }}>
+									Careful — you have unsaved changes!
+								<//>
+							</div>
+							<div style=${{ display: "flex", "flex-grow": "0", gap: "0 10px", "justify-content": "end" }}>
+								<${Button}
+									grow
+									color=${ButtonColors.SECONDARY}
+									size=${ButtonSizes.SMALL}
+									onClick=${(e) => props.onReset()}
+								>
+									Reset
+								<//>
+								<${Button}
+									grow
+									color=${ButtonColors.ACTIVE}
+									size=${ButtonSizes.SMALL}
+									onClick=${(e) => props.onSave()}
+								>
+									Save Changes
+								<//>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		`;
+	}
+
+	function ChangeInstance() {
+		return html`
+			<div style=${{
+				display: "flex",
+				"flex-direction": "row",
+				"align-items": "center",
+				gap: "8px",
+			}}>
+			<${Text} tag=${TextTags.textMD} style=${{ color: "var(--text-subtle)" }}>
+				Configured sheltupdate instance:
+				<${Space} />
+				<${LinkButton} href=${currentHost}>
+					${currentHost}
+				<//>
 				<//>
 				<${Button}
 					grow
 					color=${ButtonColors.SECONDARY}
-					size=${ButtonSizes.TINY}
-					style=${{ display: "inline-block", "margin-left": ".5rem" }}
 					onClick=${(e) =>
 						openHostChangeModal().then((v) =>
 							SheltupdateNative.setCurrentHost(v).then(updateCurrent, (err) => {
 								updateCurrent();
 								showToast({
 									title: "Failed to change host!",
+									color: ToastColors.CRITICAL,
 									content: err?.message ?? err,
-									duration: 3000,
+									duration: 5000,
 								});
 							}),
 						)}
 				>Change</Button>
-			</span>
+			</div>
 		`;
 	}
 
@@ -324,13 +405,13 @@
 							Things might break!
 						<//>
 						<${ModalBody}>
-							${branchName} may not work properly alongside ${incompatibleBranchNames}.<br />
-							Do you want to disable ${incompatibleBranchNames}?
+							<b>${branchName}</b> may not work properly alongside <b>${incompatibleBranchNames}</b>.<br /><br />
+							Do you want to proceed anyways?
 						<//>
 						<${ModalFooter}>
 							<div style="display: flex; justify-content: flex-end; gap: .5rem;">
 								<${Button}
-									look=${ButtonLooks.LINK}
+									color=${ButtonColors.SECONDARY}
 									size=${ButtonSizes.MEDIUM}
 									grow
 									onClick=${(e) => {
@@ -339,17 +420,6 @@
 									}}
 								>
 									Cancel
-								<//>
-								<${Button}
-									color=${ButtonColors.GREEN}
-									size=${ButtonSizes.MEDIUM}
-									grow
-									onClick=${(e) => {
-										resolve("disableOthers");
-										close();
-									}}
-								>
-									Disable ${incompatibleBranches.length > 1 ? "them" : "it"}
 								<//>
 								<${Button}
 									color=${ButtonColors.RED}
@@ -423,7 +493,7 @@
 							If someone has told you to change this, be sure you trust them, as the server that you specify here
 							can deliver code to you that will be run when you open Discord, with full access to your computer.
 						<//></p>
-						<${Divider} />
+						<${Divider} mt mb />
 
 						<${TextBox}
 							value=${newHost}
@@ -434,7 +504,7 @@
 							${validationIssue}
 						<//>
 					<//>
-					<${ModalConfirmFooter} close=${() => close} disabled=${validationIssue} onConfirm=${() => res(newHost())} />
+					<${ModalConfirmFooter} type="danger" confirmText="Proceed" close=${() => close} disabled=${validationIssue} onConfirm=${() => res(newHost())} />
 				<//>
 			`;
 			}),
