@@ -114,11 +114,27 @@ electron.session.defaultSession.webRequest.onHeadersReceived = () => {};
 const enableDevTools = process.env.SHELTER_FORCE_DEVTOOLS?.toLowerCase() !== "false";
 
 function onceDefined(obj, prop, callback) {
-	Object.defineProperty(obj, prop, {
+	const callbacks = [callback];
+	let found = false;
+
+	// Handle other Client Mods re-defining this setter after us
+	// and call their callback as soon as we have the property
+	const origDefineProperty = Object.defineProperty;
+	Object.defineProperty = function (objArg, propArg, descriptorArg) {
+		if (!found && objArg === obj && propArg === prop && descriptorArg?.set) {
+			callbacks.push(descriptorArg.set);
+			return objArg;
+		}
+
+		return origDefineProperty.apply(this, arguments);
+	};
+
+	origDefineProperty(obj, prop, {
 		set: (v) => {
 			delete obj[prop];
 			obj[prop] = v;
-			callback(v);
+			found = true;
+			callbacks.forEach((c) => c(v));
 		},
 		enumerable: false,
 		configurable: true,
