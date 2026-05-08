@@ -1,3 +1,7 @@
+## r45
+ - Fix BetterDiscord + shelter incompatibility
+ - Fix 'Client Mods' settings being empty
+
 ## r44
  - Improve 'Client Mods' settings UI
 
