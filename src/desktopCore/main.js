@@ -57,10 +57,11 @@ function getLatestDesktopCoreModule() {
 	let latestVal = 0;
 	let latestDir;
 	for (const d of dirs) {
-		const { birthtimeMs } = statSync(join(modulesDir, d));
-		if (birthtimeMs > latestVal) {
+		const { birthtimeMs, ctimeMs } = statSync(join(modulesDir, d));
+		const birthOrChangeTime = birthtimeMs || ctimeMs;
+		if (birthOrChangeTime > latestVal) {
 			latestDir = d;
-			latestVal = birthtimeMs;
+			latestVal = birthOrChangeTime;
 		}
 	}
 	return join(modulesDir, latestDir, "discord_desktop_core");
