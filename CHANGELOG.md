@@ -1,3 +1,6 @@
+## r46
+ - Fix rare client launch error ('The "path" argument must be of type string. Received undefined')
+
 ## r45
  - Fix BetterDiscord + shelter incompatibility
  - Fix 'Client Mods' settings being empty
