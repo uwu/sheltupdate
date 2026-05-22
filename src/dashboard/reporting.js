@@ -50,7 +50,6 @@ export function reportUniqueUser({ identity, identitySource, platform, arch, cha
 
 	const id = createHmac("sha256", hmacKey).update(`${identitySource}:${identity}`).digest("hex");
 	statsState.uniqueUsers[id] = {
-		identitySource,
 		platform,
 		arch,
 		channel,

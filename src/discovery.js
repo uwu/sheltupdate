@@ -24,7 +24,10 @@ const nodeMap = new Map();
 export let clusterStartTime = startTime;
 
 const UniqueUser = type({
-	"identitySource?": '"install_id" | "ip"',
+	// We do not usually want to do this because it's slower, in this case though
+	// getting rid of all the obsolete keys from recent changes to this structure
+	// will be benefical. We could remove this in the future.
+	"+": "delete",
 	platform: '"linux" | "win" | "osx"',
 	channel: '"stable" | "ptb" | "canary" | "development"',
 	"arch?": "string",
