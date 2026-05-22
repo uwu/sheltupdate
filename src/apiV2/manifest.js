@@ -21,14 +21,16 @@ export const handleManifest = withSection("v2 manifest", async (span, c) => {
 
 	reportEndpoint("v2_manifest");
 
-	reportUniqueUser(
-		originatingIp(c),
-		c.req.query("platform"),
-		c.req.query("platform_version"),
-		c.req.query("channel"),
+	const installId = c.req.query("install_id");
+	reportUniqueUser({
+		identitySource: installId ? "install_id" : "ip",
+		identity: installId || originatingIp(c),
+		platform: c.req.query("platform"),
+		arch: c.req.query("arch"),
+		channel: c.req.query("channel"),
 		branch,
-		2,
-	);
+		apiVer: 2,
+	});
 
 	let json = await basicProxy(c, {}, undefined, base).then((r) => r.json());
 

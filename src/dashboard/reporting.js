@@ -38,18 +38,21 @@ export function reportEndpoint(name) {
 
 const hmacKey = config.discovery.key ?? randomUUID();
 /// call on v1 handlemodules, v2 handlemanifest
-export function reportUniqueUser(ip, platform, version, channel, branch, apiVer) {
+export function reportUniqueUser({ identity, identitySource, platform, arch, channel, branch, apiVer }) {
 	if (!config.stats) return;
 
 	// Reject invalid reports, upstream will return 400 for these.
 	// Maybe validate everything using arktype in the future?
+	if (identitySource !== "install_id" && identitySource !== "ip") return;
+	if (!identity) return;
 	if (platform !== "linux" && platform !== "win" && platform !== "osx") return;
 	if (channel !== "stable" && channel !== "ptb" && channel !== "canary" && channel !== "development") return;
 
-	const id = createHmac("sha256", hmacKey).update(ip).digest("hex");
+	const id = createHmac("sha256", hmacKey).update(`${identitySource}:${identity}`).digest("hex");
 	statsState.uniqueUsers[id] = {
+		identitySource,
 		platform,
-		version,
+		arch,
 		channel,
 		branch,
 		apiVer,

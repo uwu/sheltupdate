@@ -6,7 +6,7 @@ import { populateReqAttrs, withSection } from "../common/tracer.js";
 
 export const handleModules = withSection("v1 module update check", async (span, c) => {
 	const { branch, channel } = c.req.param();
-	const { platform, host_version } = c.req.query();
+	const { platform } = c.req.query();
 
 	await ensureBranchIsReady(branch);
 
@@ -19,7 +19,14 @@ export const handleModules = withSection("v1 module update check", async (span, 
 
 	populateReqAttrs(span, c);
 
-	reportUniqueUser(originatingIp(c), platform, host_version, channel, branch, 1);
+	reportUniqueUser({
+		identitySource: "ip",
+		identity: originatingIp(c),
+		platform,
+		channel,
+		branch,
+		apiVer: 1,
+	});
 
 	let json = await basicProxy(c).then((r) => r.json());
 

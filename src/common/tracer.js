@@ -5,6 +5,7 @@ import { OTLPTraceExporter as OTLPJson } from "@opentelemetry/exporter-trace-otl
 import { OTLPTraceExporter as OTLPProto } from "@opentelemetry/exporter-trace-otlp-proto";
 import { ShupLoggerSpanExporter } from "./logging/index.js";
 import { config } from "./config.js";
+import { redactInstallIdValue } from "./redaction.js";
 
 const exporter = new {
 	protobuf: OTLPProto,
@@ -37,7 +38,7 @@ export function populateReqAttrs(span, ctxt) {
 	for (const k in params) span.setAttribute("params." + k, params[k]);
 
 	let query = ctxt.req.query();
-	for (const k in query) span.setAttribute("params." + k, query[k]);
+	for (const k in query) span.setAttribute("params." + k, redactInstallIdValue(k, query[k]));
 }
 
 /**

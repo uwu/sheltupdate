@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "crypto";
 import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
 import { log, logEndSection, startLogSection } from "./logging/prettyLogger.js";
+import { redactInstallId } from "./redaction.js";
 
 const sha256 = (data) => createHash("sha256").update(data).digest("hex");
 
@@ -165,7 +166,7 @@ export default class Cache {
 	}
 
 	#formatKey(key) {
-		return JSON.stringify(key);
+		return JSON.stringify(redactInstallId(key));
 	}
 
 	#fullness() {

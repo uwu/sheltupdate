@@ -42,7 +42,7 @@ const [
 	branchesWrap,
 	channelsWrap,
 	platformsWrap,
-	hostVersWrap,
+	archsWrap,
 	apiVersWrap,
 ] = [
 	"stat-node-uptime",
@@ -53,7 +53,7 @@ const [
 	"branches-wrap",
 	"chans-wrap",
 	"plats-wrap",
-	"hosts-wrap",
+	"archs-wrap",
 	"apiv-wrap",
 ].map(document.getElementById.bind(document));
 
@@ -92,13 +92,13 @@ const endpointsEntries = Object.entries(statsState.requestCounts).map(([name, hi
 
 const branchCounts = {};
 const platformCounts = {};
-const hostVerCounts = {};
+const archCounts = {};
 const apiVerCounts = {};
 const channelCounts = {};
 for (const user of Object.values(statsState.uniqueUsers)) {
-	const host = `${user.platform} ${user.version || "unknown"}`;
 	const channel = cap(user.channel);
 	const platform = cap(user.platform);
+	const arch = user.arch || "unknown";
 
 	for (const br of user.branch.split("+")) {
 		const brPretty = branchMetadata.find((b) => b.name === br)?.displayName ?? br;
@@ -108,8 +108,8 @@ for (const user of Object.values(statsState.uniqueUsers)) {
 	}
 	platformCounts[platform] ??= 0;
 	platformCounts[platform]++;
-	hostVerCounts[host] ??= 0;
-	hostVerCounts[host]++;
+	archCounts[arch] ??= 0;
+	archCounts[arch]++;
 	apiVerCounts["API V" + user.apiVer] ??= 0;
 	apiVerCounts["API V" + user.apiVer]++;
 	channelCounts[channel] ??= 0;
@@ -174,8 +174,8 @@ channelsWrap.append(
 	}),
 );
 
-const sortedHostVerCounts = Object.entries(hostVerCounts).sort(byValue);
-hostVersWrap.append(
+const sortedArchCounts = Object.entries(archCounts).sort(byValue);
+archsWrap.append(
 	Plot.plot({
 		marginTop: 0,
 		marginLeft: 35,
@@ -183,8 +183,8 @@ hostVersWrap.append(
 		height: 20,
 		label: null,
 		axis: false,
-		color: { legend: true, scheme: "dark2", domain: sortedHostVerCounts.map(([k]) => k) },
-		marks: [Plot.barX(sortedHostVerCounts, { x: "1", fill: "0" })],
+		color: { legend: true, scheme: "dark2", domain: sortedArchCounts.map(([k]) => k) },
+		marks: [Plot.barX(sortedArchCounts, { x: "1", fill: "0" })],
 	}),
 );
 

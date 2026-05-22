@@ -3,6 +3,7 @@ import { proxyCache } from "../cacheStores.js";
 import { reportProxyHit, reportProxyMiss } from "../../dashboard/reporting.js";
 import ReusableResponse from "../reusableResponse.js";
 import { withSection } from "../tracer.js";
+import { redactInstallId } from "../redaction.js";
 
 const responseFromCacheEntry = (entry) => {
 	const metadata = entry.metadata;
@@ -39,7 +40,7 @@ const setCachedProxyResponse = (key, resp, cachedOn) =>
 		status: resp.status,
 		statusText: resp.statusText,
 		type: resp.type,
-		url: resp.url,
+		url: redactInstallId(resp.url),
 		headers: Array.from(resp.headers.entries()),
 	});
 
@@ -54,7 +55,7 @@ function performUrlReplacement(span, ctxturl, options, rpl, base) {
 	span.setAttributes({
 		"proxy.options": JSON.stringify(options),
 		"proxy.replacement": rpl,
-		"proxy.target": url,
+		"proxy.target": redactInstallId(url),
 	});
 
 	return url;
@@ -77,7 +78,7 @@ export const getEtag = withSection(
 export default withSection("proxy", async (span, context, options = {}, rpl = undefined, base = config.apiBases.v1) => {
 	const url = performUrlReplacement(span, context.req.url, options, rpl, base);
 
-	const cacheUrl = url.replace(/&_=[0-9]+$/, "");
+	const cacheUrl = redactInstallId(url).replace(/&_=[0-9]+$/, "");
 	const cached = getCachedProxyResponse(cacheUrl);
 
 	const now = Date.now();
