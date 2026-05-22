@@ -285,7 +285,7 @@ function validationHook(result, c) {
 }
 
 export default new Hono()
-	.use(async (c, next) => {
+	.use("/_discovery", async (c, next) => {
 		if (!config.discovery.enabled) return c.notFound();
 		await next();
 	})

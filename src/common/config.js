@@ -1,7 +1,7 @@
 import { readFileSync } from "fs";
+import { tmpdir } from "os";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
-import { randomUUID } from "crypto";
 
 export const srcDir = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -21,6 +21,34 @@ try {
 }
 
 const DEFAULT_PORT = 8080;
+const MB = 1024 * 1024;
+
+const cacheBudget = (raw, defaults) => {
+	const inherited = rawCfg?.cache ?? {};
+	const lowerMegabytes = Number(raw?.lowerMegabytes ?? inherited.lowerMegabytes ?? defaults.lowerMegabytes);
+	const upperMegabytes = Number(raw?.upperMegabytes ?? inherited.upperMegabytes ?? defaults.upperMegabytes);
+
+	if (
+		!Number.isFinite(lowerMegabytes) ||
+		!Number.isFinite(upperMegabytes) ||
+		lowerMegabytes < 0 ||
+		upperMegabytes < 0 ||
+		lowerMegabytes > upperMegabytes
+	) {
+		return {
+			...defaults,
+			lowerBytes: defaults.lowerMegabytes * MB,
+			upperBytes: defaults.upperMegabytes * MB,
+		};
+	}
+
+	return {
+		lowerMegabytes,
+		upperMegabytes,
+		lowerBytes: lowerMegabytes * MB,
+		upperBytes: upperMegabytes * MB,
+	};
+};
 
 export const config = Object.freeze({
 	port: rawCfg?.port || DEFAULT_PORT,
@@ -47,10 +75,25 @@ export const config = Object.freeze({
 		otlpEndpoint: rawCfg?.tracing?.otlpEndpoint,
 		otlpType: rawCfg?.tracing?.otlpType ?? "protobuf", // "protobuf" | "json" | "grpc"
 	},
+	cache: {
+		root: rawCfg?.cache?.root ? resolve(rawCfg.cache.root) : resolve(tmpdir(), "sheltupdate-cache"),
+		proxy: cacheBudget(rawCfg?.cache?.proxy ?? rawCfg?.proxy?.cache, {
+			lowerMegabytes: 16,
+			upperMegabytes: 32,
+		}),
+		v1Modules: cacheBudget(rawCfg?.cache?.v1Modules, {
+			lowerMegabytes: 64,
+			upperMegabytes: 128,
+		}),
+		v2Modules: cacheBudget(rawCfg?.cache?.v2Modules, {
+			lowerMegabytes: 128,
+			upperMegabytes: 256,
+		}),
+	},
 	proxy: {
 		cache: {
-			lastUsedRemoveHours: rawCfg?.proxy?.cache?.lastUsedRemoveHours ?? 1,
-			maxMinutesToUseCached: rawCfg?.proxy?.cache?.maxMinutesToUseCached ?? 30,
+			maxMinutesToUseCached:
+				rawCfg?.cache?.proxy?.maxMinutesToUseCached ?? rawCfg?.proxy?.cache?.maxMinutesToUseCached ?? 30,
 		},
 		useragent:
 			rawCfg?.proxy?.useragent ||

@@ -1,11 +1,11 @@
-import { mkdirSync, readFileSync, cpSync } from "fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync } from "fs";
 import { join, basename } from "path";
 import { pathToFileURL } from "url";
 import { createHash } from "crypto";
 
 import glob from "glob";
 import { config, srcDir, version as shupVersion } from "./config.js";
-import { cacheBase } from "./fsCache.js";
+import { cacheRoot, createCacheTempDir } from "./cacheStores.js";
 import { dcVersion } from "../desktopCore/index.js";
 import { withSection, section } from "./tracer.js";
 
@@ -16,6 +16,9 @@ const orderingMap = new Map(); // string => number
 const setupPromises = new Map(); // string => [Promise, resolve(), boolean]
 
 const sha256 = (data) => createHash("sha256").update(data).digest("hex");
+
+const branchCacheRoot = join(cacheRoot, "branches");
+rmSync(branchCacheRoot, { recursive: true, force: true });
 
 const sortBranchesInPlace = (b) => {
 	try {
@@ -60,7 +63,25 @@ export const ensureBranchIsReady = withSection("wait for branch ready", async (s
 	);
 });
 
-const getBranchFilesCacheDir = (b) => join(cacheBase, `extra-files-${b}`);
+const getBranchStaticCacheDir = (b) => join(branchCacheRoot, b, "static");
+const getBranchCurrentCacheDir = (b) => join(branchCacheRoot, b, "current");
+
+const resetCacheDir = (dir) => {
+	rmSync(dir, { recursive: true, force: true });
+	mkdirSync(dir, { recursive: true });
+	return dir;
+};
+
+const replaceCacheDir = (targetDir, nextDir, oldPrefix) => {
+	const oldParent = createCacheTempDir(oldPrefix);
+	const oldDir = join(oldParent, "current");
+
+	if (existsSync(targetDir)) renameSync(targetDir, oldDir);
+	renameSync(nextDir, targetDir);
+	rmSync(oldParent, { recursive: true, force: true });
+
+	return targetDir;
+};
 
 const init = withSection("branch finder", async (span) => {
 	const branchDir = join(srcDir, "..", "branches");
@@ -109,8 +130,7 @@ const init = withSection("branch finder", async (span) => {
 			}
 
 			// copy extra files into cache
-			const cacheDir = getBranchFilesCacheDir(name);
-			mkdirSync(cacheDir);
+			const cacheDir = resetCacheDir(getBranchStaticCacheDir(name));
 
 			for (let i = 0; i < files.length; i++) {
 				const oldPath = files[i];
@@ -145,6 +165,7 @@ const init = withSection("branch finder", async (span) => {
 				incompatibilities,
 				hidden,
 				setup,
+				staticCacheDir: cacheDir,
 			};
 
 			// create wait-for-setup promises
@@ -252,15 +273,18 @@ const runBranchSetups = withSection("periodic branch setups", async (span) => {
 			const newProm = new Promise((r) => (newResolve = r));
 			setupPromises.set(b, [newProm, newResolve, true]);
 
-			// create a folder in cache
-			const cacheDir = getBranchFilesCacheDir(b);
+			const setupDir = createCacheTempDir(`branch-${b}`);
 			try {
-				await branches[b].setup(cacheDir, (...a) => span.addEvent(a.join(" ")));
+				cpSync(branches[b].staticCacheDir, setupDir, { recursive: true });
+				await branches[b].setup(setupDir, (...a) => span.addEvent(a.join(" ")));
 			} catch (e) {
+				rmSync(setupDir, { recursive: true, force: true });
 				// we failed! leave it in a "setting up" state until next time.
 				setupPromises.set(b, [newProm, newResolve, true, true]);
 				throw e;
 			}
+
+			const cacheDir = replaceCacheDir(getBranchCurrentCacheDir(b), setupDir, `branch-${b}-old`);
 
 			// regenerate files and version
 			const allFiles = glob.sync(`${cacheDir}/**/*.*`);
@@ -284,5 +308,4 @@ const runBranchSetups = withSection("periodic branch setups", async (span) => {
 await init(); // lol top level await go BRRRRRRRRR
 
 await runBranchSetups();
-
 setInterval(runBranchSetups, config.setupIntervalHours * 60 * 60 * 1000);

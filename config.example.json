@@ -21,11 +21,23 @@
 		"otlpEndpoint": "http://localhost:4318/v1/traces",
 		"otlpType": "protobuf"
 	},
-	"proxy": {
-		"cache": {
-			"lastUsedRemoveHours": 1,
+	"cache": {
+		"root": "/tmp/sheltupdate-cache",
+		"proxy": {
+			"lowerMegabytes": 16,
+			"upperMegabytes": 32,
 			"maxMinutesToUseCached": 30
 		},
+		"v1Modules": {
+			"lowerMegabytes": 64,
+			"upperMegabytes": 128
+		},
+		"v2Modules": {
+			"lowerMegabytes": 128,
+			"upperMegabytes": 256
+		}
+	},
+	"proxy": {
 		"useragent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) discord/0.0.76 Chrome/128.0.6613.186 Electron/32.2.2 Safari/537.36"
 	},
 	"apiBases": {

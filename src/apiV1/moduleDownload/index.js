@@ -1,16 +1,13 @@
-import { existsSync, readFileSync, rmSync } from "fs";
-import path from "path";
-
 import basicRedirect from "../../common/redirect.js";
 
 import patch from "./patchModule.js";
 import { getBranch } from "../../common/branchesLoader.js";
 import { reportEndpoint, reportV1Cached, reportV1Patched } from "../../dashboard/reporting.js";
 import { populateReqAttrs, withSection } from "../../common/tracer.js";
-import { cacheBase } from "../../common/fsCache.js";
+import { v1ModuleCache } from "../../common/cacheStores.js";
 import { getEtag } from "../../common/proxy/index.js";
 
-const cacheEtags = new Map();
+const getCacheKey = (module, branch, version) => `${branch}:${module}:${version}`;
 
 export const handleModuleDownload = withSection("v1 download module", async (span, c) => {
 	const { branch, /*channel,*/ module, version } = c.req.param();
@@ -25,34 +22,34 @@ export const handleModuleDownload = withSection("v1 download module", async (spa
 	populateReqAttrs(span, c);
 
 	if (module === "discord_desktop_core") {
-		const cacheName = `${module}-${branch}-${version}`;
-		const cacheDir = path.join(cacheBase, `v1-desktop-core`, cacheName);
-		const cacheFinalFile = path.join(cacheDir, "module.zip");
-
+		const cacheKey = getCacheKey(module, branch, version);
 		const etag = await getEtag(c.req.url, {}, [version, version.substring(branchFull.version.toString().length)]);
+		const cached = v1ModuleCache.get(cacheKey);
 
-		if (existsSync(cacheFinalFile)) {
+		if (cached) {
 			// if cache is valid
-			if (etag && etag === cacheEtags.get(cacheFinalFile)) {
+			if (etag && etag === cached.metadata.etag) {
 				span.addEvent("Served cached discord_desktop_core");
 				reportV1Cached();
 
 				c.header("Content-Type", "application/zip");
-				return c.body(readFileSync(cacheFinalFile));
+				return c.body(cached.body);
 			} else {
-				span.addEvent(`etag mismatch, expecting ${cacheEtags.get(cacheFinalFile)} but got ${etag}`);
-
-				cacheEtags.delete(cacheFinalFile);
+				span.addEvent(`etag mismatch, expecting ${cached.metadata.etag} but got ${etag}`);
 				// delete cache and fall through to patch
-				rmSync(cacheDir, { recursive: true, force: true });
+				v1ModuleCache.delete(cacheKey, `etag mismatch: expected ${cached.metadata.etag}, got ${etag}`);
 			}
 		}
 
-		// set expected etag
-		cacheEtags.set(cacheFinalFile, etag);
-
+		// wait for patch to complete
 		reportV1Patched();
-		return patch(c, cacheDir, cacheFinalFile);
+		const body = await patch(c);
+
+		// set expected etag in cache after
+		if (etag) v1ModuleCache.set(cacheKey, body, { etag });
+
+		c.header("Content-Type", "application/zip");
+		return c.body(body);
 	}
 
 	return basicRedirect(c);

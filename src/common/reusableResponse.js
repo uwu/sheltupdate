@@ -18,6 +18,10 @@ export default class ReusableResponse {
 		return false;
 	}
 
+	get byteLength() {
+		return this.#body?.byteLength ?? 0;
+	}
+
 	headers;
 	ok;
 	redirected;
@@ -72,6 +76,10 @@ export default class ReusableResponse {
 
 	text() {
 		return Promise.resolve(new TextDecoder().decode(this.#body));
+	}
+
+	toBuffer() {
+		return Buffer.from(this.#body);
 	}
 
 	toRealRes() {

@@ -13,6 +13,10 @@ export const handleModule = withSection("v2 download module", (span, c) => {
 	reportEndpoint("v2_module");
 
 	const buf = getFinal(c.req);
+	if (!buf) {
+		// cached module expired; client should request the manifest again
+		return c.body(null, 507);
+	}
 
 	c.header("Content-Type", "application/octet-stream");
 	// hono annoyingly does not send content length by default, and dicor no likey that

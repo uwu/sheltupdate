@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, cpSync, createWriteStream, rmSync } from "fs";
+import { readFileSync, writeFileSync, cpSync, createWriteStream, rmSync, mkdirSync } from "fs";
 
 import stream from "stream";
 import { join } from "path";
@@ -8,10 +8,11 @@ import archiver from "archiver";
 
 import basicProxy from "../../common/proxy/index.js";
 import { ensureBranchIsReady, getBranch, getSingleBranchMetas } from "../../common/branchesLoader.js";
+import { createCacheTempDir } from "../../common/cacheStores.js";
 import { section, withSection } from "../../common/tracer.js";
 import { dcMain, dcPreload } from "../../desktopCore/index.js";
 
-export default withSection("v1 module patcher", async (span, c, cacheDir, cacheFinalFile) => {
+export default withSection("v1 module patcher", async (span, c) => {
 	const { branch: branch_, /*channel,*/ version } = c.req.param();
 	//const { platform, host_version } = c.req.query();
 
@@ -20,51 +21,65 @@ export default withSection("v1 module patcher", async (span, c, cacheDir, cacheF
 
 	const branch = getBranch(branch_);
 
-	const cacheExtractDir = join(cacheDir, "extract" + Math.random().toString(16));
+	const cacheBuildDir = createCacheTempDir("v1-module");
+	const cacheExtractDir = join(cacheBuildDir, "extract");
+	const cacheFinalFile = join(cacheBuildDir, "module.zip");
+	mkdirSync(cacheExtractDir, { recursive: true });
 
-	const s = await section("download original module", async () => {
-		const prox = await basicProxy(c, {}, [version, version.substring(branch.version.toString().length)]);
+	try {
+		const s = await section("download original module", async () => {
+			const prox = await basicProxy(c, {}, [version, version.substring(branch.version.toString().length)]);
 
-		let s = stream.Readable.from(prox.body);
+			let s = stream.Readable.from(prox.body);
 
-		let t = s.pipe(unzipper.Extract({ path: cacheExtractDir }));
+			let t = s.pipe(unzipper.Extract({ path: cacheExtractDir }));
 
-		await new Promise((res) => t.on("close", res));
+			await new Promise((res, rej) => {
+				t.on("close", res);
+				t.on("error", rej);
+			});
 
-		return s;
-	});
+			return s;
+		});
 
-	section("copy files", () => {
-		for (const cacheDir of branch.cacheDirs) {
-			cpSync(cacheDir, cacheExtractDir, { recursive: true });
-		}
+		section("copy files", () => {
+			for (const cacheDir of branch.cacheDirs) {
+				cpSync(cacheDir, cacheExtractDir, { recursive: true });
+			}
 
-		writeFileSync(join(cacheExtractDir, "index.js"), dcMain.replace("// __BRANCHES_MAIN__", branch.main));
-		writeFileSync(join(cacheExtractDir, "preload.js"), dcPreload.replace("// __BRANCHES_PRELOAD__", branch.preload));
-		writeFileSync(join(cacheExtractDir, "branches.json"), JSON.stringify(getSingleBranchMetas(), null, 4));
-	});
+			writeFileSync(join(cacheExtractDir, "index.js"), dcMain.replace("// __BRANCHES_MAIN__", branch.main));
+			writeFileSync(
+				join(cacheExtractDir, "preload.js"),
+				dcPreload.replace("// __BRANCHES_PRELOAD__", branch.preload),
+			);
+			writeFileSync(join(cacheExtractDir, "branches.json"), JSON.stringify(getSingleBranchMetas(), null, 4));
+		});
 
-	await section("create module zip", async () => {
-		const outputStream = createWriteStream(`${cacheFinalFile}`);
+		await section("create module zip", async () => {
+			const outputStream = createWriteStream(`${cacheFinalFile}`);
 
-		const archive = archiver("zip");
+			const archive = archiver("zip");
 
-		archive.pipe(outputStream);
+			archive.pipe(outputStream);
 
-		archive.directory(cacheExtractDir, false);
+			archive.directory(cacheExtractDir, false);
 
-		archive.finalize();
+			archive.finalize();
 
-		await new Promise((res) => outputStream.on("close", res));
+			await new Promise((res, rej) => {
+				outputStream.on("close", res);
+				outputStream.on("error", rej);
+				archive.on("error", rej);
+			});
 
-		s.destroy();
+			s.destroy();
 
-		outputStream.close();
-		outputStream.destroy();
+			outputStream.close();
+			outputStream.destroy();
+		});
 
-		rmSync(cacheExtractDir, { recursive: true });
-	});
-
-	c.header("Content-Type", "application/zip");
-	return c.body(readFileSync(cacheFinalFile));
+		return readFileSync(cacheFinalFile);
+	} finally {
+		rmSync(cacheBuildDir, { recursive: true, force: true });
+	}
 });

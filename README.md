@@ -39,8 +39,10 @@ Run the container as so:
 docker run -v /path/to/your/config.json:/config.json --tmpfs /tmp -p 8080:8080 ghcr.io/uwu/sheltupdate
 ```
 
-The `--tmpfs` flag is available only on Linux hosts, and omitting it will not break sheltupdate, but will cause the
-sheltupdate cache to be left on your system, inflating disk use over time.
+sheltupdate stores downloaded update responses and patched modules in its cache directory, which defaults to `/tmp/sheltupdate-cache` inside the Docker image. Mounting `/tmp` as tmpfs using `--tmpfs /tmp` makes that cache live in RAM rather than on disk if the host supports it, but is completely optional.
+Omitting this flag will leave the cache in the container, so it can end up in some disk space being wasted. To mitigate this, the disk cache does not persist between container restarts and is instead cleared on each startup.
+
+If resource usage is a concern, the cache limits can be configured under the `cache` section in `config.json`.
 
 In a docker compose file, you specify this with:
 ```yml
@@ -48,11 +50,8 @@ services:
   sheltupdate:
     # rest of entry omitted here
     tmpfs:
-     - /tmp
+      - /tmp
 ```
-
-This step prevents the sheltupdate cache hitting the disk in practice, and therefore no resource leaks will happen when
-the container is restarted without being torn down and restored fresh.
 
 # Usage
 Discord fetches the update API URL from a `settings.json` file stored in various directories depending on your operating system.

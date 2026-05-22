@@ -11,14 +11,9 @@ import { brotliDecompressSync, brotliCompressSync, constants } from "zlib";
 import { ensureBranchIsReady, getBranch, getSingleBranchMetas } from "../common/branchesLoader.js";
 import { section, withSection } from "../common/tracer.js";
 import { SpanStatusCode } from "@opentelemetry/api";
-import { cacheBase } from "../common/fsCache.js";
+import { createCacheTempDir, v2ModuleCache } from "../common/cacheStores.js";
 import { reportV2Cached, reportV2Patched } from "../dashboard/reporting.js";
 import { dcMain, dcPreload } from "../desktopCore/index.js";
-
-const cache = {};
-
-// patched hash -> original hash
-const cacheDigests = new Map();
 
 const sha256 = (data) => createHash("sha256").update(data).digest("hex");
 
@@ -46,17 +41,14 @@ const brotlify = withSection("brotli", (span, buf) =>
 export const patch = withSection("v2 module patcher", async (span, m, branchName) => {
 	const cacheName = getCacheName("discord_desktop_core", m.module_version, branchName);
 
-	const cached = cache[cacheName];
+	const cached = v2ModuleCache.get(cacheName);
 	if (cached) {
-		const expectedSource = cacheDigests.get(cached.hash);
-
-		if (expectedSource && expectedSource === m.package_sha256) {
+		if (cached.metadata.sourceSha256 === m.package_sha256 && cached.metadata.finalSha256) {
 			reportV2Cached();
-			return cached.hash;
+			return cached.metadata.finalSha256;
 		} else {
 			// evict cache
-			cacheDigests.delete(cached.hash);
-			delete cache[cacheName];
+			v2ModuleCache.delete(cacheName, "source hash mismatch");
 		}
 	}
 	reportV2Patched();
@@ -70,104 +62,111 @@ export const patch = withSection("v2 module patcher", async (span, m, branchName
 		return brotliDecompressSync(data);
 	});
 
-	const eDir = join(cacheBase, cacheName, "extract");
+	const buildDir = createCacheTempDir("v2-module");
+	const eDir = join(buildDir, "extract");
 	const filesDir = join(eDir, "files");
 	mkdirSync(eDir, { recursive: true });
 
-	await section("extract original module", async () => {
-		const stream = Readable.from(brotli);
+	try {
+		await section("extract original module", async () => {
+			const stream = Readable.from(brotli);
 
-		const xTar = stream.pipe(
-			tar.x({
-				cwd: eDir,
-			}),
-		);
+			const xTar = stream.pipe(
+				tar.x({
+					cwd: eDir,
+				}),
+			);
 
-		await new Promise((res) => {
-			xTar.on("finish", () => res());
+			await new Promise((res, rej) => {
+				xTar.on("finish", () => res());
+				xTar.on("error", rej);
+			});
 		});
-	});
 
-	const allFiles = section("patch module files", () => {
-		let deltaManifest = JSON.parse(readFileSync(join(eDir, "delta_manifest.json"), "utf8"));
+		const allFiles = section("patch module files", () => {
+			let deltaManifest = JSON.parse(readFileSync(join(eDir, "delta_manifest.json"), "utf8"));
 
-		const moddedIndex = dcMain.replace("// __BRANCHES_MAIN__", branch.main);
-		writeFileSync(join(filesDir, "index.js"), moddedIndex);
-		deltaManifest.files["index.js"] = { New: { Sha256: sha256(moddedIndex) } };
+			const moddedIndex = dcMain.replace("// __BRANCHES_MAIN__", branch.main);
+			writeFileSync(join(filesDir, "index.js"), moddedIndex);
+			deltaManifest.files["index.js"] = { New: { Sha256: sha256(moddedIndex) } };
 
-		const moddedPreload = dcPreload.replace("// __BRANCHES_PRELOAD__", branch.preload);
-		writeFileSync(join(filesDir, "preload.js"), moddedPreload);
-		deltaManifest.files["preload.js"] = { New: { Sha256: sha256(moddedPreload) } };
+			const moddedPreload = dcPreload.replace("// __BRANCHES_PRELOAD__", branch.preload);
+			writeFileSync(join(filesDir, "preload.js"), moddedPreload);
+			deltaManifest.files["preload.js"] = { New: { Sha256: sha256(moddedPreload) } };
 
-		const availableBranches = JSON.stringify(getSingleBranchMetas(), null, 4);
-		writeFileSync(join(filesDir, "branches.json"), availableBranches);
-		deltaManifest.files["branches.json"] = { New: { Sha256: sha256(availableBranches) } };
+			const availableBranches = JSON.stringify(getSingleBranchMetas(), null, 4);
+			writeFileSync(join(filesDir, "branches.json"), availableBranches);
+			deltaManifest.files["branches.json"] = { New: { Sha256: sha256(availableBranches) } };
 
-		for (const cacheDir of branch.cacheDirs) {
-			cpSync(cacheDir, filesDir, { recursive: true });
-		}
+			for (const cacheDir of branch.cacheDirs) {
+				cpSync(cacheDir, filesDir, { recursive: true });
+			}
 
-		const allFiles = glob.sync(`${filesDir}/**/*.*`);
-		for (const f of allFiles) {
-			// The updater always expects '/' as separator in delta_manifest.json (regardless of platform)
-			const key = relative(filesDir, f).replaceAll(win32.sep, posix.sep);
+			const allFiles = glob.sync(`${filesDir}/**/*.*`);
+			for (const f of allFiles) {
+				// The updater always expects '/' as separator in delta_manifest.json (regardless of platform)
+				const key = relative(filesDir, f).replaceAll(win32.sep, posix.sep);
 
-			deltaManifest.files[key] = {
-				New: {
-					Sha256: sha256(readFileSync(f)),
+				deltaManifest.files[key] = {
+					New: {
+						Sha256: sha256(readFileSync(f)),
+					},
+				};
+			}
+
+			writeFileSync(join(eDir, "delta_manifest.json"), JSON.stringify(deltaManifest));
+
+			return allFiles;
+		});
+
+		return await section("compress final module", async () => {
+			const tarStream = tar.c(
+				{
+					cwd: eDir,
 				},
-			};
-		}
+				["delta_manifest.json", ...allFiles.map((f) => relative(eDir, f))],
+			);
 
-		writeFileSync(join(eDir, "delta_manifest.json"), JSON.stringify(deltaManifest));
+			const tarBuffer = await getBufferFromStream(tarStream);
 
-		return allFiles;
-	});
+			const final = brotlify(tarBuffer);
 
-	return await section("compress final module", async () => {
-		const tarStream = tar.c(
-			{
-				cwd: eDir,
-			},
-			["delta_manifest.json", ...allFiles.map((f) => relative(eDir, f))],
-		);
+			const finalHash = sha256(final);
 
-		const tarBuffer = await getBufferFromStream(tarStream);
+			const cached = v2ModuleCache.set(cacheName, final, {
+				sourceSha256: m.package_sha256,
+				finalSha256: finalHash,
+			});
 
-		const final = brotlify(tarBuffer);
+			if (!cached)
+				throw new Error(`failed to cache patched v2 module ${cacheName}: cache may be disabled or too small`);
 
-		const finalHash = sha256(final);
-
-		cache[cacheName] = {
-			hash: finalHash,
-			final,
-		};
-
-		// for detecting staleness later
-		cacheDigests.set(finalHash, m.package_sha256);
-
-		rmSync(eDir, { force: true, recursive: true });
-
-		return finalHash;
-	});
+			return finalHash;
+		});
+	} finally {
+		rmSync(buildDir, { force: true, recursive: true });
+	}
 });
 
 export const getFinal = withSection("v2 module patcher", (span, req) => {
 	const moduleName = req.param("moduleName");
 	const moduleVersion = req.param("moduleVersion");
 	const branchName = req.param("branch");
-	const cached = cache[getCacheName(moduleName, moduleVersion, branchName)];
+	const cacheName = getCacheName(moduleName, moduleVersion, branchName);
+	const cached = v2ModuleCache.get(cacheName);
 
-	span.setAttribute("module_patcher.cache_name", getCacheName(moduleName, moduleVersion, branchName));
+	span.setAttribute("module_patcher.cache_name", cacheName);
 
 	if (!cached) {
-		span.addEvent("module was not cached, this should never happen.");
+		// this cache entry is missing or expired; the client should request the manifest again
+		// this can only happen if the cache is disabled or too small, or the client has a *very* outdated manifest
+		// and tries to fetch an old module. the latter case *should* not be possible to hit.
+		span.addEvent("patched module was not found in cache; is cache disabled or too small?");
 		span.setStatus({ code: SpanStatusCode.ERROR });
-		// uhhh it should always be
 		return;
 	}
 
-	return cached.final;
+	return cached.body;
 });
 
 // export const getChecksum = async (m, branch) => sha256(await patch(m, branch));
