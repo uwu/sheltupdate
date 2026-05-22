@@ -74,6 +74,7 @@ const Nodes = Node.array().atLeastLength(1);
  */
 
 /**
+ * @typedef {typeof UniqueUser.infer} UniqueUser
  * @typedef {typeof Statistics.infer} Statistics
  * @typedef {typeof HitRatio.infer} HitRatio
  * @typedef {ExtractTypeKeys<Statistics, HitRatio>} HitRatioKeys

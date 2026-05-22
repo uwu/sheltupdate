@@ -1,12 +1,12 @@
 // for some reason esm.sh needs bundle-deps for this. probably helps bundle size anyway.
-// full bundle: 391.25kB, partial bundle: 246.31kB. its something!
-import * as Plot from "@observablehq/plot?bundle-deps&exports=plot,barX,text,gridX";
-// full bundle: 82.36kB, partial bundle: 23.15kB
+// full bundle: 391.25kB, partial bundle: 295.68kB. its something!
+import * as Plot from "@observablehq/plot?standalone&exports=plot,barX,groupY,groupZ,text";
+// full bundle: 82.36kB, partial bundle: 22.23kB <- this is very inaccurate since this pulls in a bunch more files
 import {
 	format,
 	formatDurationWithOptions,
 	intervalToDuration,
-} from "date-fns/fp?bundle-deps&exports=format,formatDurationWithOptions,intervalToDuration";
+} from "date-fns/fp?standalone&exports=format,formatDurationWithOptions,intervalToDuration";
 
 const since = (t) => intervalToDuration({ start: t, end: new Date() });
 
@@ -57,20 +57,11 @@ const [
 	"apiv-wrap",
 ].map(document.getElementById.bind(document));
 
-/** @type {import("../discovery").Statistics} */
-const statsState = __STATE__;
-
-/**
- * @typedef Branch
- * @prop {number} version
- * @prop {string} type
- * @prop {string} name
- * @prop {string} displayName
- * @prop {string} description
- * @prop {boolean} hidden
- */
-/** @type {Branch[]} */
-const branchMetadata = __BRANCHES__;
+/** @type {import("../discovery").UniqueUser[]} */
+const users = __USERS__;
+/** @type {Map<string, string>} */
+const branchNames = new Map(__BRANCHES__);
+const endpointHits = Object.entries(__REQUESTS__);
 
 const nodeStartTime = new Date(__NODE_START_TIME__ /*1734667290000*/);
 const clusterStartTime = new Date(__CLUSTER_START_TIME__ /*1734667290000*/);
@@ -84,120 +75,59 @@ const refreshTimes = () => {
 refreshTimes();
 setInterval(refreshTimes, 1_000);
 
-const endpointsEntries = Object.entries(statsState.requestCounts).map(([name, hits]) => {
-	const ns = name.split("_");
-
-	return { hits, endpoint: cap(ns.slice(1).join(" ")) + ` [${ns[0].toUpperCase()}]` };
-});
-
-const branchCounts = {};
-const platformCounts = {};
-const archCounts = {};
-const apiVerCounts = {};
-const channelCounts = {};
-for (const user of Object.values(statsState.uniqueUsers)) {
-	const channel = cap(user.channel);
-	const platform = cap(user.platform);
-	const arch = user.arch || "unknown";
-
-	for (const br of user.branch.split("+")) {
-		const brPretty = branchMetadata.find((b) => b.name === br)?.displayName ?? br;
-
-		branchCounts[brPretty] ??= 0;
-		branchCounts[brPretty]++;
-	}
-	platformCounts[platform] ??= 0;
-	platformCounts[platform]++;
-	archCounts[arch] ??= 0;
-	archCounts[arch]++;
-	apiVerCounts["API V" + user.apiVer] ??= 0;
-	apiVerCounts["API V" + user.apiVer]++;
-	channelCounts[channel] ??= 0;
-	channelCounts[channel]++;
-}
-
+const endpointFormat = ([e]) => {
+	const ns = e.split("_");
+	return cap(ns.slice(1).join(" ")) + ` [${ns[0].toUpperCase()}]`;
+};
 endpointWrap.append(
 	Plot.plot({
 		marginTop: 0,
 		marginLeft: 160,
-		marginRight: 35,
+		marginRight: 85,
 		label: null,
+		x: {
+			grid: true,
+		},
 		marks: [
-			Plot.barX(endpointsEntries, { y: "endpoint", x: "hits", sort: { y: "-x" } }),
-			Plot.text(endpointsEntries, { y: "endpoint", x: "hits", text: "hits", textAnchor: "start", dx: 4 }),
-			Plot.gridX(),
+			Plot.barX(endpointHits, { y: endpointFormat, x: "1", sort: { y: "-x" } }),
+			Plot.text(endpointHits, { y: endpointFormat, x: "1", text: "1", textAnchor: "start", dx: 4 }),
 		],
 	}),
 );
 
+const branches = Object.values(users)
+	.flatMap((u) => u.branch.split("+"))
+	.map((b) => branchNames.get(b) ?? b);
 branchesWrap.append(
 	Plot.plot({
 		marginTop: 0,
 		marginLeft: 160,
-		marginRight: 35,
+		marginRight: 85,
 		label: null,
+		x: {
+			grid: true,
+		},
 		marks: [
-			Plot.barX(Object.entries(branchCounts), { y: "0", x: "1", sort: { y: "-x" } }),
-			Plot.text(Object.entries(branchCounts), { y: "0", x: "1", text: "1", textAnchor: "start", dx: 4 }),
-			Plot.gridX(),
+			Plot.barX(branches, Plot.groupY({ x: "count" }, { sort: { y: "-x" } })),
+			Plot.text(branches, Plot.groupY({ text: "count", x: "count" }, { textAnchor: "start", dx: 4 })),
 		],
 	}),
 );
 
-const byValue = ([, valueA], [, valueB]) => (valueA > valueB ? -1 : valueA < valueB ? 1 : 0);
-
-const sortedPlatformCounts = Object.entries(platformCounts).sort(byValue);
-platformsWrap.append(
+const proportionPlot = (fill) =>
 	Plot.plot({
 		marginTop: 0,
 		marginLeft: 35,
 		marginRight: 35,
 		height: 20,
-		label: null,
 		axis: false,
-		color: { legend: true, scheme: "dark2", domain: sortedPlatformCounts.map(([k]) => k) },
-		marks: [Plot.barX(sortedPlatformCounts, { x: "1", fill: "0" })],
-	}),
-);
+		color: { legend: true, scheme: "dark2" },
+		marks: [proportionBar(fill)],
+	});
+const proportionBar = (fill) =>
+	Plot.barX(users, Plot.groupZ({ x: "count" }, { fill, offset: "normalize", order: "-value", sort: { color: "x" } }));
 
-const sortedChannelCounts = Object.entries(channelCounts).sort(byValue);
-channelsWrap.append(
-	Plot.plot({
-		marginTop: 0,
-		marginLeft: 35,
-		marginRight: 35,
-		height: 20,
-		label: null,
-		axis: false,
-		color: { legend: true, scheme: "dark2", domain: sortedChannelCounts.map(([k]) => k) },
-		marks: [Plot.barX(sortedChannelCounts, { x: "1", fill: "0" })],
-	}),
-);
-
-const sortedArchCounts = Object.entries(archCounts).sort(byValue);
-archsWrap.append(
-	Plot.plot({
-		marginTop: 0,
-		marginLeft: 35,
-		marginRight: 35,
-		height: 20,
-		label: null,
-		axis: false,
-		color: { legend: true, scheme: "dark2", domain: sortedArchCounts.map(([k]) => k) },
-		marks: [Plot.barX(sortedArchCounts, { x: "1", fill: "0" })],
-	}),
-);
-
-const sortedApiVerCounts = Object.entries(apiVerCounts).sort(byValue);
-apiVersWrap.append(
-	Plot.plot({
-		marginTop: 0,
-		marginLeft: 35,
-		marginRight: 35,
-		height: 20,
-		label: null,
-		axis: false,
-		color: { legend: true, scheme: "dark2", domain: sortedApiVerCounts.map(([k]) => k) },
-		marks: [Plot.barX(sortedApiVerCounts, { x: "1", fill: "0" })],
-	}),
-);
+platformsWrap.append(proportionPlot((v) => cap(v.platform)));
+channelsWrap.append(proportionPlot((v) => cap(v.channel)));
+archsWrap.append(proportionPlot((v) => v.arch || "unknown"));
+apiVersWrap.append(proportionPlot((v) => `Version ${v.apiVer}`));
