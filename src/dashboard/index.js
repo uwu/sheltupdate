@@ -1,13 +1,61 @@
-import { readFileSync } from "fs";
-import { join } from "path";
-import { config, srcDir, startTime, version } from "../common/config.js";
-import { getSingleBranchMetas } from "../common/branchesLoader.js";
+import * as fs from "node:fs/promises";
+import * as url from "node:url";
+import * as path from "node:path";
+import * as stream from "node:stream";
+import * as esbuild from "esbuild";
 import { Hono } from "hono";
+import { getMimeType } from "hono/utils/mime";
+import { getSingleBranchMetas } from "../common/branchesLoader.js";
+import { config, srcDir, startTime, version } from "../common/config.js";
 import { clusterStartTime, getAggregatedStatistics, getClusterHealth } from "../discovery.js";
+import { cacheRoot } from "../common/cacheStores.js";
 
-const html = readFileSync(join(srcDir, "dashboard", "template.html"), "utf8");
-const css_ = readFileSync(join(srcDir, "dashboard", "dashboard.css"), "utf8");
-const js__ = readFileSync(join(srcDir, "dashboard", "dashboard.js"), "utf8");
+const workingDir = url.fileURLToPath(new URL("./", import.meta.url));
+const distDir = path.join(cacheRoot, "dashboard/");
+await fs.rm(distDir, { recursive: true, force: true });
+
+try {
+	var buildResults = await esbuild.build({
+		absWorkingDir: workingDir,
+		entryPoints: ["assets/dashboard.js"],
+		entryNames: "[dir]/[name]-[hash]",
+		outdir: distDir,
+
+		absPaths: ["metafile"],
+		metafile: true,
+
+		bundle: true,
+		minify: true,
+
+		alias: {
+			"country-flags": path.join(
+				srcDir,
+				"../node_modules/country-flag-emoji-polyfill/dist/TwemojiCountryFlags.woff2",
+			),
+		},
+		loader: {
+			".woff": "file",
+			".woff2": "file",
+		},
+	});
+	// Make sure the worker process exits
+	await esbuild.stop();
+} catch {
+	// esbuild will have already reported the errors, this clause is just to make
+	// sure they aren't duplicated in the terminal
+	process.exit(1);
+}
+
+let entryJs, entryCss;
+for (const [file, meta] of Object.entries(buildResults.metafile.outputs)) {
+	const relative = path.relative(distDir, file);
+	if (!meta.entryPoint) continue;
+	entryJs = relative;
+	entryCss = path.relative(distDir, meta.cssBundle);
+	break;
+}
+
+const html = await fs.readFile(path.join(srcDir, "dashboard", "template.html"), "utf8");
 
 const hitRatio = ({ hit, miss }) => (hit || miss ? ((100 * hit) / (hit + miss)).toFixed(1) + "%" : "N/A");
 
@@ -36,13 +84,20 @@ ${nodes
 function template(temp) {
 	const statsState = getAggregatedStatistics();
 	return temp
+		.replaceAll(
+			"__SCRIPT_DATA__",
+			JSON.stringify([
+				startTime,
+				clusterStartTime,
+				Object.values(statsState.uniqueUsers),
+				statsState.requestCounts,
+				getSingleBranchMetas().map((b) => [b.name, b.displayName]),
+			]),
+		)
+		.replaceAll("__ENTRY_JS__", entryJs)
+		.replaceAll("__ENTRY_CSS__", entryCss)
 		.replaceAll("__USER_COUNT__", Object.values(statsState.uniqueUsers).length)
 		.replaceAll("__VERSION__", isRelease ? ` r${version}` : "")
-		.replaceAll("__NODE_START_TIME__", startTime)
-		.replaceAll("__CLUSTER_START_TIME__", clusterStartTime)
-		.replaceAll("__USERS__", JSON.stringify(Object.values(statsState.uniqueUsers)))
-		.replaceAll("__REQUESTS__", JSON.stringify(statsState.requestCounts))
-		.replaceAll("__BRANCHES__", JSON.stringify(getSingleBranchMetas().map((b) => [b.name, b.displayName])))
 		.replaceAll("__CACHE_PROX__", hitRatio(statsState.proxyCacheHitRatio))
 		.replaceAll("__CACHE_V1__", hitRatio(statsState.v1ModuleCacheHitRatio))
 		.replaceAll("__CACHE_V2__", hitRatio(statsState.v2ManifestCacheHitRatio))
@@ -51,12 +106,35 @@ function template(temp) {
 }
 
 export default new Hono()
-	.get("/", (c) => c.html(template(html)))
-	.get("/dashboard.css", (c) => {
-		c.header("Content-Type", "text/css");
-		return c.body(template(css_));
+	.get("/", (c) => {
+		c.header("cache-control", "no-store, no-cache");
+		return c.html(template(html));
 	})
-	.get("/dashboard.js", (c) => {
-		c.header("Content-Type", "text/javascript");
-		return c.body(template(js__));
+	.on(["GET", "HEAD"], "/_assets/:file{.+}", async (c) => {
+		// Hono's file server is awful, let's not use it ^^
+
+		const file = c.req.param("file");
+		const distPath = path.join(distDir, file);
+		if (!distPath.startsWith(distDir)) return c.notFound();
+
+		try {
+			var fd = await fs.open(distPath);
+		} catch {
+			return c.notFound();
+		}
+
+		const stat = await fd.stat();
+
+		c.header("content-length", stat.size);
+		c.header("content-type", getMimeType(file) || "application/octet-stream");
+		c.header("cache-control", "max-age=31536000, immutable"); // hono makes it impossible to send a qpack compatible header :<
+
+		if (c.req.method === "HEAD") {
+			// The file isn't closed automatically in this case
+			await fd.close();
+			return c.body(null);
+		} else {
+			const webStream = stream.Readable.toWeb(fd.createReadStream());
+			return c.body(webStream);
+		}
 	});
