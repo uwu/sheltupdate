@@ -1,3 +1,6 @@
+## r47
+ - Move caching to a unified LRU cache layer, fixes unbound memory usage.
+
 ## r46
  - Fix rare client launch error ('The "path" argument must be of type string. Received undefined')
 
