@@ -1,3 +1,6 @@
+## r48
+ - Remove unique users after a few days of inactivity
+
 ## r47
  - Move caching to a unified LRU cache layer, fixes unbound memory usage.
 
