@@ -2,7 +2,8 @@ import { createHmac, randomUUID } from "crypto";
 import { config } from "../common/config.js";
 
 // state
-export let statsState = {
+/** @type {import("../discovery.js").Statistics} */
+export const statsState = {
 	uniqueUsers: {},
 	requestCounts: {
 		v1_host_squirrel: 0,
@@ -55,7 +56,26 @@ export function reportUniqueUser({ identity, identitySource, platform, arch, cha
 		channel,
 		branch,
 		apiVer,
+		ts: getUnixDay(),
 	};
+}
+
+// (Don't Fear) The Reaper
+const uniqueUserDecay = 4; // 4 days, this isn't configurable to make it consistent across the cluster.
+const getUnixDay = () => ~~(Date.now() / 1000 / 60 / 60 / 24);
+
+// Is this the most efficient way to do this? Probably not. Does that matter? No.
+function cleanUniqueUsers() {
+	const expire = getUnixDay() - uniqueUserDecay;
+	for (const id in statsState.uniqueUsers) {
+		if (statsState.uniqueUsers[id].ts < expire) {
+			delete statsState.uniqueUsers[id];
+		}
+	}
+}
+if (config.stats) {
+	cleanUniqueUsers();
+	setInterval(cleanUniqueUsers, 24 * 60 * 60 * 1000);
 }
 
 /// call every time the proxy cache is used

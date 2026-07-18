@@ -33,6 +33,7 @@ const UniqueUser = type({
 	"arch?": "string",
 	branch: "string",
 	apiVer: "number",
+	ts: "number"
 });
 const HitRatio = type({
 	hit: "number >= 0",
