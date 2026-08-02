@@ -1,12 +1,10 @@
-// for some reason esm.sh needs bundle-deps for this. probably helps bundle size anyway.
-// full bundle: 391.25kB, partial bundle: 295.68kB. its something!
-import * as Plot from "@observablehq/plot@0.6.17?standalone&exports=plot,barX,groupY,groupZ,text";
-// full bundle: 82.36kB, partial bundle: 22.23kB <- this is very inaccurate since this pulls in a bunch more files
-import {
-	format,
-	formatDurationWithOptions,
-	intervalToDuration,
-} from "date-fns/fp?standalone&exports=format,formatDurationWithOptions,intervalToDuration";
+import "@unocss/reset/normalize.css";
+import "./dashboard.css";
+import "@fontsource/ibm-plex-mono/latin-400.css";
+import "@fontsource/ibm-plex-mono/latin-400-italic.css";
+
+import * as Plot from "@observablehq/plot";
+import { format, formatDurationWithOptions, intervalToDuration } from "date-fns/fp";
 
 const since = (t) => intervalToDuration({ start: t, end: new Date() });
 
