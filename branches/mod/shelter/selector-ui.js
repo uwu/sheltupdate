@@ -30,7 +30,7 @@
 	} = shelter;
 
 	const {
-		settings: { registerSection },
+		settings: { BadgeType, registerSection },
 	} = shelter.plugin.scoped;
 
 	const ClientModsIcon = html`
@@ -83,20 +83,32 @@
 		if (window.BdApi && !currentBranches().includes("betterdiscord")) setBdOtherwiseLoaded(true);
 	});
 
-	const updateAvailableBranches = () => SheltupdateNative.getAvailableBranches().then((branches) => {
-		// group by type, conveniently "mod" is before "tool" alphabetically
-		const grouped = {};
-		for (const branchName in branches) {
-			const data = branches[branchName];
-			if (!grouped[data.type]) grouped[data.type] = {};
+	let lastState;
+	const updateClientModsSection = (newState) => {
+		if (lastState === newState) return;
 
-			grouped[data.type][branchName] = data;
-		}
+		 lastState = newState;
+		 registerSection("section", "sheltupdate", "Client Mods", SettingsView, {
+			icon: ClientModsIcon,
+			badge: newState ? { type: BadgeType.WARNING } : undefined,
+		 });
+	};
 
-		setBranchMetaGrouped(grouped);
-		setBranchMetaRaw(branches);
-	});
-	updateAvailableBranches();
+	const updateAvailableBranches = () =>
+		SheltupdateNative.getAvailableBranches().then((branches) => {
+			// group by type, conveniently "mod" is before "tool" alphabetically
+			const grouped = {};
+			for (const branchName in branches) {
+				const data = branches[branchName];
+				if (!grouped[data.type]) grouped[data.type] = {};
+
+				grouped[data.type][branchName] = data;
+			}
+
+			setBranchMetaGrouped(grouped);
+			setBranchMetaRaw(branches);
+			updateClientModsSection(Object.values(branches).some((branch) => branch.enabled === false));
+		});
 
 	const prettyModNames = (branches) => {
 		const modNames = [...branches.filter((b) => b !== "shelter").map((b) => branchMetaRaw()[b].name)];
@@ -115,7 +127,8 @@
 	// ok so this will display *above* the shelter heading which is not ideal but its okay i guess
 	registerSection("divider");
 	registerSection("header", "Sheltupdate");
-	registerSection("section", "sheltupdate", "Client Mods", SettingsView, { icon: ClientModsIcon });
+	updateClientModsSection(false);
+	updateAvailableBranches();
 
 	function BranchEntry(props /*: { name, data, value, onChange } */) {
 		// note: if shelter is disabled (i.e. you uninstalled sheltupdate), allow switching back on
@@ -149,6 +162,8 @@
 
 	function SettingsView() {
 		updateAvailableBranches();
+		const updateTimer = setInterval(updateAvailableBranches, 10_000);
+		onCleanup(() => clearInterval(updateTimer));
 
 		// a Set<string> of branches
 		const [pendingBranches, setPendingBranches] = createSignal(new Set(currentBranches()));
@@ -186,7 +201,7 @@
 				       	}}>
 								<${Header} tag=${HeaderTags.HeadingMD} margin=${false}>Some branches are currently unavailable due to server-side failure.<//>
 								<div style=${{ "margin-top": "8px" }}/>
-								${() => failedBranches().map((branch) => html`<${Text}>• ${branch.displayName}</${Text}>`)}
+								${() => failedBranches().map((branch) => html`<${Text}>• ${branch.displayName}</${Text}><br/>`)}
 						</div>
 						`
 						: null}

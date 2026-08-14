@@ -51,7 +51,12 @@ const mapBranches = (list) =>
 	Object.fromEntries(
 		list.map((branch) => [branch.name, { ...branch, name: branch.displayName, desc: branch.description }]),
 	);
-const branches = mapBranches(branchesRaw);
+// this represents the snapshot from the server launch: new branches cannot be added or removed
+// at runtime
+const trustedBranches = mapBranches(branchesRaw);
+// this is the "weak" server state, which is used only for the UI to show branch status
+// security is more lax but it will get rejected from the native side if tampered with (mitm)
+let lastBranches = trustedBranches;
 
 const readBranches = () => ipcRenderer.invoke("SHELTER_BRANCH_GET");
 
@@ -63,10 +68,14 @@ contextBridge.exposeInMainWorld("SheltupdateNative", {
 			const host = await ipcRenderer.invoke("SHELTER_HOST_GET");
 			const response = await fetch(`${host}/sheltupdate_branches`, { signal: AbortSignal.timeout(5_000) });
 			if (!response.ok) throw new Error(`HTTP ${response.status}`);
-			return mapBranches(await response.json());
+			lastBranches = mapBranches(await response.json());
+			return lastBranches;
 		} catch (error) {
 			console.warn("[sheltupdate] Could not fetch live branch status", error);
-			return branches;
+			// set all branches to failing to indicate that something exploded
+			return Object.fromEntries(
+				Object.entries(lastBranches).map(([name, branch]) => [name, { ...branch, enabled: false }]),
+			);
 		}
 	},
 	getCurrentBranches: readBranches,
@@ -79,13 +88,13 @@ contextBridge.exposeInMainWorld("SheltupdateNative", {
 
 		// don't use `in` or `[]` as those are true for e.g. __proto__
 		for (const branch of br)
-			if (typeof branch !== "string" || !Object.keys(branches).includes(branch))
+			if (typeof branch !== "string" || !Object.keys(trustedBranches).includes(branch))
 				throw new Error("[sheltupdate] invalid branches passed to setBranches");
 
 		// get user permission first, this is our main privesc safeguard
 		const dialogState = await ipcRenderer.invoke(
 			"SHELTER_BRANCHCHANGE_SECURITY_DIALOG",
-			`Confirm that you want to change your installed mods to: ${br.map((b) => branches[b].name).join(", ")}?`,
+			`Confirm that you want to change your installed mods to: ${br.map((b) => trustedBranches[b].name).join(", ")}?`,
 		);
 
 		if (dialogState.response === 0)
