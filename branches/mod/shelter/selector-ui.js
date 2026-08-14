@@ -185,9 +185,9 @@
 							 "margin-bottom": "12px"
 				       	}}>
 								<${Header} tag=${HeaderTags.HeadingMD} margin=${false}>Some branches are currently unavailable due to server-side failure.<//>
-								<div style=${{ "margin-top": "8px" }}>
+								<div style=${{ "margin-top": "8px" }}/>
 								${() => failedBranches().map((branch) => html`<${Text}>• ${branch.displayName}</${Text}>`)}
-							</div>
+						</div>
 						`
 						: null}
 
