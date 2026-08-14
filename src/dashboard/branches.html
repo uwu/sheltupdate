@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="theme-color" content="#000000" />
+		<title>sheltupdate__VERSION__</title>
+
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+		<link rel="stylesheet" href="./dashboard.css" />
+
+		<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital@0;1&display=swap" rel="stylesheet" />
+
+		<link rel="stylesheet" href="https://esm.sh/@unocss/reset@66.7.0/normalize.css" />
+	</head>
+
+	<body>
+		__STAGING_MARQUEE__
+		<div id="header-wrap">
+			<h1>sheltupdate__VERSION__</h1>
+
+			<div id="header-links">
+				<a href="./">Dashboard</a>
+				<a href="sheltupdate_changelog">Changelog</a>
+				<a href="branches" aria-current="page">Branches</a>
+			</div>
+		</div>
+
+		<div id="branches-layout">
+			<div class="stats-card branch-status-card">
+				<h2 class="card-title">Branch Status</h2>
+				__NOTICE__
+			</div>
+
+			<div class="branch-list">__BRANCHES__</div>
+		</div>
+	</body>
+</html>

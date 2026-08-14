@@ -8,12 +8,12 @@ import { config, srcDir, version as shupVersion } from "./config.js";
 import { cacheRoot, createCacheTempDir } from "./cacheStores.js";
 import { dcVersion } from "../desktopCore/index.js";
 import { withSection, section } from "./tracer.js";
+import { BranchManager } from "./branchManager.js";
 
 let branches = {};
+const branchManager = new BranchManager();
 
 const orderingMap = new Map(); // string => number
-
-const setupPromises = new Map(); // string => [Promise, resolve(), boolean]
 
 const sha256 = (data) => createHash("sha256").update(data).digest("hex");
 
@@ -34,7 +34,10 @@ const sortBranchesInPlace = (b) => {
 	}
 };
 
-export const getBranch = (b) => branches[sortBranchesInPlace(b.split("+"))?.join("+")];
+export const getBranch = (b) => {
+	const names = sortBranchesInPlace(b.split("+"));
+	return names && branchManager.isEnabled(names) ? branches[names.join("+")] : undefined;
+};
 
 export const getSingleBranchMetas = () => {
 	const sbranches = Object.entries(branches).filter(([, b]) => b.type !== "mixed" && !b.hidden);
@@ -48,19 +51,13 @@ export const getSingleBranchMetas = () => {
 		description: b.description,
 		incompatibilities: b.incompatibilities,
 		hidden: b.hidden,
+		...branchManager.getStatus(n),
 	}));
 };
 
 // waits for any active setup to finish
 export const ensureBranchIsReady = withSection("wait for branch ready", async (span, br) => {
-	await Promise.all(
-		br.split("+").map((b) => {
-			const [promise, _, isSettingUp] = setupPromises.get(b);
-			if (isSettingUp) span.addEvent(`Having to wait for branch ${b} to set up...`);
-
-			return promise;
-		}),
-	);
+	await branchManager.ensure(br.split("+"));
 });
 
 const getBranchStaticCacheDir = (b) => join(branchCacheRoot, b, "static");
@@ -164,18 +161,10 @@ const init = withSection("branch finder", async (span) => {
 				description,
 				incompatibilities,
 				hidden,
-				setup,
 				staticCacheDir: cacheDir,
 			};
 
-			// create wait-for-setup promises
-			if (setup) {
-				let resolve;
-				const prom = new Promise((r) => (resolve = r));
-				setupPromises.set(name, [prom, resolve, false]);
-			} else {
-				setupPromises.set(name, [Promise.resolve(), () => {}, false]);
-			}
+			branchManager.register(name, setup && (() => setupBranch(name, setup)));
 		}
 	});
 
@@ -254,55 +243,34 @@ const init = withSection("branch finder", async (span) => {
 	});
 });
 
-const runBranchSetups = withSection("periodic branch setups", async (span) => {
-	// perfect for async code I guess
+const setupBranch = (name, setup) =>
+	section(`${name} setup`, async (span) => {
+		const setupDir = createCacheTempDir(`branch-${name}`);
+		try {
+			cpSync(branches[name].staticCacheDir, setupDir, { recursive: true });
+			await setup(setupDir, (...args) => span.addEvent(args.join(" ")));
 
-	await Promise.all(Object.keys(branches).map(singleSetup));
-
-	async function singleSetup(b) {
-		if (branches[b].type === "mixed" || !branches[b].setup) return;
-
-		await section(`${b} setup`, async (span) => {
-			const [_promise, resolve, isSettingUp, goAnyway] = setupPromises.get(b);
-			if (isSettingUp && !goAnyway) {
-				span.addEvent(`Skipped setting up ${b} as it was already being setup.`);
-				return;
-			}
-
-			let newResolve;
-			const newProm = new Promise((r) => (newResolve = r));
-			setupPromises.set(b, [newProm, newResolve, true]);
-
-			const setupDir = createCacheTempDir(`branch-${b}`);
-			try {
-				cpSync(branches[b].staticCacheDir, setupDir, { recursive: true });
-				await branches[b].setup(setupDir, (...a) => span.addEvent(a.join(" ")));
-			} catch (e) {
-				rmSync(setupDir, { recursive: true, force: true });
-				// we failed! leave it in a "setting up" state until next time.
-				setupPromises.set(b, [newProm, newResolve, true, true]);
-				throw e;
-			}
-
-			const cacheDir = replaceCacheDir(getBranchCurrentCacheDir(b), setupDir, `branch-${b}-old`);
-
-			// regenerate files and version
+			const cacheDir = replaceCacheDir(getBranchCurrentCacheDir(name), setupDir, `branch-${name}-old`);
 			const allFiles = glob.sync(`${cacheDir}/**/*.*`);
-			branches[b].cacheDirs = [cacheDir];
-			branches[b].files = allFiles;
+			branches[name].cacheDirs = [cacheDir];
+			branches[name].files = allFiles;
 
 			const fileHashes = allFiles.map((f) => sha256(readFileSync(f)));
-			branches[b].version = parseInt(
-				sha256(fileHashes.join(" ") + branches[b].main + branches[b].preload + dcVersion).substring(0, 2),
+			branches[name].version = parseInt(
+				sha256(fileHashes.join(" ") + branches[name].main + branches[name].preload + dcVersion).substring(0, 2),
 				16,
 			);
+		} catch (error) {
+			rmSync(setupDir, { recursive: true, force: true });
+			throw error;
+		}
+	});
 
-			setupPromises.set(b, [newProm, newResolve, false]);
-
-			resolve();
-			newResolve();
-		});
-	}
+const runBranchSetups = withSection("periodic branch setups", async () => {
+	const names = Object.entries(branches)
+		.filter(([, branch]) => branch.type !== "mixed")
+		.map(([name]) => name);
+	await Promise.all(names.map((name) => branchManager.setup(name)));
 });
 
 await init(); // lol top level await go BRRRRRRRRR

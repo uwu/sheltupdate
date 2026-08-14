@@ -50,6 +50,7 @@
 
 	const [branchMetaRaw, setBranchMetaRaw] = createSignal();
 	const [branchMetaGrouped, setBranchMetaGrouped] = createSignal();
+	const failedBranches = () => Object.values(branchMetaRaw() ?? {}).filter((branch) => branch.enabled === false);
 	const [currentBranches, setCurrentBranches] = createSignal();
 
 	const [currentHost, setCurrentHost] = createSignal();
@@ -59,6 +60,16 @@
 
 	const [vencordOtherwiseLoaded, setVencordOtherwiseLoaded] = createSignal(false);
 	const [bdOtherwiseLoaded, setBdOtherwiseLoaded] = createSignal(false);
+
+	const showErrorToast = (title, error) => {
+		console.error(`[sheltupdate] ${title}`, error);
+		showToast({
+			title,
+			color: ToastColors.CRITICAL,
+			content: "The change could not be applied.",
+			duration: 5000,
+		});
+	};
 
 	const updateCurrent = () =>
 		Promise.all([
@@ -72,7 +83,7 @@
 		if (window.BdApi && !currentBranches().includes("betterdiscord")) setBdOtherwiseLoaded(true);
 	});
 
-	SheltupdateNative.getAvailableBranches().then((branches) => {
+	const updateAvailableBranches = () => SheltupdateNative.getAvailableBranches().then((branches) => {
 		// group by type, conveniently "mod" is before "tool" alphabetically
 		const grouped = {};
 		for (const branchName in branches) {
@@ -85,6 +96,7 @@
 		setBranchMetaGrouped(grouped);
 		setBranchMetaRaw(branches);
 	});
+	updateAvailableBranches();
 
 	const prettyModNames = (branches) => {
 		const modNames = [...branches.filter((b) => b !== "shelter").map((b) => branchMetaRaw()[b].name)];
@@ -108,6 +120,9 @@
 	function BranchEntry(props /*: { name, data, value, onChange } */) {
 		// note: if shelter is disabled (i.e. you uninstalled sheltupdate), allow switching back on
 		const disabled = () => {
+			if (props.data.enabled === false && !props.value) {
+				return "This branch is temporarily unavailable due to a server-side error.";
+			}
 			if (props.name === "shelter" && props.value) {
 				return "You need shelter to have access to this menu. Try uninstalling sheltupdate.";
 			}
@@ -133,6 +148,8 @@
 	}
 
 	function SettingsView() {
+		updateAvailableBranches();
+
 		// a Set<string> of branches
 		const [pendingBranches, setPendingBranches] = createSignal(new Set(currentBranches()));
 
@@ -152,6 +169,27 @@
 
 			return html`
 			  <${Header} tag=${HeaderTags.H1} style="margin-bottom: 1rem">Client Mod Settings<//>
+
+				${() =>
+					failedBranches().length
+						? html`
+							<div style=${{
+						    "box-sizing": "border-box",
+						    "padding": "16px",
+						    "color": "var(--text-muted)",
+						    "width": "100%",
+						    "border-radius": "8px",
+						    "background": "var(--background-feedback-warning)",
+						    "border": "1px solid var(--border-feedback-warning)",
+						    "margin-top": "12px",
+							 "margin-bottom": "12px"
+				       	}}>
+								<${Header} tag=${HeaderTags.HeadingMD} margin=${false}>Some branches are currently unavailable due to server-side failure.<//>
+								<div style=${{ "margin-top": "8px" }}>
+								${() => failedBranches().map((branch) => html`<${Text}>• ${branch.displayName}</${Text}>`)}
+							</div>
+						`
+						: null}
 
 				<${Text}>
 					Your installation of ${() => prettyModNames(currentBranches())} is being managed by
@@ -211,12 +249,7 @@
 							setUninstallCache(currentBranches());
 							SheltupdateNative.uninstall().then(updateCurrent, (err) => {
 								updateCurrent();
-								showToast({
-									title: "Failed to change mods!",
-									color: ToastColors.CRITICAL,
-									content: err?.message ?? err,
-									duration: 5000,
-								});
+								showErrorToast("Failed to change mods!", err);
 							});
 						}}
 					  style=${{ "margin-left": "1rem" }}
@@ -243,12 +276,7 @@
 						},
 						(err) => {
 							updateCurrent();
-							showToast({
-								title: "Failed to change mods!",
-								color: ToastColors.CRITICAL,
-								content: err?.message ?? err,
-								duration: 5000,
-							});
+							showErrorToast("Failed to change mods!", err);
 						},
 					);
 				}}
@@ -282,12 +310,7 @@
 					onClick=${(e) =>
 						SheltupdateNative.setBranches(uninstallCache()).then(updateCurrent, (err) => {
 							updateCurrent();
-							showToast({
-								title: "Failed to change mods!",
-								color: ToastColors.CRITICAL,
-								content: err?.message ?? err,
-								duration: 5000,
-							});
+							showErrorToast("Failed to change mods!", err);
 						})}
 					style=${{ "margin-top": "2rem" }}
 				>
@@ -381,12 +404,7 @@
 						openHostChangeModal().then((v) =>
 							SheltupdateNative.setCurrentHost(v).then(updateCurrent, (err) => {
 								updateCurrent();
-								showToast({
-									title: "Failed to change host!",
-									color: ToastColors.CRITICAL,
-									content: err?.message ?? err,
-									duration: 5000,
-								});
+								showErrorToast("Failed to change host!", err);
 							}),
 						)}
 				>Change</Button>

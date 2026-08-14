@@ -204,3 +204,31 @@ h1, h2 { font-weight: normal; }
 figure {
 	margin: 0;
 }
+
+#branches-layout {
+	display: flex;
+	flex-direction: column;
+	gap: 1.25rem;
+	margin-top: 2rem;
+}
+
+.branch-status {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.branch-list {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+	gap: 1.25rem;
+}
+
+.branch-card {
+	min-height: 4rem;
+}
+
+.branch-retry {
+	font-size: 0.8rem;
+	opacity: 0.75;
+}

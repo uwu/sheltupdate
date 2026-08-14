@@ -47,16 +47,28 @@ ipcRenderer.invoke("SHELTER_BUNDLE_FETCH").then((bundle) => {
 */
 
 const branchesRaw = JSON.parse(fs.readFileSync(path.join(__dirname, "branches.json"), "utf8"));
-const branches = Object.fromEntries(
-	branchesRaw.map((branch) => [branch.name, { ...branch, name: branch.displayName, desc: branch.description }]),
-);
+const mapBranches = (list) =>
+	Object.fromEntries(
+		list.map((branch) => [branch.name, { ...branch, name: branch.displayName, desc: branch.description }]),
+	);
+const branches = mapBranches(branchesRaw);
 
 const readBranches = () => ipcRenderer.invoke("SHELTER_BRANCH_GET");
 
 const setBranches = (branches) => ipcRenderer.invoke("SHELTER_BRANCH_SET", branches);
 
 contextBridge.exposeInMainWorld("SheltupdateNative", {
-	getAvailableBranches: () => Promise.resolve(branches),
+	getAvailableBranches: async () => {
+		try {
+			const host = await ipcRenderer.invoke("SHELTER_HOST_GET");
+			const response = await fetch(`${host}/sheltupdate_branches`, { signal: AbortSignal.timeout(5_000) });
+			if (!response.ok) throw new Error(`HTTP ${response.status}`);
+			return mapBranches(await response.json());
+		} catch (error) {
+			console.warn("[sheltupdate] Could not fetch live branch status", error);
+			return branches;
+		}
+	},
 	getCurrentBranches: readBranches,
 
 	setBranches: async (br) => {
