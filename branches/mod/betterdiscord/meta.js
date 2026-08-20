@@ -10,6 +10,7 @@ export const incompatibilities = ["vencord", "equicord", "moonlight"];
 export async function setup(target, log) {
 	log("Downloading latest asar...");
 
+	throw new Error("Penis explosion error");
 	const url = await fetch("https://api.github.com/repos/BetterDiscord/BetterDiscord/releases/latest")
 		.then((r) => r.json())
 		.then((j) => j.assets.find((a) => a.browser_download_url?.includes(".asar")).browser_download_url);

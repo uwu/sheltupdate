@@ -176,19 +176,32 @@ body {
 	}
 }
 
-.cluster-node {
+#branch-statuses {
+	margin-top: 1.25rem;
+
+	& > div {
+		display: flex;
+		flex-flow: column wrap;
+		gap: 1rem;
+		justify-content: space-evenly;
+		align-items: left;
+		width: 100%;
+	}
+}
+
+.cluster-node, .branch-status {
 	display: inline-block;
 	height: 0.8em;
 	width: 0.8em;
 	border-radius: 100%;
 	background: var(--dot-color);
-	&.cluster-live, &.cluster-online {
+	&.cluster-live, &.cluster-online, &.branch-online {
 		--dot-color: #1b9e77;
 	}
-	&.cluster-offline {
+	&.cluster-offline, &.branch-offline {
 		--dot-color: #d22d39;
 	}
-	&.cluster-unknown {
+	&.cluster-unknown, &.branch-unknown {
 		--dot-color: #666666;
 	}
 }
@@ -212,23 +225,6 @@ figure {
 	margin-top: 2rem;
 }
 
-.branch-status {
-	display: flex;
-	align-items: center;
-	gap: 0.75rem;
-}
-
-.branch-list {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-	gap: 1.25rem;
-}
-
-.branch-card {
-	min-height: 4rem;
-}
-
-.branch-retry {
-	font-size: 0.8rem;
-	opacity: 0.75;
+.muted {
+	color: #cccccc;
 }
