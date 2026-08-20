@@ -164,7 +164,7 @@ const init = withSection("branch finder", async (span) => {
 				staticCacheDir: cacheDir,
 			};
 
-			branchManager.register(name, setup && (() => setupBranch(name, setup)));
+			branchManager.register(name, setup && ((span) => setupBranch(name, setup, span)));
 		}
 	});
 
@@ -243,28 +243,27 @@ const init = withSection("branch finder", async (span) => {
 	});
 });
 
-const setupBranch = (name, setup) =>
-	section(`${name} setup`, async (span) => {
-		const setupDir = createCacheTempDir(`branch-${name}`);
-		try {
-			cpSync(branches[name].staticCacheDir, setupDir, { recursive: true });
-			await setup(setupDir, (...args) => span.addEvent(args.join(" ")));
+const setupBranch = async (name, setup, span) => {
+	const setupDir = createCacheTempDir(`branch-${name}`);
+	try {
+		cpSync(branches[name].staticCacheDir, setupDir, { recursive: true });
+		await setup(setupDir, (...args) => span.addEvent(args.join(" ")));
 
-			const cacheDir = replaceCacheDir(getBranchCurrentCacheDir(name), setupDir, `branch-${name}-old`);
-			const allFiles = glob.sync(`${cacheDir}/**/*.*`);
-			branches[name].cacheDirs = [cacheDir];
-			branches[name].files = allFiles;
+		const cacheDir = replaceCacheDir(getBranchCurrentCacheDir(name), setupDir, `branch-${name}-old`);
+		const allFiles = glob.sync(`${cacheDir}/**/*.*`);
+		branches[name].cacheDirs = [cacheDir];
+		branches[name].files = allFiles;
 
-			const fileHashes = allFiles.map((f) => sha256(readFileSync(f)));
-			branches[name].version = parseInt(
-				sha256(fileHashes.join(" ") + branches[name].main + branches[name].preload + dcVersion).substring(0, 2),
-				16,
-			);
-		} catch (error) {
-			rmSync(setupDir, { recursive: true, force: true });
-			throw error;
-		}
-	});
+		const fileHashes = allFiles.map((f) => sha256(readFileSync(f)));
+		branches[name].version = parseInt(
+			sha256(fileHashes.join(" ") + branches[name].main + branches[name].preload + dcVersion).substring(0, 2),
+			16,
+		);
+	} catch (error) {
+		rmSync(setupDir, { recursive: true, force: true });
+		throw error;
+	}
+};
 
 const runBranchSetups = withSection("periodic branch setups", async () => {
 	const names = Object.entries(branches)

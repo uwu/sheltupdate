@@ -1,4 +1,6 @@
 import { config } from "./config.js";
+import { SpanStatusCode } from "@opentelemetry/api";
+import { section } from "./tracer.js";
 
 export class BranchManager {
 	#branches = new Map();
@@ -49,17 +51,17 @@ export class BranchManager {
 		if (state.retryAt && Date.now() < state.retryAt) return Promise.resolve(false);
 		clearTimeout(state.timer);
 
-		state.inFlight = Promise.resolve()
-			.then(state.setup)
-			.then(() => {
+		state.inFlight = section(`${name} setup`, async (span) => {
+			try {
+				await state.setup(span);
+
 				state.enabled = true;
 				state.error = undefined;
 				state.failures = 0;
 				state.retryDelaySeconds = undefined;
 				state.retryAt = undefined;
 				return true;
-			})
-			.catch((error) => {
+			} catch (error) {
 				state.error = error instanceof Error ? error.message : String(error);
 				state.failures++;
 				if (state.retryDelaySeconds >= config.branchRetryMaxSeconds) state.enabled = false;
@@ -72,13 +74,17 @@ export class BranchManager {
 				state.retryAt = Date.now() + delay;
 				state.timer = setTimeout(() => this.setup(name), delay);
 				state.timer.unref?.();
-				console.error(
-					`[sheltupdate] ${state.enabled ? "Keeping cached" : "Disabled"} branch ${name}; retrying in ${delay}ms`,
-					error,
-				);
+
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				span.recordException(error);
+				span.addEvent(state.enabled ? "serving cached version" : "branch disabled", {
+					branch: name,
+					retryDelayMs: delay,
+					error: state.error,
+				});
 				return false;
-			})
-			.finally(() => (state.inFlight = undefined));
+			}
+		}).finally(() => (state.inFlight = undefined));
 
 		return state.inFlight;
 	}
