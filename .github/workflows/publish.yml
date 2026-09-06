@@ -60,7 +60,7 @@ jobs:
               tags: ${{ env.TAGS }}
               build-args: |
                  SHELTUPDATE_RELEASE=${{ env.IS_RELEASE }}
-              platforms: linux/amd64,linux/arm64,linux/arm/v7
+              platforms: linux/amd64,linux/arm64
 
          - name: Update release container on server
            if: env.IS_RELEASE == 'true'
