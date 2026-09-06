@@ -191,7 +191,7 @@ function onSettings(settings) {
 		if (typeof ue2 === "string") {
 			const match = ue2.match(rg);
 			if (match?.[2]) {
-				settings.set("NEW_UPDATE_ENDPOINT", `${h}/${match[2]}`);
+				settings.set("NEW_UPDATE_ENDPOINT", `${h}/${match[2]}/`);
 			}
 		}
 	});

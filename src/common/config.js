@@ -54,6 +54,8 @@ export const config = Object.freeze({
 	port: rawCfg?.port || DEFAULT_PORT,
 	host: rawCfg?.host || `http://localhost:${rawCfg?.port || DEFAULT_PORT}`,
 	setupIntervalHours: rawCfg?.setupIntervalHours ?? 3,
+	branchRetryMinSeconds: rawCfg?.branchRetryMinSeconds ?? 30,
+	branchRetryMaxSeconds: rawCfg?.branchRetryMaxSeconds ?? 60 * 60,
 	cloudflared: {
 		enabled: !!rawCfg?.cloudflared?.enabled,
 		binary: rawCfg?.cloudflared?.binary || "cloudflared",

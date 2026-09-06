@@ -4,6 +4,7 @@ import { config, srcDir, startTime, version } from "../common/config.js";
 import { getSingleBranchMetas } from "../common/branchesLoader.js";
 import { Hono } from "hono";
 import { clusterStartTime, getAggregatedStatistics, getClusterHealth } from "../discovery.js";
+import { renderBranchesPage } from "./branchesPage.js";
 
 const html = readFileSync(join(srcDir, "dashboard", "template.html"), "utf8");
 const css_ = readFileSync(join(srcDir, "dashboard", "dashboard.css"), "utf8");
@@ -52,6 +53,9 @@ function template(temp) {
 
 export default new Hono()
 	.get("/", (c) => c.html(template(html)))
+	.get("/branches", (c) =>
+		c.html(renderBranchesPage(getSingleBranchMetas(), version, isRelease ? "" : stagingMarquee)),
+	)
 	.get("/dashboard.css", (c) => {
 		c.header("Content-Type", "text/css");
 		return c.body(template(css_));

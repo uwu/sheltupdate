@@ -6,6 +6,8 @@
 	},
 	"stats": true,
 	"setupIntervalHours": 3,
+	"branchRetryMinSeconds": 30,
+	"branchRetryMaxSeconds": 3600,
 	"discovery": {
 		"enabled": false,
 		"name": "🇩🇪 DE",
