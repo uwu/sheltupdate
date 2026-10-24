@@ -1,3 +1,6 @@
+## r49
+ - Graceful branch maintenance failure handling
+
 ## r48
  - Remove unique users after a few days of inactivity
 
