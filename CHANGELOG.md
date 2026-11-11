@@ -1,3 +1,6 @@
+## r50
+ - Fix the selector UI not allowing users to change enabled branches anymore
+
 ## r49
  - Graceful branch maintenance failure handling
 
