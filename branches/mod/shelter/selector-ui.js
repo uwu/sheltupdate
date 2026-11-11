@@ -183,6 +183,7 @@
 			}
 
 			return html`
+			  <div>
 			  <${Header} tag=${HeaderTags.H1} style="margin-bottom: 1rem">Client Mod Settings<//>
 
 				${() =>
@@ -297,6 +298,7 @@
 				}}
 				>
 			  <//>
+			  </div>
 			`;
 		};
 	}
